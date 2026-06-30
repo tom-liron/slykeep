@@ -473,3 +473,10 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 | lucide-react icons | https://lucide.dev |
 | OpenAI API | https://platform.openai.com/docs |
 | Stripe | https://stripe.com/docs |
+
+### Screenshots
+
+Refer to the screenshots below as a base for the dashboard UI. It does not have to be exact, Use it as a reference:
+
+- @context/dashboard-ui-main.png
+- @context/dashboard-ui-drawer.png

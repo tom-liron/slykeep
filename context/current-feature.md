@@ -16,4 +16,4 @@
 
 ## History
 
-<!-- Keep this updated. Earliest to latest -->
+- **Project foundation** (`6a86eb6`) — Scaffolded the initial Next.js setup: stripped the create-next-app boilerplate, added `CLAUDE.md` with commands and project context, and set up the `context/` docs folder.
