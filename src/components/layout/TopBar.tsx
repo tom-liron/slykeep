@@ -1,25 +1,51 @@
-import { FolderPlus, PanelLeft, Plus, Search } from "lucide-react";
+"use client";
 
+import { FolderPlus, Menu, PanelLeft, Plus, Search } from "lucide-react";
+
+import { Brand } from "@/components/layout/Brand";
+import { useSidebar } from "@/components/layout/sidebar-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 /**
- * Dashboard top bar. Display-only for Phase 1 — the search field and action
- * buttons are non-functional placeholders wired up in a later phase.
+ * Full-width dashboard top bar. Holds the brand (always visible), a mobile
+ * hamburger that opens the sidebar drawer, and a desktop toggle that collapses
+ * the rail. Search and action buttons are placeholders for a later phase.
+ *
+ * JSX order is chosen so each breakpoint reads naturally: mobile shows
+ * [hamburger][brand] (desktop toggle hidden); desktop shows [brand][collapse]
+ * (hamburger hidden).
  */
 export function TopBar() {
+  const { toggleCollapsed, toggleMobile } = useSidebar();
+
   return (
-    <header className="flex h-16 items-center gap-3 border-b border-border px-4">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-4">
+      {/* Mobile: hamburger opens the drawer */}
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Open menu"
+        onClick={toggleMobile}
+        className="shrink-0 md:hidden"
+      >
+        <Menu className="size-5" />
+      </Button>
+
+      <Brand />
+
+      {/* Desktop: collapse/expand the rail */}
       <Button
         variant="ghost"
         size="icon"
         aria-label="Toggle sidebar"
-        className="shrink-0"
+        onClick={toggleCollapsed}
+        className="hidden shrink-0 md:inline-flex"
       >
         <PanelLeft className="size-5" />
       </Button>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative ml-1 min-w-0 flex-1 sm:ml-2 sm:max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
@@ -33,14 +59,14 @@ export function TopBar() {
         </kbd>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        <Button variant="outline">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Button variant="outline" aria-label="New Collection">
           <FolderPlus className="size-4" />
-          <span className="hidden sm:inline">New Collection</span>
+          <span className="hidden lg:inline">New Collection</span>
         </Button>
-        <Button>
+        <Button aria-label="New Item">
           <Plus className="size-4" />
-          <span className="hidden sm:inline">New Item</span>
+          <span className="hidden lg:inline">New Item</span>
         </Button>
       </div>
     </header>
