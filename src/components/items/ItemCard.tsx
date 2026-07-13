@@ -2,10 +2,10 @@ import { Pin, Star } from "lucide-react";
 
 import { formatDate } from "@/lib/format";
 import { withAlpha } from "@/lib/utils";
-import type { ItemViewModel } from "@/types/view-models";
+import type { ItemSummaryViewModel } from "@/types/view-models";
 import { TypeIcon } from "./TypeIcon";
 
-export function ItemCard({ item }: { item: ItemViewModel }) {
+export function ItemCard({ item }: { item: ItemSummaryViewModel }) {
     const accent = item.itemType.color;
 
     return (

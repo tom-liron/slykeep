@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { SYSTEM_ITEM_TYPE_BY_ID, SYSTEM_ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
-import type { CollectionViewModel, ItemViewModel } from "@/types/view-models";
+import type { CollectionViewModel, ItemSummaryViewModel } from "@/types/view-models";
 import { collectionRecords, itemRecords } from "./records";
 import type { MockCollectionRecord, MockItemRecord } from "./records";
 import {
     buildCollectionViewModel,
     buildDashboardViewModel,
+    buildItemSummaryViewModel,
     resolveDominantTypeId,
     sortByUpdatedAtDesc,
 } from "./view-models";
@@ -84,19 +85,27 @@ describe("mock view models", () => {
         expect(records[0].id).toBe("older");
     });
 
+    it("builds item summaries without list-inaccessible content", () => {
+        const summary = buildItemSummaryViewModel(
+            makeItem("item", "type_snippet", "2026-01-01", { content: "private body" }),
+            SYSTEM_ITEM_TYPE_BY_ID,
+        );
+
+        expect(summary).not.toHaveProperty("content");
+    });
+
     it("keeps pinned items out of recent items and derives stats", () => {
         const snippetType = SYSTEM_ITEM_TYPE_CATALOG[0];
         const pinned = {
             id: "pinned",
             title: "Pinned",
             description: "",
-            content: "",
             tags: [],
             isFavorite: true,
             isPinned: true,
             updatedAt: "2026-01-03",
             itemType: snippetType,
-        } satisfies ItemViewModel;
+        } satisfies ItemSummaryViewModel;
         const recent = {
             ...pinned,
             id: "recent",
@@ -104,7 +113,7 @@ describe("mock view models", () => {
             isFavorite: false,
             isPinned: false,
             updatedAt: "2026-01-02",
-        } satisfies ItemViewModel;
+        } satisfies ItemSummaryViewModel;
         const collectionViewModel = {
             id: "collection",
             name: "Collection",

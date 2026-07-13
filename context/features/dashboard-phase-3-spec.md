@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is phase 3 of 3 for the dashboard UI layout. Use the screenshot referenced below for how it should look. Dashboard data is prepared by the server-only mock query layer until the database is implemented.
+This is phase 3 of 3 for the dashboard UI layout. It is a completed historical UI increment. Dashboard data is prepared by the server-only mock query layer until the database is implemented.
 
 ## Requirements for phase 3
 
@@ -14,7 +14,6 @@ This is phase 3 of 3 for the dashboard UI layout. Use the screenshot referenced 
 
 ## References
 
-- @context/screenshots/dashboard-ui-main.png
 - @context/project-overview.md
 - @src/server/mock-data/records.ts
 - @src/server/mock-data/queries.ts

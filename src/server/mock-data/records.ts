@@ -1,3 +1,5 @@
+import "server-only";
+
 export interface MockUserRecord {
     id: string;
     name: string;

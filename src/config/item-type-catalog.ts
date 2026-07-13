@@ -84,10 +84,6 @@ const systemItemTypeBySlug = new Map(
     SYSTEM_ITEM_TYPE_CATALOG.map((itemType) => [itemType.slug, itemType]),
 );
 
-export function getSystemItemTypeById(id: string): ItemTypeMetadata | undefined {
-    return SYSTEM_ITEM_TYPE_BY_ID.get(id);
-}
-
 export function getSystemItemTypeBySlug(slug: string): ItemTypeMetadata | undefined {
     return systemItemTypeBySlug.get(slug);
 }

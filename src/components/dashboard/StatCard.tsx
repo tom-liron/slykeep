@@ -15,9 +15,9 @@ export function StatCard({
     color: string;
 }) {
     return (
-        <div className="rounded-xl border border-border bg-card p-4">
+        <dl className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm text-muted-foreground">{label}</p>
+                <dt className="truncate text-sm text-muted-foreground">{label}</dt>
                 <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: withAlpha(color), color }}
@@ -25,7 +25,7 @@ export function StatCard({
                     <Icon className="size-4" aria-hidden="true" />
                 </span>
             </div>
-            <p className="mt-2 text-2xl font-semibold">{value}</p>
-        </div>
+            <dd className="mt-2 text-2xl font-semibold">{value}</dd>
+        </dl>
     );
 }

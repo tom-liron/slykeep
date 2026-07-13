@@ -11,6 +11,10 @@ import {
 
 import type { IconName } from "@/types/item-type";
 
+function assertNever(value: never): never {
+    throw new Error(`Unsupported icon name: ${value}`);
+}
+
 export function TypeIcon({ name, ...props }: { name: IconName } & LucideProps) {
     switch (name) {
         case "Code":
@@ -21,11 +25,13 @@ export function TypeIcon({ name, ...props }: { name: IconName } & LucideProps) {
             return <Terminal {...props} />;
         case "StickyNote":
             return <StickyNote {...props} />;
+        case "File":
+            return <File {...props} />;
         case "Image":
             return <ImageIcon {...props} />;
         case "Link":
             return <Link {...props} />;
         default:
-            return <File {...props} />;
+            return assertNever(name);
     }
 }

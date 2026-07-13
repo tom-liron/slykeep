@@ -114,7 +114,7 @@ Email / password **or** GitHub sign-in.
 
 ## 5. Data Model (Prisma)
 
-> Rough draft — not set in stone. Uses PostgreSQL (Neon) via Prisma 7.
+> Prisma-ready draft. Uses PostgreSQL (Neon) via Prisma 7. Reconcile it with the installed Prisma version and the Auth.js adapter models before creating the initial migration.
 > **Rule:** never use `prisma db push` or edit the DB structure directly. All schema changes go through **migrations**, run in dev first, then prod.
 
 ```prisma
@@ -145,12 +145,12 @@ model User {
 model Item {
   id          String           @id @default(cuid())
   title       String
-  contentType ContentType      // TEXT | FILE
-  content     String?          // text content, or null if file
-  fileUrl     String?          // Cloudflare R2 URL, or null if text
+  contentKind ContentKind      // TEXT | URL | FILE
+  content     String?          // text content for TEXT items
+  url         String?          // destination for URL items
+  fileUrl     String?          // Cloudflare R2 URL for FILE items
   fileName    String?          // original filename
   fileSize    Int?             // bytes
-  url         String?          // for link types
   description String?
   language    String?          // optional, for code highlighting
   isFavorite  Boolean          @default(false)
@@ -172,16 +172,21 @@ model Item {
 
 // ----- ItemType -----
 model ItemType {
-  id       String  @id @default(cuid())
+  id       String      @id @default(cuid())
   name     String
-  icon     String  // lucide-react icon name
-  color    String  // hex
-  isSystem Boolean @default(false)
+  slug     String
+  icon     String      // one of the application-supported Lucide icon names
+  color    String      // hex
+  kind     ContentKind
+  isPro    Boolean     @default(false)
+  isSystem Boolean     @default(false)
 
   // Relations — user is null for system types
   userId   String?
-  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items    Item[]
+
+  @@unique([userId, slug])
 }
 
 // ----- Collection -----
@@ -222,8 +227,9 @@ model Tag {
   items Item[]
 }
 
-enum ContentType {
+enum ContentKind {
   TEXT
+  URL
   FILE
 }
 ```
@@ -231,7 +237,8 @@ enum ContentType {
 > **Notes / open questions**
 > - `Tag` is currently global. Consider scoping tags per-user (`userId`) and uniquely indexing `@@unique([userId, name])` to avoid cross-user collisions.
 > - NextAuth `Account` and `Session` models are assumed but omitted above for brevity — they come from the NextAuth Prisma adapter.
-> - The current UI keeps system-only route, content-kind, and Pro metadata in `config/item-type-catalog.ts`. Reconcile that catalog with the final `ItemType` schema and seed before creating the first migration.
+> - Seed the immutable system types from `config/item-type-catalog.ts`. Persisted icon values must be validated against the application's supported icon set at the repository/view-model boundary.
+> - UI view models normalize nullable database fields such as `User.name`, `Item.description`, and `Collection.description` into display-safe values. List view models must not select item bodies; detail queries select content only when the detail drawer/page needs it.
 
 ---
 
@@ -306,7 +313,7 @@ enum ContentType {
 - **Top bar:** brand, responsive sidebar controls, search, and create actions.
 - **Sidebar:** item types (each linking to its items list), favorite collections, and recently updated collections.
 - **Main:** collection cards use a colored left accent for their dominant type. Items use a matching colored left border.
-- **Drawer:** individual items open in a fast slide-out drawer for view / edit / create.
+- **Drawer (planned):** individual items will open in a fast slide-out drawer for view / edit / create.
 
 Collection recency is based on `updatedAt`. The dominant type is the most common item type in the collection; if counts tie, the type of the most recently updated tied item wins. Empty collections use `defaultTypeId`.
 
@@ -338,19 +345,19 @@ Icons are [lucide-react](https://lucide.dev) names.
 
 ---
 
-## 9. Suggested Project Structure
+## 9. Project Structure
 
-A pragmatic Next.js App Router layout. Adjust as the app grows — this is a starting point, not a mandate.
+The current application implements the dashboard routes, feature components, runtime configuration, and the server-only mock query layer shown below. Entries marked **(planned)** are target additions for later product phases, not files that already exist.
 
 ```
 devstash/
-├── prisma/
+├── prisma/                      # (planned)
 │   ├── schema.prisma
 │   └── migrations/              # migration history (never edit applied ones)
-├── public/
+├── public/                      # (planned, when static assets are needed)
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/              # sign-in / sign-up routes, no sidebar
+│   │   ├── (auth)/              # (planned) sign-in / sign-up routes, no sidebar
 │   │   │   ├── login/
 │   │   │   └── register/
 │   │   ├── (dashboard)/        # authed app, sidebar layout
@@ -360,9 +367,9 @@ devstash/
 │   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
-│   │   │   ├── search/
-│   │   │   └── settings/        # account, billing, export
-│   │   ├── api/
+│   │   │   ├── search/          # (planned)
+│   │   │   └── settings/        # (planned) account, billing, export
+│   │   ├── api/                 # (planned)
 │   │   │   ├── auth/[...nextauth]/
 │   │   │   ├── items/
 │   │   │   ├── collections/
@@ -370,47 +377,48 @@ devstash/
 │   │   │   ├── ai/              # tag, summarize, explain, optimize
 │   │   │   ├── export/          # JSON / ZIP
 │   │   │   └── stripe/          # checkout + webhook
-│   │   ├── layout.tsx           # root, theme provider
+│   │   ├── layout.tsx           # root shell and default dark theme
 │   │   └── globals.css
 │   ├── components/
-│   │   ├── ui/                  # shadcn/ui primitives
-│   │   ├── items/               # item card, item drawer, editor
-│   │   ├── collections/         # collection card, grid
+│   │   ├── ui/                  # shared UI primitives and presentational components
+│   │   ├── items/               # item card; drawer/editor planned
+│   │   ├── collections/         # collection card and page composition
 │   │   └── layout/              # sidebar, topbar, mobile drawer
 │   ├── lib/
-│   │   ├── prisma.ts            # singleton Prisma client
-│   │   ├── auth.ts              # NextAuth config
-│   │   ├── r2.ts                # Cloudflare R2 client
-│   │   ├── openai.ts            # AI client + prompt helpers
-│   │   ├── stripe.ts            # Stripe client
-│   │   └── limits.ts            # free-tier gating (items/collections)
-│   ├── server/                  # server actions / data-access functions
+│   │   ├── prisma.ts            # (planned) singleton Prisma client
+│   │   ├── auth.ts              # (planned) Auth.js config
+│   │   ├── r2.ts                # (planned) Cloudflare R2 client
+│   │   ├── openai.ts            # (planned) AI client + prompt helpers
+│   │   ├── stripe.ts            # (planned) Stripe client
+│   │   └── limits.ts            # item-type entitlement policy
+│   ├── actions/                 # (planned) Server Actions for mutations
+│   ├── server/                  # server-only queries, repositories, and view-model preparation
 │   │   ├── mock-data/           # temporary records, view-model preparation, queries
-│   │   ├── items.ts
-│   │   ├── collections.ts
-│   │   └── search.ts
-│   ├── hooks/
+│   │   ├── items.ts             # (planned)
+│   │   ├── collections.ts       # (planned)
+│   │   └── search.ts            # (planned)
+│   ├── hooks/                   # (planned)
 │   ├── types/
 │   │   ├── item-type.ts         # item-type contracts
 │   │   └── view-models.ts       # persistence-independent UI models
 │   └── config/
+│       ├── access.ts            # temporary feature-entitlement configuration
 │       ├── dashboard.ts         # dashboard presentation values
 │       └── item-type-catalog.ts # built-in item types: colors, icons, routes
 ├── .env                         # secrets (gitignored)
-├── .env.example                 # documented placeholders, committed
+├── .env.example                 # (planned) documented placeholders, committed
 └── package.json
 ```
 
-A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy them. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns persistence access and prepares persistence-independent view models; the current mock query layer is replaced by Prisma without changing presentation components.
+A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` will own write-side Server Actions. Prisma replaces the current mock query layer without changing presentation components.
 
 ---
 
 ## 10. Next Steps / Roadmap
 
-A phased build order. Each phase is shippable on its own and de-risks the next.
+A phased build order. Each phase is shippable on its own and de-risks the next. The completed `context/features/dashboard-phase-*.md` documents describe earlier UI-only increments; they are not the same as the product roadmap phases below.
 
-**Phase 0 — Foundations**
-- Scaffold Next.js 16 + TypeScript + Tailwind v4 + shadcn/ui
+**Phase 0 — Prisma Foundation (next)**
 - Set up Neon, connect Prisma, write the first migration (`init`)
 - Seed the seven system `ItemType` rows
 - Configure `.env.example` and the Prisma client singleton
@@ -479,10 +487,3 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 | lucide-react icons | https://lucide.dev |
 | OpenAI API | https://platform.openai.com/docs |
 | Stripe | https://stripe.com/docs |
-
-### Screenshots
-
-Use the screenshots below as dashboard references rather than exact specifications:
-
-- @context/screenshots/dashboard-ui-main.png
-- @context/screenshots/dashboard-ui-drawer.png

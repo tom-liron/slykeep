@@ -1,11 +1,10 @@
 import type { IconName, ItemTypeMetadata } from "./item-type";
 
-/** Item data prepared for rendering, independent of the persistence layer. */
-export interface ItemViewModel {
+/** Item data prepared for cards and lists, independent of the persistence layer. */
+export interface ItemSummaryViewModel {
     id: string;
     title: string;
     description: string;
-    content: string;
     tags: string[];
     isFavorite: boolean;
     isPinned: boolean;
@@ -42,9 +41,9 @@ export interface DashboardStats {
 
 export interface DashboardViewModel {
     stats: DashboardStats;
-    recentCollections: CollectionViewModel[];
-    pinnedItems: ItemViewModel[];
-    recentItems: ItemViewModel[];
+    recentlyUpdatedCollections: CollectionViewModel[];
+    pinnedItems: ItemSummaryViewModel[];
+    recentItems: ItemSummaryViewModel[];
 }
 
 export interface SidebarItemTypeViewModel {
@@ -66,16 +65,16 @@ export interface SidebarCollectionViewModel {
 export interface SidebarViewModel {
     itemTypes: SidebarItemTypeViewModel[];
     favoriteCollections: SidebarCollectionViewModel[];
-    recentCollections: SidebarCollectionViewModel[];
+    recentNonFavoriteCollections: SidebarCollectionViewModel[];
     user: UserViewModel;
 }
 
 export interface ItemTypePageViewModel {
     itemType: ItemTypeMetadata;
-    items: ItemViewModel[];
+    items: ItemSummaryViewModel[];
 }
 
 export interface CollectionPageViewModel {
     collection: CollectionViewModel;
-    items: ItemViewModel[];
+    items: ItemSummaryViewModel[];
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { ChevronDown, Folder, Settings, Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
@@ -20,6 +20,8 @@ export function SidebarNav({
     const pathname = usePathname();
     const [typesOpen, setTypesOpen] = useState(true);
     const [collectionsOpen, setCollectionsOpen] = useState(true);
+    const itemTypesPanelId = useId();
+    const collectionsPanelId = useId();
 
     return (
         <div className="flex h-full flex-col">
@@ -29,10 +31,11 @@ export function SidebarNav({
                 <SectionHeader
                     label="Types"
                     open={typesOpen}
+                    controls={itemTypesPanelId}
                     onToggle={() => setTypesOpen((v) => !v)}
                 />
                 {typesOpen && (
-                    <ul className="mb-2 mt-1 space-y-0.5">
+                    <ul id={itemTypesPanelId} className="mb-2 mt-1 space-y-0.5">
                         {data.itemTypes.map((itemType) => {
                             const href = `/items/${itemType.slug}`;
                             const active = pathname === href;
@@ -69,10 +72,11 @@ export function SidebarNav({
                 <SectionHeader
                     label="Collections"
                     open={collectionsOpen}
+                    controls={collectionsPanelId}
                     onToggle={() => setCollectionsOpen((v) => !v)}
                 />
                 {collectionsOpen && (
-                    <div className="mt-1 space-y-3">
+                    <div id={collectionsPanelId} className="mt-1 space-y-3">
                         {data.favoriteCollections.length > 0 && (
                             <div>
                                 <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -98,13 +102,13 @@ export function SidebarNav({
                             </div>
                         )}
 
-                        {data.recentCollections.length > 0 && (
+                        {data.recentNonFavoriteCollections.length > 0 && (
                             <div>
                                 <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                     Recent
                                 </p>
                                 <ul className="space-y-0.5">
-                                    {data.recentCollections.map((collection) => (
+                                    {data.recentNonFavoriteCollections.map((collection) => (
                                         <CollectionLink
                                             key={collection.id}
                                             href={`/collections/${collection.id}`}
@@ -160,10 +164,12 @@ export function SidebarNav({
 function SectionHeader({
     label,
     open,
+    controls,
     onToggle,
 }: {
     label: string;
     open: boolean;
+    controls: string;
     onToggle: () => void;
 }) {
     return (
@@ -172,6 +178,7 @@ function SectionHeader({
             onClick={onToggle}
             className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
             aria-expanded={open}
+            aria-controls={controls}
         >
             <span>{label}</span>
             <ChevronDown
@@ -192,7 +199,7 @@ function CollectionLink({
     href: string;
     name: string;
     active: boolean;
-    trailing: React.ReactNode;
+    trailing: ReactNode;
     onNavigate?: () => void;
 }) {
     return (

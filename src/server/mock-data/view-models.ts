@@ -1,8 +1,10 @@
+import "server-only";
+
 import type { ItemTypeMetadata } from "@/types/item-type";
 import type {
     CollectionViewModel,
     DashboardViewModel,
-    ItemViewModel,
+    ItemSummaryViewModel,
     UserViewModel,
 } from "@/types/view-models";
 import type { MockCollectionRecord, MockItemRecord, MockUserRecord } from "./records";
@@ -39,10 +41,10 @@ export function resolveDominantTypeId(
     );
 }
 
-export function buildItemViewModel(
+export function buildItemSummaryViewModel(
     item: MockItemRecord,
     itemTypesById: ItemTypeMap,
-): ItemViewModel {
+): ItemSummaryViewModel {
     const itemType = itemTypesById.get(item.typeId);
     if (!itemType) {
         throw new Error(`Unknown item type: ${item.typeId}`);
@@ -52,7 +54,6 @@ export function buildItemViewModel(
         id: item.id,
         title: item.title,
         description: item.description,
-        content: item.content,
         tags: [...item.tags],
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
@@ -98,7 +99,7 @@ export function buildUserViewModel(user: MockUserRecord): UserViewModel {
 }
 
 export function buildDashboardViewModel(
-    items: ItemViewModel[],
+    items: ItemSummaryViewModel[],
     collections: CollectionViewModel[],
 ): DashboardViewModel {
     return {
@@ -108,7 +109,7 @@ export function buildDashboardViewModel(
             favoriteItems: items.filter((item) => item.isFavorite).length,
             favoriteCollections: collections.filter((collection) => collection.isFavorite).length,
         },
-        recentCollections: sortByUpdatedAtDesc(collections).slice(0, 6),
+        recentlyUpdatedCollections: sortByUpdatedAtDesc(collections).slice(0, 6),
         pinnedItems: sortByUpdatedAtDesc(items.filter((item) => item.isPinned)),
         recentItems: sortByUpdatedAtDesc(items.filter((item) => !item.isPinned)).slice(0, 10),
     };

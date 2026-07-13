@@ -19,7 +19,7 @@
 
 - Server components by default
 - Only use `'use client'` when needed (interactivity, hooks, browser APIs)
-- Use Server Actions for form submissions and simple mutations
+- Use Server Actions from `src/actions/` for form submissions and simple mutations
 - Use API routes when you need:
     - Webhooks (Stripe, GitHub, etc.)
     - File uploads with progress tracking
@@ -53,8 +53,8 @@ Example v4 configuration:
 
 - Components: `src/components/[feature]/ComponentName.tsx`
 - Pages: `src/app/[route]/page.tsx`
-- Server Actions: `src/actions/[feature].ts`
-- Server-only queries and data preparation: `src/server/[feature].ts`
+- Server Actions (mutations): `src/actions/[feature].ts`
+- Server-only queries, repositories, and data preparation: `src/server/[feature].ts`
 - Types: `src/types/[feature].ts`
 - Static product configuration: `src/config/[feature].ts`
 - Lib/Utils: `src/lib/[utility].ts`

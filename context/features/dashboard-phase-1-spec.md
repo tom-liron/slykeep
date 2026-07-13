@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is phase 1 of 3 for the dashboard UI layout. Use the screenshot referenced below for how it should look.
+This is phase 1 of 3 for the dashboard UI layout. It is a completed historical UI increment; use the project overview for the current product direction.
 
 ## Requirements for phase 1
 
@@ -16,7 +16,6 @@ This is phase 1 of 3 for the dashboard UI layout. Use the screenshot referenced 
 
 ## References
 
-- @context/screenshots/dashboard-ui-main.png
 - @context/project-overview.md
 - @src/server/mock-data/records.ts
 - @context/features/dashboard-phase-2-spec.md

@@ -5,6 +5,7 @@ import {
     SYSTEM_ITEM_TYPE_CATALOG,
     getSystemItemTypeBySlug,
 } from "@/config/item-type-catalog";
+import { canAccessItemType } from "@/lib/limits";
 import type {
     CollectionPageViewModel,
     CollectionViewModel,
@@ -17,13 +18,15 @@ import { collectionRecords, currentUserRecord, itemRecords } from "./records";
 import {
     buildCollectionViewModel,
     buildDashboardViewModel,
-    buildItemViewModel,
+    buildItemSummaryViewModel,
     buildUserViewModel,
     sortByUpdatedAtDesc,
 } from "./view-models";
 
-const itemViewModels = itemRecords.map((item) => buildItemViewModel(item, SYSTEM_ITEM_TYPE_BY_ID));
-const itemViewModelsById = new Map(itemViewModels.map((item) => [item.id, item]));
+const itemSummaries = itemRecords.map((item) =>
+    buildItemSummaryViewModel(item, SYSTEM_ITEM_TYPE_BY_ID),
+);
+const itemSummariesById = new Map(itemSummaries.map((item) => [item.id, item]));
 
 const itemsByCollectionId = new Map(
     collectionRecords.map((collection) => [
@@ -58,14 +61,16 @@ function toSidebarCollection(collection: CollectionViewModel): SidebarCollection
 }
 
 export async function getDashboardData(): Promise<DashboardViewModel> {
-    return buildDashboardViewModel(itemViewModels, collectionViewModels);
+    return buildDashboardViewModel(itemSummaries, collectionViewModels);
 }
 
 export async function getSidebarData(): Promise<SidebarViewModel> {
     const sortedCollections = sortByUpdatedAtDesc(collectionViewModels);
 
     return {
-        itemTypes: SYSTEM_ITEM_TYPE_CATALOG.map((itemType) => ({
+        itemTypes: SYSTEM_ITEM_TYPE_CATALOG.filter((itemType) =>
+            canAccessItemType(currentUserRecord.isPro, itemType.isPro),
+        ).map((itemType) => ({
             id: itemType.id,
             name: itemType.name,
             icon: itemType.icon,
@@ -76,7 +81,7 @@ export async function getSidebarData(): Promise<SidebarViewModel> {
         favoriteCollections: sortedCollections
             .filter((collection) => collection.isFavorite)
             .map(toSidebarCollection),
-        recentCollections: sortedCollections
+        recentNonFavoriteCollections: sortedCollections
             .filter((collection) => !collection.isFavorite)
             .slice(0, 5)
             .map(toSidebarCollection),
@@ -97,7 +102,7 @@ export async function getCollectionPageData(
     }
 
     const items = (itemsByCollectionId.get(collectionId) ?? [])
-        .map((item) => itemViewModelsById.get(item.id))
+        .map((item) => itemSummariesById.get(item.id))
         .filter((item) => item !== undefined);
 
     return {
@@ -113,11 +118,14 @@ export async function getItemTypePageData(
     if (!itemType) {
         return undefined;
     }
+    if (!canAccessItemType(currentUserRecord.isPro, itemType.isPro)) {
+        return undefined;
+    }
 
     return {
         itemType,
         items: sortByUpdatedAtDesc(
-            itemViewModels.filter((item) => item.itemType.id === itemType.id),
+            itemSummaries.filter((item) => item.itemType.id === itemType.id),
         ),
     };
 }

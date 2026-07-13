@@ -55,9 +55,9 @@ export default async function DashboardPage() {
                         View all
                     </Link>
                 </div>
-                {data.recentCollections.length > 0 ? (
+                {data.recentlyUpdatedCollections.length > 0 ? (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {data.recentCollections.map((collection) => (
+                        {data.recentlyUpdatedCollections.map((collection) => (
                             <CollectionCard key={collection.id} collection={collection} />
                         ))}
                     </div>
