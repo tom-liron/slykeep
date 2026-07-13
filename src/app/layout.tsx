@@ -3,31 +3,31 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-sans",
-  subsets: ["latin"],
+    variable: "--font-sans",
+    subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
+    variable: "--font-mono",
+    subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "DevStash",
-  description: "One fast, searchable, AI-enhanced hub for all developer knowledge.",
+    title: "DevStash",
+    description: "One fast, searchable, AI-enhanced hub for all developer knowledge.",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html
-      lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
-    </html>
-  );
+    return (
+        <html
+            lang="en"
+            className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        >
+            <body className="min-h-full flex flex-col">{children}</body>
+        </html>
+    );
 }
