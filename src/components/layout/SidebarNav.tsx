@@ -5,45 +5,28 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, Folder, Settings, Star } from "lucide-react";
 
+import { SYSTEM_ITEM_TYPES } from "@/config/item-types";
 import {
-    collections,
-    currentUser,
-    itemTypes,
-} from "@/lib/mock-data";
+    getFavoriteCollections,
+    getItemCountByType,
+    getItemCountInCollection,
+    getRecentCollections,
+} from "@/lib/dashboard";
+import { getInitials } from "@/lib/format";
+import { currentUser } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { TypeIcon } from "./TypeIcon";
 
 /** How many non-favorite collections to surface under "Recent". */
 const RECENT_LIMIT = 5;
 
-function SectionHeader({ label, open, onToggle, }: { label: string; open: boolean; onToggle: () => void; }) {
-    return (
-        <button
-            type="button"
-            onClick={onToggle}
-            className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-            aria-expanded={open}
-        >
-            <span>{label}</span>
-            <ChevronDown
-                className={cn(
-                    "size-4 transition-transform",
-                    open ? "rotate-0" : "-rotate-90",
-                )}
-            />
-        </button>
-    );
-}
-
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname();
     const [typesOpen, setTypesOpen] = useState(true);
     const [collectionsOpen, setCollectionsOpen] = useState(true);
 
-    const favoriteCollections = collections.filter((c) => c.isFavorite);
-    const recentCollections = collections
-        .filter((c) => !c.isFavorite)
-        .slice(0, RECENT_LIMIT);
+    const favoriteCollections = getFavoriteCollections();
+    const recentCollections = getRecentCollections(RECENT_LIMIT);
 
     return (
         <div className="flex h-full flex-col">
@@ -57,7 +40,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 />
                 {typesOpen && (
                     <ul className="mb-2 mt-1 space-y-0.5">
-                        {itemTypes.map((type) => {
+                        {SYSTEM_ITEM_TYPES.map((type) => {
                             const href = `/items/${type.slug}`;
                             const active = pathname === href;
                             return (
@@ -77,7 +60,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                                         />
                                         <span className="flex-1 truncate">{type.name}</span>
                                         <span className="text-xs text-muted-foreground">
-                                            {type.count}
+                                            {getItemCountByType(type.id)}
                                         </span>
                                     </Link>
                                 </li>
@@ -133,7 +116,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                                             onNavigate={onNavigate}
                                             trailing={
                                                 <span className="text-xs text-muted-foreground">
-                                                    {collection.itemCount}
+                                                    {getItemCountInCollection(collection.id)}
                                                 </span>
                                             }
                                         />
@@ -156,19 +139,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                             className="size-9 rounded-full object-cover"
                         />
                     ) : (
-                        currentUser.name
-                            .split(" ")
-                            .map((part) => part[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase()
+                        getInitials(currentUser.name)
                     )}
                 </span>
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{currentUser.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                        {currentUser.email}
-                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{currentUser.email}</p>
                 </div>
                 <Link
                     href="/settings"
@@ -180,6 +156,30 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 </Link>
             </div>
         </div>
+    );
+}
+
+function SectionHeader({
+    label,
+    open,
+    onToggle,
+}: {
+    label: string;
+    open: boolean;
+    onToggle: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+            aria-expanded={open}
+        >
+            <span>{label}</span>
+            <ChevronDown
+                className={cn("size-4 transition-transform", open ? "rotate-0" : "-rotate-90")}
+            />
+        </button>
     );
 }
 

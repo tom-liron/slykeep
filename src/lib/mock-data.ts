@@ -1,279 +1,265 @@
 /**
- * Single source of truth for mock dashboard data.
+ * Mock dashboard data — the single source of truth for the UI until the
+ * database is wired up. Domain shapes come from @/types/item; static type
+ * metadata (colors, icons, routes) comes from @/config/item-types.
  *
- * Used to render the dashboard UI until the database is wired up.
- * Mirrors the shape of the eventual Prisma models (see context/project-overview.md)
- * but kept intentionally flat and simple — for display only.
+ * All counts shown in the UI are derived from these arrays (see
+ * @/lib/dashboard), so the numbers always reconcile.
  */
 
-export type ContentKind = "text" | "url" | "file";
-
-export interface ItemType {
-  id: string;
-  name: string;
-  /** lucide-react icon name */
-  icon: string;
-  /** hex color */
-  color: string;
-  /** /items/[slug] route segment */
-  slug: string;
-  kind: ContentKind;
-  isPro: boolean;
-  /** number of items of this type (sidebar count) */
-  count: number;
-}
-
-export interface Collection {
-  id: string;
-  name: string;
-  description: string;
-  itemCount: number;
-  isFavorite: boolean;
-  /** ids of the item types this collection holds, in display order */
-  typeIds: string[];
-}
-
-export interface Item {
-  id: string;
-  title: string;
-  description: string;
-  typeId: string;
-  /** text content, link url, or file name depending on the type's kind */
-  content: string;
-  tags: string[];
-  isFavorite: boolean;
-  isPinned: boolean;
-  /** ids of the collections this item belongs to */
-  collectionIds: string[];
-  updatedAt: string;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  image: string | null;
-  isPro: boolean;
-}
+import type { Collection, Item, User } from "@/types/item";
 
 export const currentUser: User = {
-  id: "user_1",
-  name: "John Doe",
-  email: "john@example.com",
-  image: null,
-  isPro: true,
+    id: "user_1",
+    name: "John Doe",
+    email: "john@example.com",
+    image: null,
+    isPro: true,
 };
 
-export const itemTypes: ItemType[] = [
-  {
-    id: "type_snippet",
-    name: "Snippets",
-    icon: "Code",
-    color: "#3b82f6",
-    slug: "snippets",
-    kind: "text",
-    isPro: false,
-    count: 24,
-  },
-  {
-    id: "type_prompt",
-    name: "Prompts",
-    icon: "Sparkles",
-    color: "#8b5cf6",
-    slug: "prompts",
-    kind: "text",
-    isPro: false,
-    count: 18,
-  },
-  {
-    id: "type_command",
-    name: "Commands",
-    icon: "Terminal",
-    color: "#f97316",
-    slug: "commands",
-    kind: "text",
-    isPro: false,
-    count: 15,
-  },
-  {
-    id: "type_note",
-    name: "Notes",
-    icon: "StickyNote",
-    color: "#fde047",
-    slug: "notes",
-    kind: "text",
-    isPro: false,
-    count: 12,
-  },
-  {
-    id: "type_file",
-    name: "Files",
-    icon: "File",
-    color: "#6b7280",
-    slug: "files",
-    kind: "file",
-    isPro: true,
-    count: 5,
-  },
-  {
-    id: "type_image",
-    name: "Images",
-    icon: "Image",
-    color: "#ec4899",
-    slug: "images",
-    kind: "file",
-    isPro: true,
-    count: 3,
-  },
-  {
-    id: "type_link",
-    name: "Links",
-    icon: "Link",
-    color: "#10b981",
-    slug: "links",
-    kind: "url",
-    isPro: false,
-    count: 8,
-  },
-];
-
 export const collections: Collection[] = [
-  {
-    id: "col_react",
-    name: "React Patterns",
-    description: "Common React patterns and hooks",
-    itemCount: 12,
-    isFavorite: true,
-    typeIds: ["type_snippet", "type_note", "type_link"],
-  },
-  {
-    id: "col_python",
-    name: "Python Snippets",
-    description: "Useful Python code snippets",
-    itemCount: 8,
-    isFavorite: false,
-    typeIds: ["type_snippet", "type_note"],
-  },
-  {
-    id: "col_context",
-    name: "Context Files",
-    description: "AI context files for projects",
-    itemCount: 5,
-    isFavorite: true,
-    typeIds: ["type_file", "type_note"],
-  },
-  {
-    id: "col_interview",
-    name: "Interview Prep",
-    description: "Technical interview preparation",
-    itemCount: 24,
-    isFavorite: false,
-    typeIds: ["type_note", "type_snippet", "type_link", "type_prompt"],
-  },
-  {
-    id: "col_git",
-    name: "Git Commands",
-    description: "Frequently used git commands",
-    itemCount: 15,
-    isFavorite: true,
-    typeIds: ["type_command", "type_note"],
-  },
-  {
-    id: "col_ai",
-    name: "AI Prompts",
-    description: "Curated AI prompts for coding",
-    itemCount: 18,
-    isFavorite: false,
-    typeIds: ["type_prompt", "type_snippet", "type_note"],
-  },
+    {
+        id: "col_react",
+        name: "React Patterns",
+        description: "Common React patterns and hooks",
+        isFavorite: true,
+        typeIds: ["type_snippet", "type_note", "type_link"],
+    },
+    {
+        id: "col_python",
+        name: "Python Snippets",
+        description: "Useful Python code snippets",
+        isFavorite: false,
+        typeIds: ["type_snippet", "type_note"],
+    },
+    {
+        id: "col_context",
+        name: "Context Files",
+        description: "AI context files for projects",
+        isFavorite: true,
+        typeIds: ["type_file", "type_note", "type_image"],
+    },
+    {
+        id: "col_interview",
+        name: "Interview Prep",
+        description: "Technical interview preparation",
+        isFavorite: false,
+        typeIds: ["type_note", "type_snippet", "type_link", "type_prompt"],
+    },
+    {
+        id: "col_git",
+        name: "Git Commands",
+        description: "Frequently used git commands",
+        isFavorite: true,
+        typeIds: ["type_command", "type_note"],
+    },
+    {
+        id: "col_ai",
+        name: "AI Prompts",
+        description: "Curated AI prompts for coding",
+        isFavorite: false,
+        typeIds: ["type_prompt", "type_snippet", "type_note"],
+    },
 ];
 
 export const items: Item[] = [
-  {
-    id: "item_useauth",
-    title: "useAuth Hook",
-    description: "Custom authentication hook for React applications",
-    typeId: "type_snippet",
-    content:
-      "export function useAuth() {\n  const ctx = useContext(AuthContext);\n  if (!ctx) throw new Error('useAuth must be used within AuthProvider');\n  return ctx;\n}",
-    tags: ["react", "auth", "hooks"],
-    isFavorite: true,
-    isPinned: true,
-    collectionIds: ["col_react", "col_interview"],
-    updatedAt: "2026-01-15",
-  },
-  {
-    id: "item_api_error",
-    title: "API Error Handling Pattern",
-    description: "Fetch wrapper with exponential backoff retry logic",
-    typeId: "type_snippet",
-    content:
-      "async function fetchWithRetry(url, options, retries = 3) {\n  for (let i = 0; i < retries; i++) {\n    try {\n      return await fetch(url, options);\n    } catch (e) {\n      await new Promise((r) => setTimeout(r, 2 ** i * 100));\n    }\n  }\n  throw new Error('Request failed after retries');\n}",
-    tags: ["api", "error-handling", "fetch"],
-    isFavorite: false,
-    isPinned: true,
-    collectionIds: ["col_react"],
-    updatedAt: "2026-01-12",
-  },
-  {
-    id: "item_optimize_prompt",
-    title: "Code Review Prompt",
-    description: "Prompt for thorough AI code reviews",
-    typeId: "type_prompt",
-    content:
-      "Review the following code for bugs, security issues, and readability. Suggest concrete improvements with examples.",
-    tags: ["ai", "review", "prompt"],
-    isFavorite: true,
-    isPinned: false,
-    collectionIds: ["col_ai"],
-    updatedAt: "2026-01-10",
-  },
-  {
-    id: "item_git_undo",
-    title: "Undo Last Commit",
-    description: "Reset the last commit but keep the changes staged",
-    typeId: "type_command",
-    content: "git reset --soft HEAD~1",
-    tags: ["git", "undo"],
-    isFavorite: false,
-    isPinned: false,
-    collectionIds: ["col_git"],
-    updatedAt: "2026-01-08",
-  },
-  {
-    id: "item_py_dedupe",
-    title: "Deduplicate a List",
-    description: "Remove duplicates from a list while preserving order",
-    typeId: "type_snippet",
-    content: "def dedupe(items):\n    return list(dict.fromkeys(items))",
-    tags: ["python", "list"],
-    isFavorite: false,
-    isPinned: false,
-    collectionIds: ["col_python"],
-    updatedAt: "2026-01-06",
-  },
-  {
-    id: "item_docs_link",
-    title: "Next.js App Router Docs",
-    description: "Official documentation for the App Router",
-    typeId: "type_link",
-    content: "https://nextjs.org/docs/app",
-    tags: ["nextjs", "docs"],
-    isFavorite: false,
-    isPinned: false,
-    collectionIds: ["col_react", "col_interview"],
-    updatedAt: "2026-01-04",
-  },
-  {
-    id: "item_context_file",
-    title: "project-context.md",
-    description: "Base AI context file for new projects",
-    typeId: "type_file",
-    content: "project-context.md",
-    tags: ["context", "ai"],
-    isFavorite: true,
-    isPinned: false,
-    collectionIds: ["col_context"],
-    updatedAt: "2026-01-02",
-  },
+    {
+        id: "item_useauth",
+        title: "useAuth Hook",
+        description: "Custom authentication hook for React applications",
+        typeId: "type_snippet",
+        content:
+            "export function useAuth() {\n  const ctx = useContext(AuthContext);\n  if (!ctx) throw new Error('useAuth must be used within AuthProvider');\n  return ctx;\n}",
+        tags: ["react", "auth", "hooks"],
+        isFavorite: true,
+        isPinned: true,
+        collectionIds: ["col_react", "col_interview"],
+        updatedAt: "2026-01-15",
+    },
+    {
+        id: "item_api_error",
+        title: "API Error Handling Pattern",
+        description: "Fetch wrapper with exponential backoff retry logic",
+        typeId: "type_snippet",
+        content:
+            "async function fetchWithRetry(url, options, retries = 3) {\n  for (let i = 0; i < retries; i++) {\n    try {\n      return await fetch(url, options);\n    } catch (e) {\n      await new Promise((r) => setTimeout(r, 2 ** i * 100));\n    }\n  }\n  throw new Error('Request failed after retries');\n}",
+        tags: ["api", "error-handling", "fetch"],
+        isFavorite: false,
+        isPinned: true,
+        collectionIds: ["col_react"],
+        updatedAt: "2026-01-12",
+    },
+    {
+        id: "item_use_debounce",
+        title: "useDebounce Hook",
+        description: "Debounce a rapidly changing value in React",
+        typeId: "type_snippet",
+        content:
+            "export function useDebounce<T>(value: T, delay = 300) {\n  const [debounced, setDebounced] = useState(value);\n  useEffect(() => {\n    const id = setTimeout(() => setDebounced(value), delay);\n    return () => clearTimeout(id);\n  }, [value, delay]);\n  return debounced;\n}",
+        tags: ["react", "hooks", "performance"],
+        isFavorite: true,
+        isPinned: false,
+        collectionIds: ["col_react", "col_interview"],
+        updatedAt: "2026-01-14",
+    },
+    {
+        id: "item_py_dedupe",
+        title: "Deduplicate a List",
+        description: "Remove duplicates from a list while preserving order",
+        typeId: "type_snippet",
+        content: "def dedupe(items):\n    return list(dict.fromkeys(items))",
+        tags: ["python", "list"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_python"],
+        updatedAt: "2026-01-06",
+    },
+    {
+        id: "item_py_timer",
+        title: "Timing Decorator",
+        description: "Decorator that logs how long a function takes to run",
+        typeId: "type_snippet",
+        content:
+            "import time\n\ndef timed(fn):\n    def wrapper(*args, **kwargs):\n        start = time.perf_counter()\n        result = fn(*args, **kwargs)\n        print(f'{fn.__name__} took {time.perf_counter() - start:.4f}s')\n        return result\n    return wrapper",
+        tags: ["python", "decorator", "profiling"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_python"],
+        updatedAt: "2026-01-03",
+    },
+    {
+        id: "item_review_prompt",
+        title: "Code Review Prompt",
+        description: "Prompt for thorough AI code reviews",
+        typeId: "type_prompt",
+        content:
+            "Review the following code for bugs, security issues, and readability. Suggest concrete improvements with examples.",
+        tags: ["ai", "review", "prompt"],
+        isFavorite: true,
+        isPinned: false,
+        collectionIds: ["col_ai"],
+        updatedAt: "2026-01-10",
+    },
+    {
+        id: "item_refactor_prompt",
+        title: "Refactor System Prompt",
+        description: "System prompt that keeps refactors behavior-preserving",
+        typeId: "type_prompt",
+        content:
+            "You are a senior engineer. Refactor for clarity without changing behavior. Explain each change briefly and preserve the public API.",
+        tags: ["ai", "refactor", "system-prompt"],
+        isFavorite: false,
+        isPinned: true,
+        collectionIds: ["col_ai", "col_interview"],
+        updatedAt: "2026-01-11",
+    },
+    {
+        id: "item_git_undo",
+        title: "Undo Last Commit",
+        description: "Reset the last commit but keep the changes staged",
+        typeId: "type_command",
+        content: "git reset --soft HEAD~1",
+        tags: ["git", "undo"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_git"],
+        updatedAt: "2026-01-08",
+    },
+    {
+        id: "item_git_squash",
+        title: "Squash Last N Commits",
+        description: "Interactively squash the most recent commits into one",
+        typeId: "type_command",
+        content: "git rebase -i HEAD~3",
+        tags: ["git", "rebase"],
+        isFavorite: true,
+        isPinned: false,
+        collectionIds: ["col_git"],
+        updatedAt: "2026-01-07",
+    },
+    {
+        id: "item_git_prune",
+        title: "Prune Merged Branches",
+        description: "Delete local branches already merged into main",
+        typeId: "type_command",
+        content: "git branch --merged main | grep -v main | xargs git branch -d",
+        tags: ["git", "cleanup"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_git"],
+        updatedAt: "2026-01-05",
+    },
+    {
+        id: "item_ts_generics",
+        title: "TypeScript Generics Cheatsheet",
+        description: "Common generic constraints and utility type patterns",
+        typeId: "type_note",
+        content:
+            "- `T extends U` constrains a generic\n- `keyof T` yields the union of keys\n- `Pick<T, K>` / `Omit<T, K>` reshape objects\n- `ReturnType<typeof fn>` infers a return type",
+        tags: ["typescript", "types", "reference"],
+        isFavorite: true,
+        isPinned: false,
+        collectionIds: ["col_interview"],
+        updatedAt: "2026-01-09",
+    },
+    {
+        id: "item_readme_note",
+        title: "README Template",
+        description: "Base README structure for new projects",
+        typeId: "type_note",
+        content: "# Project\n\n## Getting Started\n\n## Scripts\n\n## Architecture\n\n## License",
+        tags: ["docs", "template"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_context"],
+        updatedAt: "2026-01-01",
+    },
+    {
+        id: "item_docs_link",
+        title: "Next.js App Router Docs",
+        description: "Official documentation for the App Router",
+        typeId: "type_link",
+        content: "https://nextjs.org/docs/app",
+        tags: ["nextjs", "docs"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_react", "col_interview"],
+        updatedAt: "2026-01-04",
+    },
+    {
+        id: "item_tailwind_link",
+        title: "Tailwind CSS v4 Docs",
+        description: "Reference for the CSS-first Tailwind v4 configuration",
+        typeId: "type_link",
+        content: "https://tailwindcss.com/docs",
+        tags: ["tailwind", "css", "docs"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_react"],
+        updatedAt: "2026-01-02",
+    },
+    {
+        id: "item_context_file",
+        title: "project-context.md",
+        description: "Base AI context file for new projects",
+        typeId: "type_file",
+        content: "project-context.md",
+        tags: ["context", "ai"],
+        isFavorite: true,
+        isPinned: false,
+        collectionIds: ["col_context"],
+        updatedAt: "2026-01-13",
+    },
+    {
+        id: "item_arch_diagram",
+        title: "architecture.png",
+        description: "System architecture diagram for the dashboard",
+        typeId: "type_image",
+        content: "architecture.png",
+        tags: ["diagram", "architecture"],
+        isFavorite: false,
+        isPinned: false,
+        collectionIds: ["col_context"],
+        updatedAt: "2025-12-30",
+    },
 ];

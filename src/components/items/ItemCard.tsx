@@ -1,8 +1,11 @@
 import { Pin, Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/layout/TypeIcon";
-import { formatDate, getType } from "@/lib/dashboard";
-import type { Item } from "@/lib/mock-data";
+import { FALLBACK_TYPE_COLOR } from "@/config/item-types";
+import { withAlpha } from "@/lib/colors";
+import { formatDate } from "@/lib/format";
+import { getType } from "@/lib/item-types";
+import type { Item } from "@/types/item";
 
 /**
  * Item row card: type-colored left border and icon badge, title with pin/star
@@ -11,7 +14,7 @@ import type { Item } from "@/lib/mock-data";
  */
 export function ItemCard({ item }: { item: Item }) {
     const type = getType(item.typeId);
-    const accent = type?.color ?? "#6b7280";
+    const accent = type?.color ?? FALLBACK_TYPE_COLOR;
 
     return (
         <article
@@ -20,7 +23,7 @@ export function ItemCard({ item }: { item: Item }) {
         >
             <span
                 className="flex size-10 shrink-0 items-center justify-center rounded-lg"
-                style={{ backgroundColor: `${accent}1a`, color: accent }}
+                style={{ backgroundColor: withAlpha(accent), color: accent }}
             >
                 {type && <TypeIcon name={type.icon} className="size-5" />}
             </span>

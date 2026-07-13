@@ -1,5 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
+import { withAlpha } from "@/lib/colors";
+
 /** A single summary stat: label, big number, and a tinted type-colored icon. */
 export function StatCard({
     label,
@@ -18,7 +20,7 @@ export function StatCard({
                 <p className="truncate text-sm text-muted-foreground">{label}</p>
                 <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: `${color}1a`, color }}
+                    style={{ backgroundColor: withAlpha(color), color }}
                 >
                     <Icon className="size-4" />
                 </span>

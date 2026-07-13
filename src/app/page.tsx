@@ -1,3 +1,3 @@
 export default function Home() {
-    return <h1>Devstash</h1>;
+    return <h1>DevStash</h1>;
 }

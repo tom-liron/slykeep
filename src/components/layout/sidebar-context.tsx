@@ -1,12 +1,6 @@
 "use client";
 
-import {
-    createContext,
-    useCallback,
-    useContext,
-    useState,
-    type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 
 interface SidebarContextValue {
     /** Desktop: whether the sidebar rail is collapsed (hidden). */

@@ -4,14 +4,19 @@ import { Boxes, Folder, FolderHeart, Pin, Star } from "lucide-react";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ItemCard } from "@/components/items/ItemCard";
-import { dashboardStats, pinnedItems, recentItems } from "@/lib/dashboard";
-import { collections } from "@/lib/mock-data";
+import { TYPE_PALETTE } from "@/config/item-types";
+import {
+    getDashboardStats,
+    getLatestCollections,
+    getPinnedItems,
+    getRecentItems,
+} from "@/lib/dashboard";
 
 export default function DashboardPage() {
-    const stats = dashboardStats();
-    const recentCollections = collections.slice(0, 6);
-    const pinned = pinnedItems();
-    const recent = recentItems(10);
+    const stats = getDashboardStats();
+    const latestCollections = getLatestCollections(6);
+    const pinned = getPinnedItems();
+    const recent = getRecentItems(10);
 
     return (
         <div className="mx-auto max-w-6xl space-y-8">
@@ -26,25 +31,25 @@ export default function DashboardPage() {
                     label="Items"
                     value={stats.totalItems}
                     icon={Boxes}
-                    color="#3b82f6"
+                    color={TYPE_PALETTE.snippet}
                 />
                 <StatCard
                     label="Collections"
                     value={stats.totalCollections}
                     icon={Folder}
-                    color="#10b981"
+                    color={TYPE_PALETTE.link}
                 />
                 <StatCard
                     label="Favorite Items"
                     value={stats.favoriteItems}
                     icon={Star}
-                    color="#fde047"
+                    color={TYPE_PALETTE.note}
                 />
                 <StatCard
                     label="Favorite Collections"
                     value={stats.favoriteCollections}
                     icon={FolderHeart}
-                    color="#8b5cf6"
+                    color={TYPE_PALETTE.prompt}
                 />
             </section>
 
@@ -60,7 +65,7 @@ export default function DashboardPage() {
                     </Link>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {recentCollections.map((collection) => (
+                    {latestCollections.map((collection) => (
                         <CollectionCard key={collection.id} collection={collection} />
                     ))}
                 </div>
