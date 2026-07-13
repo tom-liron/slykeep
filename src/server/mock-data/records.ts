@@ -1,15 +1,34 @@
-/**
- * Mock dashboard data — the single source of truth for the UI until the
- * database is wired up. Domain shapes come from @/types/item; static type
- * metadata (colors, icons, routes) comes from @/config/item-types.
- *
- * All counts shown in the UI are derived from these arrays (see
- * @/lib/dashboard), so the numbers always reconcile.
- */
+export interface MockUserRecord {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+    isPro: boolean;
+}
 
-import type { Collection, Item, User } from "@/types/item";
+export interface MockCollectionRecord {
+    id: string;
+    name: string;
+    description: string;
+    isFavorite: boolean;
+    defaultTypeId: string;
+    updatedAt: string;
+}
 
-export const currentUser: User = {
+export interface MockItemRecord {
+    id: string;
+    title: string;
+    description: string;
+    typeId: string;
+    content: string;
+    tags: string[];
+    isFavorite: boolean;
+    isPinned: boolean;
+    collectionIds: string[];
+    updatedAt: string;
+}
+
+export const currentUserRecord: MockUserRecord = {
     id: "user_1",
     name: "John Doe",
     email: "john@example.com",
@@ -17,52 +36,58 @@ export const currentUser: User = {
     isPro: true,
 };
 
-export const collections: Collection[] = [
+export const collectionRecords: MockCollectionRecord[] = [
     {
         id: "col_react",
         name: "React Patterns",
         description: "Common React patterns and hooks",
         isFavorite: true,
-        typeIds: ["type_snippet", "type_note", "type_link"],
+        defaultTypeId: "type_snippet",
+        updatedAt: "2026-01-15",
     },
     {
         id: "col_python",
         name: "Python Snippets",
         description: "Useful Python code snippets",
         isFavorite: false,
-        typeIds: ["type_snippet", "type_note"],
+        defaultTypeId: "type_snippet",
+        updatedAt: "2026-01-06",
     },
     {
         id: "col_context",
         name: "Context Files",
         description: "AI context files for projects",
         isFavorite: true,
-        typeIds: ["type_file", "type_note", "type_image"],
+        defaultTypeId: "type_file",
+        updatedAt: "2026-01-13",
     },
     {
         id: "col_interview",
         name: "Interview Prep",
         description: "Technical interview preparation",
         isFavorite: false,
-        typeIds: ["type_note", "type_snippet", "type_link", "type_prompt"],
+        defaultTypeId: "type_note",
+        updatedAt: "2026-01-15",
     },
     {
         id: "col_git",
         name: "Git Commands",
         description: "Frequently used git commands",
         isFavorite: true,
-        typeIds: ["type_command", "type_note"],
+        defaultTypeId: "type_command",
+        updatedAt: "2026-01-08",
     },
     {
         id: "col_ai",
         name: "AI Prompts",
         description: "Curated AI prompts for coding",
         isFavorite: false,
-        typeIds: ["type_prompt", "type_snippet", "type_note"],
+        defaultTypeId: "type_prompt",
+        updatedAt: "2026-01-11",
     },
 ];
 
-export const items: Item[] = [
+export const itemRecords: MockItemRecord[] = [
     {
         id: "item_useauth",
         title: "useAuth Hook",

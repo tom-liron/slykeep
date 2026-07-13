@@ -3,14 +3,10 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 
 interface SidebarContextValue {
-    /** Desktop: whether the sidebar rail is collapsed (hidden). */
     collapsed: boolean;
-    /** Toggle the desktop rail collapsed/expanded. */
     toggleCollapsed: () => void;
-    /** Mobile: whether the sidebar drawer is open. */
     mobileOpen: boolean;
     setMobileOpen: (open: boolean) => void;
-    /** Toggle the mobile slide-out drawer. */
     toggleMobile: () => void;
 }
 
@@ -20,8 +16,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    const toggleCollapsed = useCallback(() => setCollapsed((prev) => !prev), []);
-    const toggleMobile = useCallback(() => setMobileOpen((prev) => !prev), []);
+    const toggleCollapsed = useCallback(() => setCollapsed((previous) => !previous), []);
+    const toggleMobile = useCallback(() => setMobileOpen((previous) => !previous), []);
 
     return (
         <SidebarContext.Provider
@@ -39,9 +35,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 }
 
 export function useSidebar() {
-    const ctx = useContext(SidebarContext);
-    if (!ctx) {
+    const context = useContext(SidebarContext);
+    if (!context) {
         throw new Error("useSidebar must be used within a SidebarProvider");
     }
-    return ctx;
+    return context;
 }

@@ -8,7 +8,7 @@ This is phase 1 of 3 for the dashboard UI layout. Use the screenshot referenced 
 
 - ShadCN UI initialization and components
 - ShadCN component installation
-- Dashboard route at /dashboard
+- Dashboard route at `/` through the `(dashboard)` route group
 - Main dashboard layout and any global styles
 - Dark mode by default
 - Top bar with search and new item button (display only)
@@ -18,6 +18,6 @@ This is phase 1 of 3 for the dashboard UI layout. Use the screenshot referenced 
 
 - @context/screenshots/dashboard-ui-main.png
 - @context/project-overview.md
-- @src/lib/mock-data.ts
+- @src/server/mock-data/records.ts
 - @context/features/dashboard-phase-2-spec.md
 - @context/features/dashboard-phase-3-spec.md

@@ -4,7 +4,8 @@
 
 - Strict mode enabled
 - No `any` types - use proper typing or `unknown`
-- Define interfaces for all props, API responses, and data models
+- Define interfaces for API responses and reusable data models
+- Inline prop types are preferred for small components whose props are not reused
 - Use type inference where obvious, explicit types where helpful
 
 ## React
@@ -20,12 +21,12 @@
 - Only use `'use client'` when needed (interactivity, hooks, browser APIs)
 - Use Server Actions for form submissions and simple mutations
 - Use API routes when you need:
-  - Webhooks (Stripe, GitHub, etc.)
-  - File uploads with progress tracking
-  - Long-running operations
-  - Specific HTTP status codes or headers
-  - Endpoints for future mobile/CLI clients
-  - Third-party integrations
+    - Webhooks (Stripe, GitHub, etc.)
+    - File uploads with progress tracking
+    - Long-running operations
+    - Specific HTTP status codes or headers
+    - Endpoints for future mobile/CLI clients
+    - Third-party integrations
 - Otherwise, fetch data directly in server components
 - Dynamic routes for item/collection pages
 
@@ -44,7 +45,7 @@ Example v4 configuration:
 @import "tailwindcss";
 
 @theme {
-  --color-primary: oklch(50% 0.2 250);
+    --color-primary: oklch(50% 0.2 250);
 }
 ```
 
@@ -53,13 +54,18 @@ Example v4 configuration:
 - Components: `src/components/[feature]/ComponentName.tsx`
 - Pages: `src/app/[route]/page.tsx`
 - Server Actions: `src/actions/[feature].ts`
+- Server-only queries and data preparation: `src/server/[feature].ts`
 - Types: `src/types/[feature].ts`
+- Static product configuration: `src/config/[feature].ts`
 - Lib/Utils: `src/lib/[utility].ts`
+
+Type files define compile-time contracts only. Configuration files contain runtime values that satisfy those contracts.
 
 ## Naming
 
 - Components: PascalCase (`ItemCard.tsx`)
-- Files: Match component name or kebab-case
+- React modules: Match the primary exported component/provider (`SidebarContext.tsx`)
+- Non-component files: kebab-case
 - Functions: camelCase
 - Constants: SCREAMING_SNAKE_CASE
 - Types/Interfaces: PascalCase (no prefix)
@@ -68,7 +74,7 @@ Example v4 configuration:
 
 - Tailwind CSS for all styling
 - Use shadcn/ui components where applicable
-- No inline styles
+- Avoid inline styles except for runtime values that Tailwind cannot generate, such as user-configured type colors
 - Dark mode first, light mode as option
 
 ## Database
@@ -80,7 +86,8 @@ Example v4 configuration:
 
 ## Data Fetching
 
-- Server components fetch directly with Prisma
+- Server components fetch through focused server-only query modules
+- Server query modules prepare view models so client and presentation components do not depend on Prisma records
 - Client components use Server Actions
 - Validate all inputs with Zod
 
@@ -95,4 +102,4 @@ Example v4 configuration:
 - No commented-out code unless specified
 - No unused imports or variables
 - Keep functions under 50 lines when possible
-
+- Add focused unit tests for non-trivial business rules and data transformations

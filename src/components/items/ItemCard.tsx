@@ -1,31 +1,24 @@
 import { Pin, Star } from "lucide-react";
 
-import { TypeIcon } from "@/components/layout/TypeIcon";
-import { FALLBACK_TYPE_COLOR } from "@/config/item-types";
-import { withAlpha } from "@/lib/colors";
 import { formatDate } from "@/lib/format";
-import { getType } from "@/lib/item-types";
-import type { Item } from "@/types/item";
+import { withAlpha } from "@/lib/utils";
+import type { ItemViewModel } from "@/types/view-models";
+import { TypeIcon } from "./TypeIcon";
 
-/**
- * Item row card: type-colored left border and icon badge, title with pin/star
- * markers, description, tags, and the last-updated date. Display-only for now —
- * the edit/view drawer arrives in a later phase.
- */
-export function ItemCard({ item }: { item: Item }) {
-    const type = getType(item.typeId);
-    const accent = type?.color ?? FALLBACK_TYPE_COLOR;
+export function ItemCard({ item }: { item: ItemViewModel }) {
+    const accent = item.itemType.color;
 
     return (
         <article
-            className="flex gap-3 rounded-xl border border-border border-l-4 bg-card p-4 transition-colors hover:bg-muted/50"
+            id={item.id}
+            className="flex gap-3 rounded-xl border border-border border-l-4 bg-card p-4"
             style={{ borderLeftColor: accent }}
         >
             <span
                 className="flex size-10 shrink-0 items-center justify-center rounded-lg"
                 style={{ backgroundColor: withAlpha(accent), color: accent }}
             >
-                {type && <TypeIcon name={type.icon} className="size-5" />}
+                <TypeIcon name={item.itemType.icon} className="size-5" aria-hidden="true" />
             </span>
 
             <div className="min-w-0 flex-1">
@@ -33,13 +26,28 @@ export function ItemCard({ item }: { item: Item }) {
                     <div className="flex min-w-0 items-center gap-1.5">
                         <h3 className="truncate font-medium">{item.title}</h3>
                         {item.isPinned && (
-                            <Pin className="size-3.5 shrink-0 text-muted-foreground" />
+                            <>
+                                <Pin
+                                    className="size-3.5 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <span className="sr-only">Pinned</span>
+                            </>
                         )}
                         {item.isFavorite && (
-                            <Star className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
+                            <>
+                                <Star
+                                    className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400"
+                                    aria-hidden="true"
+                                />
+                                <span className="sr-only">Favorite</span>
+                            </>
                         )}
                     </div>
-                    <time className="shrink-0 text-xs text-muted-foreground">
+                    <time
+                        dateTime={item.updatedAt}
+                        className="shrink-0 text-xs text-muted-foreground"
+                    >
                         {formatDate(item.updatedAt)}
                     </time>
                 </div>
@@ -52,7 +60,7 @@ export function ItemCard({ item }: { item: Item }) {
                     <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.tags.map((tag) => (
                             <span
-                                key={tag}
+                                key={`${item.id}-${tag}`}
                                 className="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
                             >
                                 {tag}

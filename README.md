@@ -11,7 +11,7 @@ See [`context/project-overview.md`](context/project-overview.md) for the full pr
 - **Prisma 7** + **Neon (PostgreSQL)** _(planned)_
 - **NextAuth v5** auth, **Cloudflare R2** storage, **Stripe** billing _(planned)_
 
-The dashboard currently runs on mock data (`src/lib/mock-data.ts`) until the database is wired up.
+The dashboard currently uses a server-only mock query layer (`src/server/mock-data/`) until the database is wired up.
 
 ## Getting Started
 
@@ -20,7 +20,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard).
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
@@ -29,14 +29,16 @@ Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard).
 - `npm start` — serve the production build (run `build` first)
 - `npm run lint` — ESLint over the project
 - `npm run format` — format the project with Prettier
+- `npm test` — run unit tests
 
 ## Project Structure
 
 ```
 src/
-├── app/          # Next.js App Router routes (root + /dashboard)
-├── components/   # ui/ primitives, and layout/ items/ collections/ dashboard/ features
-├── config/       # item-types.ts — source of truth for type colors, icons, routes
-├── lib/          # helpers: cn, colors, format, item-types lookup, dashboard selectors, mock-data
-└── types/        # domain shapes (Item, ItemType, Collection, User)
+├── app/          # App Router routes; `(dashboard)` provides the shared app shell
+├── components/   # UI primitives and feature-focused presentation components
+├── config/       # runtime product and presentation configuration
+├── lib/          # small framework-agnostic formatting and styling helpers
+├── server/       # server-only records, queries, and view-model preparation
+└── types/        # shared contracts and persistence-independent view models
 ```

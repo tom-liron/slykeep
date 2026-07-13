@@ -5,28 +5,21 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, Folder, Settings, Star } from "lucide-react";
 
-import { SYSTEM_ITEM_TYPES } from "@/config/item-types";
-import {
-    getFavoriteCollections,
-    getItemCountByType,
-    getItemCountInCollection,
-    getRecentCollections,
-} from "@/lib/dashboard";
+import { TypeIcon } from "@/components/items/TypeIcon";
 import { getInitials } from "@/lib/format";
-import { currentUser } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
-import { TypeIcon } from "./TypeIcon";
+import type { SidebarViewModel } from "@/types/view-models";
 
-/** How many non-favorite collections to surface under "Recent". */
-const RECENT_LIMIT = 5;
-
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarNav({
+    data,
+    onNavigate,
+}: {
+    data: SidebarViewModel;
+    onNavigate?: () => void;
+}) {
     const pathname = usePathname();
     const [typesOpen, setTypesOpen] = useState(true);
     const [collectionsOpen, setCollectionsOpen] = useState(true);
-
-    const favoriteCollections = getFavoriteCollections();
-    const recentCollections = getRecentCollections(RECENT_LIMIT);
 
     return (
         <div className="flex h-full flex-col">
@@ -40,11 +33,11 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 />
                 {typesOpen && (
                     <ul className="mb-2 mt-1 space-y-0.5">
-                        {SYSTEM_ITEM_TYPES.map((type) => {
-                            const href = `/items/${type.slug}`;
+                        {data.itemTypes.map((itemType) => {
+                            const href = `/items/${itemType.slug}`;
                             const active = pathname === href;
                             return (
-                                <li key={type.id}>
+                                <li key={itemType.id}>
                                     <Link
                                         href={href}
                                         onClick={onNavigate}
@@ -54,13 +47,14 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                                         )}
                                     >
                                         <TypeIcon
-                                            name={type.icon}
+                                            name={itemType.icon}
                                             className="size-4 shrink-0"
-                                            style={{ color: type.color }}
+                                            style={{ color: itemType.color }}
+                                            aria-hidden="true"
                                         />
-                                        <span className="flex-1 truncate">{type.name}</span>
+                                        <span className="flex-1 truncate">{itemType.name}</span>
                                         <span className="text-xs text-muted-foreground">
-                                            {getItemCountByType(type.id)}
+                                            {itemType.itemCount}
                                         </span>
                                     </Link>
                                 </li>
@@ -79,13 +73,13 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 />
                 {collectionsOpen && (
                     <div className="mt-1 space-y-3">
-                        {favoriteCollections.length > 0 && (
+                        {data.favoriteCollections.length > 0 && (
                             <div>
                                 <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                     Favorites
                                 </p>
                                 <ul className="space-y-0.5">
-                                    {favoriteCollections.map((collection) => (
+                                    {data.favoriteCollections.map((collection) => (
                                         <CollectionLink
                                             key={collection.id}
                                             href={`/collections/${collection.id}`}
@@ -93,7 +87,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                                             active={pathname === `/collections/${collection.id}`}
                                             onNavigate={onNavigate}
                                             trailing={
-                                                <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                                                <Star
+                                                    className="size-3.5 fill-yellow-400 text-yellow-400"
+                                                    aria-label="Favorite"
+                                                />
                                             }
                                         />
                                     ))}
@@ -101,13 +98,13 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                             </div>
                         )}
 
-                        {recentCollections.length > 0 && (
+                        {data.recentCollections.length > 0 && (
                             <div>
                                 <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                     Recent
                                 </p>
                                 <ul className="space-y-0.5">
-                                    {recentCollections.map((collection) => (
+                                    {data.recentCollections.map((collection) => (
                                         <CollectionLink
                                             key={collection.id}
                                             href={`/collections/${collection.id}`}
@@ -116,7 +113,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                                             onNavigate={onNavigate}
                                             trailing={
                                                 <span className="text-xs text-muted-foreground">
-                                                    {getItemCountInCollection(collection.id)}
+                                                    {collection.itemCount}
                                                 </span>
                                             }
                                         />
@@ -131,29 +128,30 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             {/* User area */}
             <div className="flex shrink-0 items-center gap-3 border-t border-border p-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                    {currentUser.image ? (
+                    {data.user.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                            src={currentUser.image}
-                            alt={currentUser.name}
+                            src={data.user.image}
+                            alt={data.user.name}
                             className="size-9 rounded-full object-cover"
                         />
                     ) : (
-                        getInitials(currentUser.name)
+                        getInitials(data.user.name)
                     )}
                 </span>
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{currentUser.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{currentUser.email}</p>
+                    <p className="truncate text-sm font-medium">{data.user.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{data.user.email}</p>
                 </div>
-                <Link
-                    href="/settings"
-                    onClick={onNavigate}
+                <button
+                    type="button"
+                    disabled
                     aria-label="Settings"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+                    title="Settings are coming soon"
+                    className="flex size-8 shrink-0 cursor-not-allowed items-center justify-center rounded-md text-muted-foreground opacity-50"
                 >
-                    <Settings className="size-4" />
-                </Link>
+                    <Settings className="size-4" aria-hidden="true" />
+                </button>
             </div>
         </div>
     );
@@ -178,6 +176,7 @@ function SectionHeader({
             <span>{label}</span>
             <ChevronDown
                 className={cn("size-4 transition-transform", open ? "rotate-0" : "-rotate-90")}
+                aria-hidden="true"
             />
         </button>
     );
@@ -206,7 +205,7 @@ function CollectionLink({
                     active && "bg-sidebar-accent font-medium",
                 )}
             >
-                <Folder className="size-4 shrink-0 text-muted-foreground" />
+                <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <span className="flex-1 truncate">{name}</span>
                 {trailing}
             </Link>

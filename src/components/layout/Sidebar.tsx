@@ -1,43 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
 import { X } from "lucide-react";
+import { Dialog } from "radix-ui";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { SidebarViewModel } from "@/types/view-models";
 import { Brand } from "./Brand";
-import { useSidebar } from "./sidebar-context";
+import { useSidebar } from "./SidebarContext";
 import { SidebarNav } from "./SidebarNav";
 
-/**
- * Renders the app sidebar in two forms:
- * - Desktop (>= md): a fixed rail that collapses to zero width when toggled.
- * - Mobile (< md): a slide-out drawer over a dimmed backdrop.
- */
-export function Sidebar() {
+export function Sidebar({ data }: { data: SidebarViewModel }) {
     const { collapsed, mobileOpen, setMobileOpen } = useSidebar();
-
-    // While the mobile drawer is open, close it on Escape and lock body scroll.
-    useEffect(() => {
-        if (!mobileOpen) return;
-
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setMobileOpen(false);
-        };
-        document.addEventListener("keydown", onKeyDown);
-
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
-
-        return () => {
-            document.removeEventListener("keydown", onKeyDown);
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [mobileOpen, setMobileOpen]);
 
     return (
         <>
-            {/* Desktop rail */}
             <aside
                 className={cn(
                     "hidden shrink-0 overflow-hidden border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out md:block",
@@ -45,51 +22,38 @@ export function Sidebar() {
                 )}
             >
                 <div className="h-full w-64">
-                    <SidebarNav />
+                    <SidebarNav data={data} />
                 </div>
             </aside>
 
-            {/* Mobile drawer */}
-            <div
-                className={cn(
-                    "fixed inset-0 z-50 md:hidden",
-                    mobileOpen ? "pointer-events-auto" : "pointer-events-none",
-                )}
-                aria-hidden={!mobileOpen}
-            >
-                {/* Backdrop */}
-                <button
-                    type="button"
-                    aria-label="Close sidebar"
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                        "absolute inset-0 bg-black/50 transition-opacity duration-200",
-                        mobileOpen ? "opacity-100" : "opacity-0",
-                    )}
-                />
-                {/* Panel */}
-                <div
-                    className={cn(
-                        "absolute inset-y-0 left-0 flex w-72 max-w-[80%] flex-col border-r border-border bg-sidebar shadow-xl transition-transform duration-200 ease-in-out",
-                        mobileOpen ? "translate-x-0" : "-translate-x-full",
-                    )}
-                >
-                    <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-                        <Brand />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Close menu"
-                            onClick={() => setMobileOpen(false)}
-                        >
-                            <X className="size-5" />
-                        </Button>
-                    </div>
-                    <div className="min-h-0 flex-1">
-                        <SidebarNav onNavigate={() => setMobileOpen(false)} />
-                    </div>
-                </div>
-            </div>
+            <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
+                <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
+                    <Dialog.Content
+                        className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[80%] flex-col border-r border-border bg-sidebar shadow-xl focus:outline-none md:hidden"
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault();
+                            document.querySelector<HTMLElement>("#mobile-menu-button")?.focus();
+                        }}
+                    >
+                        <Dialog.Title className="sr-only">Navigation</Dialog.Title>
+                        <Dialog.Description className="sr-only">
+                            Browse item types and collections.
+                        </Dialog.Description>
+                        <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
+                            <Brand />
+                            <Dialog.Close asChild>
+                                <Button variant="ghost" size="icon" aria-label="Close menu">
+                                    <X className="size-5" aria-hidden="true" />
+                                </Button>
+                            </Dialog.Close>
+                        </div>
+                        <div className="min-h-0 flex-1">
+                            <SidebarNav data={data} onNavigate={() => setMobileOpen(false)} />
+                        </div>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog.Root>
         </>
     );
 }

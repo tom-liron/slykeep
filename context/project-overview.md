@@ -231,6 +231,7 @@ enum ContentType {
 > **Notes / open questions**
 > - `Tag` is currently global. Consider scoping tags per-user (`userId`) and uniquely indexing `@@unique([userId, name])` to avoid cross-user collisions.
 > - NextAuth `Account` and `Session` models are assumed but omitted above for brevity — they come from the NextAuth Prisma adapter.
+> - The current UI keeps system-only route, content-kind, and Pro metadata in `config/item-type-catalog.ts`. Reconcile that catalog with the final `ItemType` schema and seed before creating the first migration.
 
 ---
 
@@ -287,25 +288,27 @@ enum ContentType {
 ### Layout
 
 ```
-┌─────────────┬──────────────────────────────────────┐
-│  SIDEBAR    │  MAIN                                  │
-│ (collapsible)│                                       │
-│             │  ┌───────┐ ┌───────┐ ┌───────┐         │
-│  Item Types │  │ Coll. │ │ Coll. │ │ Coll. │  ← grid │
-│   Snippets  │  │ card  │ │ card  │ │ card  │   of    │
-│   Commands  │  └───────┘ └───────┘ └───────┘  cards  │
-│   Prompts…  │                                        │
-│             │  ┌──────┐ ┌──────┐ ┌──────┐            │
-│  Latest     │  │ item │ │ item │ │ item │  ← items   │
-│  Collections│  └──────┘ └──────┘ └──────┘            │
-│             │                                        │
-└─────────────┴──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ TOP BAR: brand, sidebar toggle, search, actions      │
+├──────────────┬──────────────────────────────────────┤
+│ SIDEBAR      │ MAIN                                 │
+│ (collapsible)│                                      │
+│              │ ┌───────┐ ┌───────┐ ┌───────┐       │
+│ Item Types   │ │ Coll. │ │ Coll. │ │ Coll. │       │
+│ Favorites    │ └───────┘ └───────┘ └───────┘       │
+│ Recent       │                                      │
+│ Collections  │ ┌─────────────── item rows ────────┐ │
+│              │ └──────────────────────────────────┘ │
+└──────────────┴──────────────────────────────────────┘
         Item opens in a quick-access DRAWER ▸
 ```
 
-- **Sidebar:** item types (each linking to its items list), plus latest collections.
-- **Main:** grid of **color-coded collection cards** — background color reflects the type the collection holds most of. Items appear as cards with a **colored border** matching their type.
+- **Top bar:** brand, responsive sidebar controls, search, and create actions.
+- **Sidebar:** item types (each linking to its items list), favorite collections, and recently updated collections.
+- **Main:** collection cards use a colored left accent for their dominant type. Items use a matching colored left border.
 - **Drawer:** individual items open in a fast slide-out drawer for view / edit / create.
+
+Collection recency is based on `updatedAt`. The dominant type is the most common item type in the collection; if counts tie, the type of the most recently updated tied item wins. Empty collections use `defaultTypeId`.
 
 ### Type Colors & Icons
 
@@ -352,7 +355,7 @@ devstash/
 │   │   │   └── register/
 │   │   ├── (dashboard)/        # authed app, sidebar layout
 │   │   │   ├── layout.tsx       # sidebar + main shell
-│   │   │   ├── page.tsx         # collections grid (home)
+│   │   │   ├── page.tsx         # dashboard overview (home)
 │   │   │   ├── items/
 │   │   │   │   └── [type]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
@@ -382,19 +385,23 @@ devstash/
 │   │   ├── stripe.ts            # Stripe client
 │   │   └── limits.ts            # free-tier gating (items/collections)
 │   ├── server/                  # server actions / data-access functions
+│   │   ├── mock-data/           # temporary records, view-model preparation, queries
 │   │   ├── items.ts
 │   │   ├── collections.ts
 │   │   └── search.ts
 │   ├── hooks/
 │   ├── types/
+│   │   ├── item-type.ts         # item-type contracts
+│   │   └── view-models.ts       # persistence-independent UI models
 │   └── config/
-│       └── item-types.ts        # system types: colors, icons, routes
+│       ├── dashboard.ts         # dashboard presentation values
+│       └── item-type-catalog.ts # built-in item types: colors, icons, routes
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed
 └── package.json
 ```
 
-A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. A single `config/item-types.ts` is the source of truth for the type colors, icons, and routes — so the sidebar, cards, and seed script all read from one place rather than duplicating the hex values. The `server/` directory centralizes data access so free-tier limit checks live in one layer instead of being scattered across API routes.
+A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy them. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns persistence access and prepares persistence-independent view models; the current mock query layer is replaced by Prisma without changing presentation components.
 
 ---
 
@@ -448,7 +455,6 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 
 - **Search depth, free vs Pro.** The spec lists "Basic search" for free and the same search engine elsewhere. Decide what actually differs — e.g. free gets title/tag search, Pro gets full-content or AI-semantic search — or drop the distinction.
 - **Tag scoping.** Tags are global in the current model. Scope them per-user with `@@unique([userId, name])` to avoid cross-user collisions and noisy autocomplete.
-- **How collection card color is computed.** "Background color based on the type it holds most of" needs a tie-break rule (e.g. most recent wins) and a fallback for empty collections (`defaultTypeId`).
 - **Free-tier limit enforcement.** Decide where limits are checked (server-side, in the data layer) and what the UX is when a user hits the cap — upgrade prompt vs hard block.
 - **File handling.** Max file size, allowed MIME types, and whether deleting an item also deletes the R2 object (orphan cleanup).
 - **AI cost controls.** Rate limits / usage caps per Pro user, and graceful handling when the OpenAI call fails or times out.
@@ -476,7 +482,7 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 
 ### Screenshots
 
-Refer to the screenshots below as a base for the dashboard UI. It does not have to be exact, Use it as a reference:
+Use the screenshots below as dashboard references rather than exact specifications:
 
-- @context/dashboard-ui-main.png
-- @context/dashboard-ui-drawer.png
+- @context/screenshots/dashboard-ui-main.png
+- @context/screenshots/dashboard-ui-drawer.png

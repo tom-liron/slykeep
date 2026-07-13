@@ -1,23 +1,21 @@
 import { Sidebar } from "@/components/layout/Sidebar";
-import { SidebarProvider } from "@/components/layout/sidebar-context";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { TopBar } from "@/components/layout/TopBar";
+import { getSidebarData } from "@/server/mock-data/queries";
 
-/**
- * Dashboard shell: a full-width top bar (with the brand) across the top, then a
- * collapsible sidebar on the left and scrollable main on the right. The sidebar
- * becomes a slide-out drawer on mobile.
- */
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const sidebarData = await getSidebarData();
+
     return (
         <SidebarProvider>
             <div className="flex h-screen flex-col">
                 <TopBar />
                 <div className="flex min-h-0 flex-1">
-                    <Sidebar />
+                    <Sidebar data={sidebarData} />
                     <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
                 </div>
             </div>

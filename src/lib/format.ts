@@ -9,9 +9,10 @@ export function formatDate(iso: string): string {
 
 /** Initials from a name, e.g. "John Doe" → "JD" (max two letters, uppercased). */
 export function getInitials(name: string): string {
-    return name
-        .split(" ")
-        .map((part) => part[0])
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    return parts
+        .map((part) => part.charAt(0))
         .join("")
         .slice(0, 2)
         .toUpperCase();
