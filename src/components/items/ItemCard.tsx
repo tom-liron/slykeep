@@ -10,7 +10,6 @@ export function ItemCard({ item }: { item: ItemViewModel }) {
 
     return (
         <article
-            id={item.id}
             className="flex gap-3 rounded-xl border border-border border-l-4 bg-card p-4"
             style={{ borderLeftColor: accent }}
         >

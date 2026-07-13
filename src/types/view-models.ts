@@ -1,4 +1,4 @@
-import type { ItemTypeMetadata } from "./item-type";
+import type { IconName, ItemTypeMetadata } from "./item-type";
 
 /** Item data prepared for rendering, independent of the persistence layer. */
 export interface ItemViewModel {
@@ -47,9 +47,14 @@ export interface DashboardViewModel {
     recentItems: ItemViewModel[];
 }
 
-export type SidebarItemTypeViewModel = ItemTypeMetadata & {
+export interface SidebarItemTypeViewModel {
+    id: string;
+    name: string;
+    icon: IconName;
+    color: string;
+    slug: string;
     itemCount: number;
-};
+}
 
 export interface SidebarCollectionViewModel {
     id: string;

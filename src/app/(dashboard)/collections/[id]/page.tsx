@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 
 import { ItemCard } from "@/components/items/ItemCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getCollectionPageData } from "@/server/mock-data/queries";
 
 export default async function CollectionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,9 +38,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
                     ))}
                 </div>
             ) : (
-                <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                    This collection is empty.
-                </p>
+                <EmptyState message="This collection is empty." />
             )}
         </div>
     );

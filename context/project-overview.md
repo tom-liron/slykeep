@@ -357,7 +357,7 @@ devstash/
 │   │   │   ├── layout.tsx       # sidebar + main shell
 │   │   │   ├── page.tsx         # dashboard overview (home)
 │   │   │   ├── items/
-│   │   │   │   └── [type]/      # /items/snippets, /items/links, ...
+│   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
 │   │   │   ├── search/

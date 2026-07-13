@@ -1,4 +1,5 @@
 import { CollectionCard } from "@/components/collections/CollectionCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getAllCollections } from "@/server/mock-data/queries";
 
 export default async function CollectionsPage() {
@@ -18,9 +19,7 @@ export default async function CollectionsPage() {
                     ))}
                 </div>
             ) : (
-                <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                    No collections yet.
-                </p>
+                <EmptyState message="No collections yet." />
             )}
         </div>
     );

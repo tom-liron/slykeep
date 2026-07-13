@@ -13,6 +13,7 @@ import type {
     SidebarCollectionViewModel,
     SidebarViewModel,
 } from "@/types/view-models";
+import { collectionRecords, currentUserRecord, itemRecords } from "./records";
 import {
     buildCollectionViewModel,
     buildDashboardViewModel,
@@ -20,7 +21,6 @@ import {
     buildUserViewModel,
     sortByUpdatedAtDesc,
 } from "./view-models";
-import { collectionRecords, currentUserRecord, itemRecords } from "./records";
 
 const itemViewModels = itemRecords.map((item) => buildItemViewModel(item, SYSTEM_ITEM_TYPE_BY_ID));
 const itemViewModelsById = new Map(itemViewModels.map((item) => [item.id, item]));
@@ -66,7 +66,11 @@ export async function getSidebarData(): Promise<SidebarViewModel> {
 
     return {
         itemTypes: SYSTEM_ITEM_TYPE_CATALOG.map((itemType) => ({
-            ...itemType,
+            id: itemType.id,
+            name: itemType.name,
+            icon: itemType.icon,
+            color: itemType.color,
+            slug: itemType.slug,
             itemCount: itemCountByTypeId.get(itemType.id) ?? 0,
         })),
         favoriteCollections: sortedCollections

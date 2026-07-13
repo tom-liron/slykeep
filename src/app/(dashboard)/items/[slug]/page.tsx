@@ -2,11 +2,12 @@ import { notFound } from "next/navigation";
 
 import { ItemCard } from "@/components/items/ItemCard";
 import { TypeIcon } from "@/components/items/TypeIcon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getItemTypePageData } from "@/server/mock-data/queries";
 
-export default async function ItemTypePage({ params }: { params: Promise<{ type: string }> }) {
-    const { type } = await params;
-    const data = await getItemTypePageData(type);
+export default async function ItemTypePage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+    const data = await getItemTypePageData(slug);
 
     if (!data) {
         notFound();
@@ -36,9 +37,7 @@ export default async function ItemTypePage({ params }: { params: Promise<{ type:
                     ))}
                 </div>
             ) : (
-                <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                    No {data.itemType.name.toLowerCase()} yet.
-                </p>
+                <EmptyState message={`No ${data.itemType.name.toLowerCase()} yet.`} />
             )}
         </div>
     );

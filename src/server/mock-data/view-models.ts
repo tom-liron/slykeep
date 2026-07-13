@@ -1,4 +1,3 @@
-import { FALLBACK_TYPE_COLOR } from "@/config/item-type-catalog";
 import type { ItemTypeMetadata } from "@/types/item-type";
 import type {
     CollectionViewModel,
@@ -68,17 +67,10 @@ export function buildCollectionViewModel(
     itemTypesById: ItemTypeMap,
 ): CollectionViewModel {
     const dominantTypeId = resolveDominantTypeId(collection, collectionItems);
-    const dominantItemType =
-        itemTypesById.get(dominantTypeId) ??
-        ({
-            id: "unknown",
-            name: "Unknown",
-            icon: "File",
-            color: FALLBACK_TYPE_COLOR,
-            slug: "unknown",
-            kind: "file",
-            isPro: false,
-        } satisfies ItemTypeMetadata);
+    const dominantItemType = itemTypesById.get(dominantTypeId);
+    if (!dominantItemType) {
+        throw new Error(`Unknown item type: ${dominantTypeId}`);
+    }
 
     const containedTypeIds = new Set(collectionItems.map((item) => item.typeId));
     if (containedTypeIds.size === 0) {

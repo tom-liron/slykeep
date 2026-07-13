@@ -10,8 +10,6 @@ export const ITEM_TYPE_COLORS = {
     link: "#10b981",
 } as const;
 
-export const FALLBACK_TYPE_COLOR = ITEM_TYPE_COLORS.file;
-
 export const SYSTEM_ITEM_TYPE_CATALOG: readonly ItemTypeMetadata[] = [
     {
         id: "type_snippet",

@@ -4,6 +4,7 @@ import { Boxes, Folder, FolderHeart, Pin, Star } from "lucide-react";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ItemCard } from "@/components/items/ItemCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DASHBOARD_STAT_COLORS } from "@/config/dashboard";
 import { getDashboardData } from "@/server/mock-data/queries";
 
@@ -94,13 +95,5 @@ export default async function DashboardPage() {
                 )}
             </section>
         </div>
-    );
-}
-
-function EmptyState({ message }: { message: string }) {
-    return (
-        <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            {message}
-        </p>
     );
 }
