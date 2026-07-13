@@ -1,18 +1,24 @@
 # Current Feature
 
-<!-- Feature Name and Short Description -->
+Dashboard UI Phase 3 — build out the main content area to the right of the sidebar. Phase 3 of 3 for the dashboard UI layout. Full spec: @context/features/dashboard-phase-3-spec.md
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+In Progress
 
-## Goals 
+## Goals
 
-<!-- Goals and requirements -->
+- The main content area to the right of the sidebar
+- Recent collections
+- Pinned items
+- 10 recent items
+- 4 stats cards at the top: total items, collections, favorite items, favorite collections (not in the screenshot)
 
-## Notes 
+## Notes
 
-<!-- Any extra notes -->
+- Use the reference screenshot for layout: @context/screenshots/dashboard-ui-main.png
+- Pull data from the mock data file for now — import directly until the database is in place: @src/lib/mock-data.ts
+- Related specs: @context/features/dashboard-phase-1-spec.md, @context/features/dashboard-phase-2-spec.md
 
 ## History
 

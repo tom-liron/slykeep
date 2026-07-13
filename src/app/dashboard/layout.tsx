@@ -8,19 +8,19 @@ import { TopBar } from "@/components/layout/TopBar";
  * becomes a slide-out drawer on mobile.
  */
 export default function DashboardLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <SidebarProvider>
-      <div className="flex h-screen flex-col">
-        <TopBar />
-        <div className="flex min-h-0 flex-1">
-          <Sidebar />
-          <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
+    return (
+        <SidebarProvider>
+            <div className="flex h-screen flex-col">
+                <TopBar />
+                <div className="flex min-h-0 flex-1">
+                    <Sidebar />
+                    <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
+                </div>
+            </div>
+        </SidebarProvider>
+    );
 }
