@@ -21,7 +21,9 @@ export default async function DashboardLayout({
 
     return (
         <SidebarProvider>
-            <div className="flex h-screen flex-col">
+            {/* h-full fills the body; h-screen (100vh) would overshoot the visible viewport on
+                mobile, where browser chrome is excluded from vh. */}
+            <div className="flex h-full flex-col">
                 <TopBar />
                 <div className="flex min-h-0 flex-1">
                     <Sidebar data={sidebarData} />

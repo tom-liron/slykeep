@@ -27,7 +27,9 @@ export default function RootLayout({
             lang="en"
             className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
         >
-            <body className="min-h-full flex flex-col">{children}</body>
+            {/* h-full, not min-h-full: the app shell is a fixed-height frame that scrolls its own
+                main pane. A growable body would scroll too, giving two nested scrollbars. */}
+            <body className="h-full overflow-hidden">{children}</body>
         </html>
     );
 }
