@@ -242,7 +242,9 @@ model ItemType {
   items                 Item[]
   defaultForCollections Collection[]
 
-  @@unique([name, userId])
+  @@unique([name, userId])                                   // scopes a custom type to its owner
+  @@unique([name], where: { userId: null })                  // ...and this constrains system types
+  @@index([userId])
   @@map("item_types")
 }
 
@@ -291,8 +293,9 @@ model Tag {
 ```
 
 > **Notes / open questions**
-> - **The system-type unique constraint does not hold.** `@@unique([name, userId])` with `userId = NULL` for system types does not prevent duplicates: Postgres treats `NULL`s as distinct in unique indexes, so two `('snippet', NULL)` rows are both accepted and a re-run of the seed inserts a second set. Fix before seeding — either a partial unique index (`CREATE UNIQUE INDEX ... ON item_types (name) WHERE user_id IS NULL`, added via `migration.sql`) or a `findFirst`-then-create seed rather than `upsert`.
-> - Seed the seven system types from `config/item-type-catalog.ts` (name, icon, color). The seed is the only place the catalog's colors and icons flow into the database.
+> - **The system-type unique constraint is enforced by a partial index.** `@@unique([name, userId])` alone does not constrain system types: their `userId` is `NULL`, and Postgres treats `NULL`s as distinct in unique indexes, so two `('snippet', NULL)` rows would both be accepted. A second, partial unique index — `@@unique([name], where: { userId: null })`, via the `partialIndexes` preview feature — closes it. Declaring it in the schema (rather than hand-writing the SQL in `migration.sql`) is required: since 7.4, Prisma treats database objects it cannot see in the schema as drift and emits a `DROP` for them on every `migrate dev`.
+> - **Never `findUnique` an item type by `name` alone.** A [Prisma bug](https://github.com/prisma/prisma/issues/29282) leaks `name` into `ItemTypeWhereUniqueInput` because of that partial index, so it type-checks — but `name` is unique only among *system* rows, and a user's custom type may share it. Use `findFirst({ where: { name, userId: null } })`.
+> - Seed the seven system types from `config/item-type-catalog.ts` (name, icon, color). The seed is the only place the catalog's colors and icons flow into the database. It reads-then-writes rather than `upsert`ing, for the same `NULL` reason.
 > - `Tag` is global (`name @unique`), which collides across users and pollutes autocomplete. Per-user scoping (`@@unique([userId, name])`) is the better model; deferred to keep the migration path aligned with the course.
 > - `Item.contentType` is denormalized against its `ItemType` — a "snippet" is always `TEXT`. Enforced at the write boundary (Server Actions), not by the schema.
 > - UI view models normalize nullable database fields such as `User.name`, `Item.description`, and `Collection.description` into display-safe values, and serialize `DateTime` to ISO strings. List view models must not select item bodies; detail queries select content only when the detail drawer/page needs it.
@@ -407,9 +410,13 @@ The current application implements the dashboard routes, feature components, run
 
 ```
 devstash/
-├── prisma/                      # (planned)
-│   ├── schema.prisma
+├── prisma/
+│   ├── schema.prisma            # persisted model; datasource url lives in prisma.config.ts
+│   ├── seed.ts                  # seeds the seven system item types from the catalog
 │   └── migrations/              # migration history (never edit applied ones)
+├── prisma.config.ts             # Prisma 7 CLI config: schema path, migrations, seed, datasource
+├── scripts/
+│   └── test-db.ts               # database smoke test (`npm run db:test`)
 ├── public/                      # (planned, when static assets are needed)
 ├── src/
 │   ├── app/
@@ -440,8 +447,9 @@ devstash/
 │   │   ├── items/               # item card; drawer/editor planned
 │   │   ├── collections/         # collection card and page composition
 │   │   └── layout/              # sidebar, topbar, mobile drawer
+│   ├── generated/prisma/        # generated Prisma Client (gitignored; `prisma generate`)
 │   ├── lib/
-│   │   ├── prisma.ts            # (planned) singleton Prisma client
+│   │   ├── prisma.ts            # singleton Prisma client (PrismaPg adapter)
 │   │   ├── auth.ts              # (planned) Auth.js config
 │   │   ├── r2.ts                # (planned) Cloudflare R2 client
 │   │   ├── openai.ts            # (planned) AI client + prompt helpers
@@ -462,7 +470,7 @@ devstash/
 │       ├── dashboard.ts         # dashboard presentation values
 │       └── item-type-catalog.ts # built-in item types: colors, icons, routes
 ├── .env                         # secrets (gitignored)
-├── .env.example                 # (planned) documented placeholders, committed
+├── .env.example                 # documented placeholders, committed
 └── package.json
 ```
 

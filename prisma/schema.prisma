@@ -1,0 +1,203 @@
+// DevStash — persisted data model.
+// Datasource URL and seed command live in `prisma.config.ts` (Prisma 7).
+// Schema changes go through `prisma migrate dev` — never `prisma db push`.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "nodejs"
+
+  // Needed for the partial unique index on ItemType. Hand-writing that index in migration SQL is
+  // not a viable alternative: since 7.4, Prisma treats database objects it cannot see in the
+  // schema as drift and emits a DROP for them on every `migrate dev`.
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ----- User (extends NextAuth) -----
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String? // null for OAuth-only accounts
+
+  // Monetization
+  isPro                Boolean @default(false)
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+
+  // Relations
+  items       Item[]
+  collections Collection[]
+  itemTypes   ItemType[] // custom types; null owner = system type
+  accounts    Account[]
+  sessions    Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ----- NextAuth -----
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ----- Item -----
+enum ContentType {
+  TEXT
+  FILE
+  URL
+}
+
+model Item {
+  id          String      @id @default(cuid())
+  title       String
+  contentType ContentType // discriminates the three fields below
+  content     String? // TEXT items
+  url         String? // URL items
+  fileUrl     String? // FILE items — Cloudflare R2 object
+  fileName    String? // FILE items — original filename
+  fileSize    Int? // FILE items — bytes
+  description String?
+  language    String? // optional, for code highlighting
+  isFavorite  Boolean     @default(false)
+  isPinned    Boolean     @default(false)
+
+  // Relations
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemTypeId  String
+  itemType    ItemType         @relation(fields: [itemTypeId], references: [id])
+  tags        Tag[]            @relation("ItemTags")
+  collections ItemCollection[] // many-to-many via join table
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([itemTypeId])
+  @@index([createdAt])
+  @@map("items")
+}
+
+// ----- ItemType -----
+// Identity only. The plural label, route slug, content type, and Pro gating are application
+// configuration in `config/item-type-catalog.ts`, keyed by `name`.
+model ItemType {
+  id       String  @id @default(cuid())
+  name     String // natural key: lowercase singular — "snippet", "prompt", ...
+  icon     String // one of the application-supported Lucide icon names
+  color    String // hex
+  isSystem Boolean @default(false)
+
+  // Relations — user is null for system types
+  userId                String?
+  user                  User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                 Item[]
+  defaultForCollections Collection[]
+
+  // Scopes a custom type to its owner. On its own this does NOT constrain system types: their
+  // userId is NULL, and Postgres treats every NULL as distinct in a unique index, so
+  // ('snippet', NULL) can be inserted any number of times.
+  @@unique([name, userId])
+  // Closes that hole. Applies to system rows only, making `name` genuinely unique among them and
+  // the seed safe to re-run.
+  //
+  // CAUTION: a known preview-feature bug (prisma#29282) leaks `name` into ItemTypeWhereUniqueInput,
+  // so `findUnique({ where: { name } })` compiles — but `name` is only unique among *system* rows,
+  // and a user's custom type may share it. Always scope reads by owner:
+  // `findFirst({ where: { name, userId: null } })` for a system type.
+  @@unique([name], where: { userId: null }, map: "item_types_name_system_key")
+  @@index([userId])
+  @@map("item_types")
+}
+
+// ----- Collection -----
+model Collection {
+  id          String  @id @default(cuid())
+  name        String // "React Hooks", "Prototype Prompts", ...
+  description String?
+  isFavorite  Boolean @default(false)
+
+  // Relations
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultTypeId String? // default type for new, empty collections
+  defaultType   ItemType?        @relation(fields: [defaultTypeId], references: [id])
+  items         ItemCollection[] // many-to-many via join table
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([defaultTypeId])
+  @@map("collections")
+}
+
+// ----- ItemCollection (join table) -----
+model ItemCollection {
+  itemId       String
+  collectionId String
+  addedAt      DateTime @default(now()) // when the item was added to the collection
+
+  item       Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, collectionId])
+  @@index([collectionId])
+  @@map("item_collections")
+}
+
+// ----- Tag -----
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  items Item[] @relation("ItemTags")
+
+  @@map("tags")
+}
