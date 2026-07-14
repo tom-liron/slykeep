@@ -1,4 +1,4 @@
-/** Format an ISO date (yyyy-mm-dd) as e.g. "Jan 15". */
+/** Format an ISO 8601 date or timestamp as e.g. "Jan 15", always in UTC. */
 export function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString("en-US", {
         month: "short",

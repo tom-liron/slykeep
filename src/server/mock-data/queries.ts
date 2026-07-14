@@ -1,10 +1,6 @@
 import "server-only";
 
-import {
-    SYSTEM_ITEM_TYPE_BY_ID,
-    SYSTEM_ITEM_TYPE_CATALOG,
-    getSystemItemTypeBySlug,
-} from "@/config/item-type-catalog";
+import { getItemTypeNameBySlug } from "@/config/item-type-catalog";
 import { canAccessItemType } from "@/lib/limits";
 import type {
     CollectionPageViewModel,
@@ -14,18 +10,21 @@ import type {
     SidebarCollectionViewModel,
     SidebarViewModel,
 } from "@/types/view-models";
-import { collectionRecords, currentUserRecord, itemRecords } from "./records";
+import { collectionRecords, currentUserRecord, itemRecords, itemTypeRecords } from "./records";
 import {
     buildCollectionViewModel,
     buildDashboardViewModel,
     buildItemSummaryViewModel,
     buildUserViewModel,
     sortByUpdatedAtDesc,
+    toItemTypeViewModel,
 } from "./view-models";
 
-const itemSummaries = itemRecords.map((item) =>
-    buildItemSummaryViewModel(item, SYSTEM_ITEM_TYPE_BY_ID),
-);
+const itemTypes = itemTypeRecords.map(toItemTypeViewModel);
+const itemTypesById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
+const itemTypesByName = new Map(itemTypes.map((itemType) => [itemType.name, itemType]));
+
+const itemSummaries = itemRecords.map((item) => buildItemSummaryViewModel(item, itemTypesById));
 const itemSummariesById = new Map(itemSummaries.map((item) => [item.id, item]));
 
 const itemsByCollectionId = new Map(
@@ -39,7 +38,7 @@ const collectionViewModels = collectionRecords.map((collection) =>
     buildCollectionViewModel(
         collection,
         itemsByCollectionId.get(collection.id) ?? [],
-        SYSTEM_ITEM_TYPE_BY_ID,
+        itemTypesById,
     ),
 );
 const collectionViewModelsById = new Map(
@@ -48,7 +47,7 @@ const collectionViewModelsById = new Map(
 
 const itemCountByTypeId = new Map<string, number>();
 for (const item of itemRecords) {
-    itemCountByTypeId.set(item.typeId, (itemCountByTypeId.get(item.typeId) ?? 0) + 1);
+    itemCountByTypeId.set(item.itemTypeId, (itemCountByTypeId.get(item.itemTypeId) ?? 0) + 1);
 }
 
 function toSidebarCollection(collection: CollectionViewModel): SidebarCollectionViewModel {
@@ -68,16 +67,16 @@ export async function getSidebarData(): Promise<SidebarViewModel> {
     const sortedCollections = sortByUpdatedAtDesc(collectionViewModels);
 
     return {
-        itemTypes: SYSTEM_ITEM_TYPE_CATALOG.filter((itemType) =>
-            canAccessItemType(currentUserRecord.isPro, itemType.isPro),
-        ).map((itemType) => ({
-            id: itemType.id,
-            name: itemType.name,
-            icon: itemType.icon,
-            color: itemType.color,
-            slug: itemType.slug,
-            itemCount: itemCountByTypeId.get(itemType.id) ?? 0,
-        })),
+        itemTypes: itemTypes
+            .filter((itemType) => canAccessItemType(currentUserRecord.isPro, itemType.isPro))
+            .map((itemType) => ({
+                id: itemType.id,
+                label: itemType.label,
+                icon: itemType.icon,
+                color: itemType.color,
+                slug: itemType.slug,
+                itemCount: itemCountByTypeId.get(itemType.id) ?? 0,
+            })),
         favoriteCollections: sortedCollections
             .filter((collection) => collection.isFavorite)
             .map(toSidebarCollection),
@@ -114,7 +113,8 @@ export async function getCollectionPageData(
 export async function getItemTypePageData(
     slug: string,
 ): Promise<ItemTypePageViewModel | undefined> {
-    const itemType = getSystemItemTypeBySlug(slug);
+    const name = getItemTypeNameBySlug(slug);
+    const itemType = name ? itemTypesByName.get(name) : undefined;
     if (!itemType) {
         return undefined;
     }

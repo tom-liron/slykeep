@@ -7,6 +7,10 @@ describe("format helpers", () => {
         expect(formatDate("2026-01-15")).toBe("Jan 15");
     });
 
+    it("formats the serialized timestamps view models carry", () => {
+        expect(formatDate(new Date("2026-01-15T00:00:00Z").toISOString())).toBe("Jan 15");
+    });
+
     it("normalizes whitespace when generating initials", () => {
         expect(getInitials("  John   Doe  ")).toBe("JD");
     });

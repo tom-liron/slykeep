@@ -55,7 +55,7 @@ export function SidebarNav({
                                             style={{ color: itemType.color }}
                                             aria-hidden="true"
                                         />
-                                        <span className="flex-1 truncate">{itemType.name}</span>
+                                        <span className="flex-1 truncate">{itemType.label}</span>
                                         <span className="text-xs text-muted-foreground">
                                             {itemType.itemCount}
                                         </span>

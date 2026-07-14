@@ -5,11 +5,13 @@ import { TypeIcon } from "@/components/items/TypeIcon";
 import type { CollectionViewModel } from "@/types/view-models";
 
 export function CollectionCard({ collection }: { collection: CollectionViewModel }) {
+    const accent = collection.dominantItemType?.color;
+
     return (
         <Link
             href={`/collections/${collection.id}`}
             className="flex flex-col rounded-xl border border-border border-l-4 bg-card p-4 transition-colors hover:bg-muted/50"
-            style={{ borderLeftColor: collection.dominantItemType.color }}
+            style={accent ? { borderLeftColor: accent } : undefined}
         >
             <div className="flex items-center gap-1.5">
                 <h3 className="truncate font-semibold">{collection.name}</h3>
