@@ -2,7 +2,7 @@ import "server-only";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@/generated/prisma-client/client";
 
 // Prisma 7 requires a driver adapter — the client no longer opens its own connection. The adapter
 // gets Neon's *pooled* URL; the CLI uses the direct one for migrations (see prisma.config.ts).

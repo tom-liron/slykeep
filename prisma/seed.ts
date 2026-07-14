@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "../src/config/item-type-catalog";
 import type { ItemTypeName } from "../src/types/item-type";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaClient } from "../src/generated/prisma-client/client";
 import { DEMO_USER, SEED_COLLECTIONS } from "./seed-data";
 
 // The seed runs under the CLI, so it uses the same direct connection migrations do.

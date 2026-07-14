@@ -4,7 +4,9 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  // Named `prisma-client`, not `prisma`, so it is never confused with the /prisma source folder:
+  // that one is hand-written and committed, this one is generated output and gitignored.
+  output   = "../src/generated/prisma-client"
   runtime  = "nodejs"
 
   // Needed for the partial unique index on ItemType. Hand-writing that index in migration SQL is

@@ -447,7 +447,10 @@ devstash/
 │   │   ├── items/               # item card; drawer/editor planned
 │   │   ├── collections/         # collection card and page composition
 │   │   └── layout/              # sidebar, topbar, mobile drawer
-│   ├── generated/prisma/        # generated Prisma Client (gitignored; `prisma generate`)
+│   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
+│   │                            # Build output: gitignored, never edited, rewritten by
+│   │                            # `prisma generate` (runs on every `npm install`).
+│   │                            # Named `prisma-client` so it is not mistaken for /prisma.
 │   ├── lib/
 │   │   ├── prisma.ts            # singleton Prisma client (PrismaPg adapter)
 │   │   ├── auth.ts              # (planned) Auth.js config
