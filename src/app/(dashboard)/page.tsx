@@ -6,10 +6,14 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { ItemCard } from "@/components/items/ItemCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DASHBOARD_STAT_COLORS } from "@/config/dashboard";
-import { getDashboardData } from "@/server/mock-data/queries";
+import { getDashboardCollections } from "@/server/collections";
+import { getDashboardItems } from "@/server/mock-data/queries";
 
 export default async function DashboardPage() {
-    const data = await getDashboardData();
+    const [collections, items] = await Promise.all([
+        getDashboardCollections(),
+        getDashboardItems(),
+    ]);
 
     return (
         <div className="mx-auto max-w-6xl space-y-8">
@@ -21,25 +25,25 @@ export default async function DashboardPage() {
             <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Summary">
                 <StatCard
                     label="Items"
-                    value={data.stats.totalItems}
+                    value={items.totalItems}
                     icon={Boxes}
                     color={DASHBOARD_STAT_COLORS.items}
                 />
                 <StatCard
                     label="Collections"
-                    value={data.stats.totalCollections}
+                    value={collections.totalCollections}
                     icon={Folder}
                     color={DASHBOARD_STAT_COLORS.collections}
                 />
                 <StatCard
                     label="Favorite Items"
-                    value={data.stats.favoriteItems}
+                    value={items.favoriteItems}
                     icon={Star}
                     color={DASHBOARD_STAT_COLORS.favoriteItems}
                 />
                 <StatCard
                     label="Favorite Collections"
-                    value={data.stats.favoriteCollections}
+                    value={collections.favoriteCollections}
                     icon={FolderHeart}
                     color={DASHBOARD_STAT_COLORS.favoriteCollections}
                 />
@@ -55,9 +59,9 @@ export default async function DashboardPage() {
                         View all
                     </Link>
                 </div>
-                {data.recentlyUpdatedCollections.length > 0 ? (
+                {collections.recentCollections.length > 0 ? (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {data.recentlyUpdatedCollections.map((collection) => (
+                        {collections.recentCollections.map((collection) => (
                             <CollectionCard key={collection.id} collection={collection} />
                         ))}
                     </div>
@@ -71,9 +75,9 @@ export default async function DashboardPage() {
                     <Pin className="size-4 text-muted-foreground" aria-hidden="true" />
                     <h2 className="text-lg font-semibold">Pinned</h2>
                 </div>
-                {data.pinnedItems.length > 0 ? (
+                {items.pinnedItems.length > 0 ? (
                     <div className="space-y-3">
-                        {data.pinnedItems.map((item) => (
+                        {items.pinnedItems.map((item) => (
                             <ItemCard key={item.id} item={item} />
                         ))}
                     </div>
@@ -84,9 +88,9 @@ export default async function DashboardPage() {
 
             <section>
                 <h2 className="mb-4 text-lg font-semibold">Recent Items</h2>
-                {data.recentItems.length > 0 ? (
+                {items.recentItems.length > 0 ? (
                     <div className="space-y-3">
-                        {data.recentItems.map((item) => (
+                        {items.recentItems.map((item) => (
                             <ItemCard key={item.id} item={item} />
                         ))}
                     </div>

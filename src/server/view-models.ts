@@ -1,19 +1,62 @@
 import "server-only";
 
-import { ITEM_TYPE_CATALOG, isIconName } from "@/config/item-type-catalog";
+import { ITEM_TYPE_CATALOG, isIconName, isItemTypeName } from "@/config/item-type-catalog";
 import type {
     CollectionViewModel,
-    DashboardViewModel,
+    DashboardItemsViewModel,
     ItemSummaryViewModel,
     ItemTypeViewModel,
     UserViewModel,
 } from "@/types/view-models";
-import type {
-    MockCollectionRecord,
-    MockItemRecord,
-    MockItemTypeRecord,
-    MockUserRecord,
-} from "./records";
+
+/**
+ * Inputs are declared structurally rather than against Prisma's generated types, so that the mock
+ * layer and the database layer share one implementation of the derivation rules below. Each row
+ * type lists only the columns a view model actually reads — notably, nothing here selects an item
+ * body, which keeps list queries off the large `content` column.
+ */
+
+/** `name` and `icon` are plain strings in the database, so both are validated here. */
+export interface ItemTypeRow {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+}
+
+export interface CollectionRow {
+    id: string;
+    name: string;
+    description: string | null;
+    isFavorite: boolean;
+    defaultTypeId: string | null;
+    updatedAt: Date;
+}
+
+/** All a collection's derived metadata (dominant type, contained types, count) depends on. */
+export interface CollectionItemRow {
+    itemTypeId: string;
+    updatedAt: Date;
+}
+
+export interface ItemSummaryRow {
+    id: string;
+    title: string;
+    description: string | null;
+    itemTypeId: string;
+    tags: readonly string[];
+    isFavorite: boolean;
+    isPinned: boolean;
+    updatedAt: Date;
+}
+
+export interface UserRow {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    isPro: boolean;
+}
 
 type ItemTypeMap = ReadonlyMap<string, ItemTypeViewModel>;
 
@@ -26,10 +69,13 @@ export function sortByUpdatedAtDesc<T extends { updatedAt: Date | string }>(reco
 }
 
 /**
- * Joins a persisted item type with its configured presentation. The persisted `icon` is an
- * untyped string, so it is validated here rather than trusted downstream.
+ * Joins a persisted item type with its configured presentation. `name` and `icon` are untyped in
+ * the database, so this boundary is where they are checked rather than trusted downstream.
  */
-export function toItemTypeViewModel(row: MockItemTypeRecord): ItemTypeViewModel {
+export function toItemTypeViewModel(row: ItemTypeRow): ItemTypeViewModel {
+    if (!isItemTypeName(row.name)) {
+        throw new Error(`Unknown item type "${row.name}" — no entry in the item type catalog`);
+    }
     if (!isIconName(row.icon)) {
         throw new Error(`Unsupported icon "${row.icon}" on item type "${row.name}"`);
     }
@@ -56,10 +102,13 @@ function requireItemType(itemTypeId: string, itemTypesById: ItemTypeMap): ItemTy
     return itemType;
 }
 
-/** Null when the collection is empty and has no default type. */
+/**
+ * The most common item type in the collection. Ties are broken by the most recently updated item
+ * among the tied types. Null when the collection is empty and has no default type.
+ */
 export function resolveDominantTypeId(
-    collection: MockCollectionRecord,
-    collectionItems: MockItemRecord[],
+    collection: Pick<CollectionRow, "defaultTypeId">,
+    collectionItems: CollectionItemRow[],
 ): string | null {
     if (collectionItems.length === 0) {
         return collection.defaultTypeId;
@@ -84,7 +133,7 @@ export function resolveDominantTypeId(
 }
 
 export function buildItemSummaryViewModel(
-    item: MockItemRecord,
+    item: ItemSummaryRow,
     itemTypesById: ItemTypeMap,
 ): ItemSummaryViewModel {
     return {
@@ -100,8 +149,8 @@ export function buildItemSummaryViewModel(
 }
 
 export function buildCollectionViewModel(
-    collection: MockCollectionRecord,
-    collectionItems: MockItemRecord[],
+    collection: CollectionRow,
+    collectionItems: CollectionItemRow[],
     itemTypesById: ItemTypeMap,
 ): CollectionViewModel {
     const dominantTypeId = resolveDominantTypeId(collection, collectionItems);
@@ -125,7 +174,7 @@ export function buildCollectionViewModel(
     };
 }
 
-export function buildUserViewModel(user: MockUserRecord): UserViewModel {
+export function buildUserViewModel(user: UserRow): UserViewModel {
     return {
         id: user.id,
         name: user.name ?? user.email,
@@ -135,18 +184,12 @@ export function buildUserViewModel(user: MockUserRecord): UserViewModel {
     };
 }
 
-export function buildDashboardViewModel(
+export function buildDashboardItemsViewModel(
     items: ItemSummaryViewModel[],
-    collections: CollectionViewModel[],
-): DashboardViewModel {
+): DashboardItemsViewModel {
     return {
-        stats: {
-            totalItems: items.length,
-            totalCollections: collections.length,
-            favoriteItems: items.filter((item) => item.isFavorite).length,
-            favoriteCollections: collections.filter((collection) => collection.isFavorite).length,
-        },
-        recentlyUpdatedCollections: sortByUpdatedAtDesc(collections).slice(0, 6),
+        totalItems: items.length,
+        favoriteItems: items.filter((item) => item.isFavorite).length,
         pinnedItems: sortByUpdatedAtDesc(items.filter((item) => item.isPinned)),
         recentItems: sortByUpdatedAtDesc(items.filter((item) => !item.isPinned)).slice(0, 10),
     };

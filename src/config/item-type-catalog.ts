@@ -104,6 +104,15 @@ export function isIconName(value: string): value is IconName {
     return (ICON_NAMES as readonly string[]).includes(value);
 }
 
+/**
+ * Guards the persisted `ItemType.name`, which the database also stores untyped. Custom types (Pro)
+ * will not be in the catalog, so this is what distinguishes a built-in type from one we cannot
+ * resolve presentation for.
+ */
+export function isItemTypeName(value: string): value is ItemTypeName {
+    return (SYSTEM_ITEM_TYPE_NAMES as readonly string[]).includes(value);
+}
+
 export function getItemTypeNameBySlug(slug: string): ItemTypeName | undefined {
     return itemTypeNameBySlug.get(slug);
 }
