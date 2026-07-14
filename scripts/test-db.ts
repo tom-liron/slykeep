@@ -1,16 +1,20 @@
 import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 
-import { SYSTEM_ITEM_TYPE_NAMES } from "../src/config/item-type-catalog";
+import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "../src/config/item-type-catalog";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { DEMO_USER, SEED_COLLECTIONS } from "../prisma/seed-data";
 
 /**
  * Database smoke test. Run with `npm run db:test`.
  *
  * Checks the things that are easy to get silently wrong: that both Neon endpoints are reachable,
  * that the migration history is recorded, that the seed produced exactly the seven system types,
- * and that the partial unique index actually rejects a duplicate system type.
+ * that the partial unique index actually rejects a duplicate system type, and that the demo content
+ * is intact. Then prints the demo data as it is actually stored, so it can be eyeballed rather than
+ * taken on trust.
  *
  * Read-only in effect — the one write it attempts is rolled back.
  */
@@ -149,6 +153,161 @@ async function checkSystemTypeConstraint(prisma: PrismaClient) {
     fail("constraint probe did not roll back as expected");
 }
 
+async function checkDemoUser(prisma: PrismaClient) {
+    const user = await prisma.user.findUnique({ where: { email: DEMO_USER.email } });
+
+    if (!user) {
+        fail(`demo user ${DEMO_USER.email} is missing — run \`npm run db:seed\``);
+        return null;
+    }
+
+    if (!user.password || !(await bcrypt.compare(DEMO_USER.password, user.password))) {
+        fail("demo user's password does not verify — the hash is wrong or was not written");
+    } else {
+        pass(`demo user ${user.email} present, password hash verifies`);
+    }
+
+    if (!user.emailVerified) {
+        fail("demo user has no emailVerified date");
+    }
+
+    return user;
+}
+
+async function checkDemoContent(prisma: PrismaClient, userId: string) {
+    const expectedItems = SEED_COLLECTIONS.reduce((n, c) => n + c.items.length, 0);
+
+    const [collections, items] = await Promise.all([
+        prisma.collection.count({ where: { userId } }),
+        prisma.item.count({ where: { userId } }),
+    ]);
+
+    // A duplicating seed shows up here first: re-running would double these.
+    if (collections !== SEED_COLLECTIONS.length || items !== expectedItems) {
+        fail(
+            `demo content is ${collections} collection(s) / ${items} item(s) — expected ${SEED_COLLECTIONS.length} / ${expectedItems}. A duplicated count means the seed is not idempotent.`,
+        );
+        return;
+    }
+    pass(`${collections} collections, ${items} items — counts match the seed exactly`);
+
+    const favorites = await prisma.item.count({ where: { userId, isFavorite: true } });
+    const pinned = await prisma.item.count({ where: { userId, isPinned: true } });
+    const favoriteCollections = await prisma.collection.count({
+        where: { userId, isFavorite: true },
+    });
+    const tags = await prisma.tag.count();
+
+    // The dashboard renders each of these; all-zero means empty sections and blank stat cards.
+    if (favorites === 0 || pinned === 0 || favoriteCollections === 0 || tags === 0) {
+        fail(
+            `dashboard fields look unseeded — ${favorites} favorite items, ${pinned} pinned, ${favoriteCollections} favorite collections, ${tags} tags`,
+        );
+    } else {
+        pass(
+            `dashboard fields populated — ${favorites} favorite items, ${pinned} pinned, ${favoriteCollections} favorite collections, ${tags} tags`,
+        );
+    }
+}
+
+/**
+ * `Item.contentType` is denormalized against the item's type, and nothing in the schema enforces
+ * that they agree — so a snippet could silently store its body in `url`, or a link could have a
+ * null `url` and render as a dead card. Check every item.
+ */
+async function checkContentIntegrity(prisma: PrismaClient, userId: string) {
+    const items = await prisma.item.findMany({
+        where: { userId },
+        include: { itemType: true },
+    });
+
+    const wrong: string[] = [];
+
+    for (const item of items) {
+        const expected = ITEM_TYPE_CATALOG[item.itemType.name as keyof typeof ITEM_TYPE_CATALOG];
+
+        if (!expected) {
+            wrong.push(`${item.title}: unknown item type "${item.itemType.name}"`);
+            continue;
+        }
+
+        if (item.contentType !== expected.contentType) {
+            wrong.push(
+                `${item.title}: contentType ${item.contentType} but type "${item.itemType.name}" is ${expected.contentType}`,
+            );
+            continue;
+        }
+
+        if (item.contentType === "TEXT" && !item.content) {
+            wrong.push(`${item.title}: TEXT item has no content`);
+        }
+        if (item.contentType === "URL" && !item.url) {
+            wrong.push(`${item.title}: URL item has no url`);
+        }
+        if (item.contentType === "URL" && item.content) {
+            wrong.push(`${item.title}: URL item also populated content`);
+        }
+        if (item.contentType === "TEXT" && item.url) {
+            wrong.push(`${item.title}: TEXT item also populated url`);
+        }
+    }
+
+    if (wrong.length > 0) {
+        fail(`${wrong.length} item(s) have inconsistent content:`);
+        for (const line of wrong) console.error(`      ${line}`);
+        return;
+    }
+
+    pass(`all ${items.length} items store their body in the column their content type requires`);
+}
+
+/** Clips to `width` so the listing stays in columns; keeps the first line only. */
+function clip(text: string, width: number) {
+    const [firstLine = ""] = text.trim().split("\n");
+    return (firstLine.length > width ? `${firstLine.slice(0, width - 1)}…` : firstLine).padEnd(
+        width,
+    );
+}
+
+/**
+ * Prints the demo data as the database actually holds it — reading through the ItemCollection join,
+ * the item type relation and the tag relation, so what appears here is what a query would return,
+ * not a re-print of `seed-data.ts`.
+ */
+async function printDemoData(prisma: PrismaClient, userId: string) {
+    const collections = await prisma.collection.findMany({
+        where: { userId },
+        orderBy: { name: "asc" },
+        include: {
+            defaultType: true,
+            items: {
+                orderBy: { addedAt: "asc" },
+                include: { item: { include: { itemType: true, tags: true } } },
+            },
+        },
+    });
+
+    for (const collection of collections) {
+        const flag = collection.isFavorite ? " ★" : "";
+        console.log(`\n  ${collection.name}${flag} — ${collection.description ?? ""}`);
+        console.log(
+            `  default type: ${collection.defaultType?.name ?? "none"}   items: ${collection.items.length}`,
+        );
+
+        for (const { item } of collection.items) {
+            const marks = [item.isFavorite ? "★" : " ", item.isPinned ? "📌" : "  "].join("");
+            const body = item.content ?? item.url ?? item.fileUrl ?? "";
+            const tags = item.tags.map((t) => t.name).join(", ");
+
+            console.log(
+                `    ${marks} ${item.itemType.name.padEnd(8)} ${clip(item.title, 34)} ${clip(body, 46)} [${tags}]`,
+            );
+        }
+    }
+
+    console.log("\n  ★ favorite   📌 pinned");
+}
+
 async function main() {
     console.log("\nConnections");
     await checkConnection("DATABASE_URL (pooled, used by the app)", POOLED_URL);
@@ -168,6 +327,16 @@ async function main() {
 
         console.log("\nSystem-type uniqueness");
         await checkSystemTypeConstraint(prisma);
+
+        console.log("\nDemo data");
+        const user = await checkDemoUser(prisma);
+        if (user) {
+            await checkDemoContent(prisma, user.id);
+            await checkContentIntegrity(prisma, user.id);
+
+            console.log("\nSeeded content");
+            await printDemoData(prisma, user.id);
+        }
     } finally {
         await prisma.$disconnect();
     }
