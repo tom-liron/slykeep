@@ -17,7 +17,7 @@ This is the common workflow that we will use for every single feature/fix:
 3. **Implement** - Implement the feature/fix that I create in @context/current-feature.md
 4. **Test** - Run focused unit tests, verify it works in the browser, then run `npm run lint` and `npm run build`
 5. **Iterate** - Iterate and change things if needed
-6. **Commit** - Only after build passes and everything works
+6. **Commit** - Format the changed files (see Formatting), then commit — only after build passes and everything works
 7. **Merge** - Merge to main
 8. **Delete Branch** - Delete branch after merge
 9. **Review** - Review AI-generated code periodically and on demand.
@@ -28,6 +28,18 @@ Do NOT commit without permission and until the build passes. If build fails, fix
 ## Branching
 
 We will create a new branch for every feature/fix. Name branches **feature/[feature]** or **fix/[fix]**. Ask to delete the branch once merged.
+
+## Formatting
+
+Run Prettier once per feature, just before committing, scoped to the files that changed — modified **and** new:
+
+```bash
+npx prettier --write $( { git diff --name-only --diff-filter=d HEAD; git ls-files --others --exclude-standard; } | tr '\n' ' ')
+```
+
+`git diff` alone lists only tracked files, so a feature's brand-new files would go unformatted; `git ls-files --others` is what picks them up.
+
+Do not run `npm run format` (`prettier --write .`) as part of routine work. It rewrites the whole tree, so unrelated files can land in a focused commit, and its per-file output is wasted context. Reserve the full-tree run for when formatting has actually drifted repo-wide.
 
 ## Commits
 

@@ -2,18 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
 import type { ItemTypeName } from "@/types/item-type";
-import type { CollectionViewModel, ItemSummaryViewModel } from "@/types/view-models";
-import { collectionRecords, itemRecords, itemTypeRecords } from "./records";
-import type { MockCollectionRecord, MockItemRecord, MockItemTypeRecord } from "./records";
+import type { ItemSummaryViewModel } from "@/types/view-models";
+import { collectionRecords, itemRecords, itemTypeRecords } from "./mock-data/records";
+import type { MockCollectionRecord, MockItemRecord } from "./mock-data/records";
 import {
     buildCollectionViewModel,
-    buildDashboardViewModel,
+    buildDashboardItemsViewModel,
     buildItemSummaryViewModel,
     buildUserViewModel,
     resolveDominantTypeId,
     sortByUpdatedAtDesc,
     toItemTypeViewModel,
 } from "./view-models";
+import type { ItemTypeRow } from "./view-models";
 
 const itemTypes = itemTypeRecords.map(toItemTypeViewModel);
 const itemTypesById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
@@ -77,20 +78,29 @@ describe("item type view models", () => {
     });
 
     it("rejects a persisted icon the application cannot render", () => {
-        const row: MockItemTypeRecord = {
+        const row: ItemTypeRow = {
             id: "type",
             name: "snippet",
             icon: "NotARealIcon",
             color: "#000000",
-            isSystem: true,
-            userId: null,
         };
 
         expect(() => toItemTypeViewModel(row)).toThrow(/NotARealIcon/);
     });
+
+    it("rejects a persisted name that is not in the catalog", () => {
+        const row: ItemTypeRow = {
+            id: "type",
+            name: "diagram",
+            icon: "Code",
+            color: "#000000",
+        };
+
+        expect(() => toItemTypeViewModel(row)).toThrow(/diagram/);
+    });
 });
 
-describe("mock view models", () => {
+describe("collection view models", () => {
     it("uses the most recently updated item to break dominant-type ties", () => {
         const items = [
             makeItem("snippet-old", typeId("snippet"), "2026-01-01"),
@@ -195,7 +205,9 @@ describe("mock view models", () => {
 
         expect(summary).not.toHaveProperty("content");
     });
+});
 
+describe("dashboard item view models", () => {
     it("keeps pinned items out of recent items and derives stats", () => {
         const snippetType = itemTypes[0];
         const pinned = {
@@ -216,29 +228,17 @@ describe("mock view models", () => {
             isPinned: false,
             updatedAt: "2026-01-02T00:00:00.000Z",
         } satisfies ItemSummaryViewModel;
-        const collectionViewModel = {
-            id: "collection",
-            name: "Collection",
-            description: "",
-            isFavorite: true,
-            updatedAt: "2026-01-01T00:00:00.000Z",
-            itemCount: 2,
-            itemTypes: [snippetType],
-            dominantItemType: snippetType,
-        } satisfies CollectionViewModel;
 
-        const dashboard = buildDashboardViewModel([recent, pinned], [collectionViewModel]);
+        const dashboard = buildDashboardItemsViewModel([recent, pinned]);
 
         expect(dashboard.pinnedItems.map((item) => item.id)).toEqual(["pinned"]);
         expect(dashboard.recentItems.map((item) => item.id)).toEqual(["recent"]);
-        expect(dashboard.stats).toEqual({
-            totalItems: 2,
-            totalCollections: 1,
-            favoriteItems: 1,
-            favoriteCollections: 1,
-        });
+        expect(dashboard.totalItems).toBe(2);
+        expect(dashboard.favoriteItems).toBe(1);
     });
+});
 
+describe("mock records", () => {
     it("keeps every mock item-type reference resolvable", () => {
         const referencedIds = [
             ...itemRecords.map((item) => item.itemTypeId),

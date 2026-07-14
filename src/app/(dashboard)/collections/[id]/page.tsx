@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 
 import { ItemCard } from "@/components/items/ItemCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getCollectionPageData } from "@/server/mock-data/queries";
+import { getCollectionPageData } from "@/server/collections";
 
 export default async function CollectionPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

@@ -3,69 +3,41 @@ import "server-only";
 import { getItemTypeNameBySlug } from "@/config/item-type-catalog";
 import { canAccessItemType } from "@/lib/limits";
 import type {
-    CollectionPageViewModel,
-    CollectionViewModel,
-    DashboardViewModel,
+    DashboardItemsViewModel,
     ItemTypePageViewModel,
-    SidebarCollectionViewModel,
-    SidebarViewModel,
+    SidebarNavViewModel,
 } from "@/types/view-models";
-import { collectionRecords, currentUserRecord, itemRecords, itemTypeRecords } from "./records";
 import {
-    buildCollectionViewModel,
-    buildDashboardViewModel,
+    buildDashboardItemsViewModel,
     buildItemSummaryViewModel,
     buildUserViewModel,
     sortByUpdatedAtDesc,
     toItemTypeViewModel,
-} from "./view-models";
+} from "../view-models";
+import { currentUserRecord, itemRecords, itemTypeRecords } from "./records";
+
+/**
+ * The items half of the application, still backed by mock records. Collections now read from the
+ * database (`src/server/collections.ts`); this module is what remains to be replaced.
+ */
 
 const itemTypes = itemTypeRecords.map(toItemTypeViewModel);
 const itemTypesById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
 const itemTypesByName = new Map(itemTypes.map((itemType) => [itemType.name, itemType]));
 
 const itemSummaries = itemRecords.map((item) => buildItemSummaryViewModel(item, itemTypesById));
-const itemSummariesById = new Map(itemSummaries.map((item) => [item.id, item]));
-
-const itemsByCollectionId = new Map(
-    collectionRecords.map((collection) => [
-        collection.id,
-        itemRecords.filter((item) => item.collectionIds.includes(collection.id)),
-    ]),
-);
-
-const collectionViewModels = collectionRecords.map((collection) =>
-    buildCollectionViewModel(
-        collection,
-        itemsByCollectionId.get(collection.id) ?? [],
-        itemTypesById,
-    ),
-);
-const collectionViewModelsById = new Map(
-    collectionViewModels.map((collection) => [collection.id, collection]),
-);
 
 const itemCountByTypeId = new Map<string, number>();
 for (const item of itemRecords) {
     itemCountByTypeId.set(item.itemTypeId, (itemCountByTypeId.get(item.itemTypeId) ?? 0) + 1);
 }
 
-function toSidebarCollection(collection: CollectionViewModel): SidebarCollectionViewModel {
-    return {
-        id: collection.id,
-        name: collection.name,
-        itemCount: collection.itemCount,
-        isFavorite: collection.isFavorite,
-    };
+export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
+    return buildDashboardItemsViewModel(itemSummaries);
 }
 
-export async function getDashboardData(): Promise<DashboardViewModel> {
-    return buildDashboardViewModel(itemSummaries, collectionViewModels);
-}
-
-export async function getSidebarData(): Promise<SidebarViewModel> {
-    const sortedCollections = sortByUpdatedAtDesc(collectionViewModels);
-
+/** The sidebar's item types and user. Its collection lists come from the database. */
+export async function getSidebarNav(): Promise<SidebarNavViewModel> {
     return {
         itemTypes: itemTypes
             .filter((itemType) => canAccessItemType(currentUserRecord.isPro, itemType.isPro))
@@ -77,36 +49,7 @@ export async function getSidebarData(): Promise<SidebarViewModel> {
                 slug: itemType.slug,
                 itemCount: itemCountByTypeId.get(itemType.id) ?? 0,
             })),
-        favoriteCollections: sortedCollections
-            .filter((collection) => collection.isFavorite)
-            .map(toSidebarCollection),
-        recentNonFavoriteCollections: sortedCollections
-            .filter((collection) => !collection.isFavorite)
-            .slice(0, 5)
-            .map(toSidebarCollection),
         user: buildUserViewModel(currentUserRecord),
-    };
-}
-
-export async function getAllCollections(): Promise<CollectionViewModel[]> {
-    return sortByUpdatedAtDesc(collectionViewModels);
-}
-
-export async function getCollectionPageData(
-    collectionId: string,
-): Promise<CollectionPageViewModel | undefined> {
-    const collection = collectionViewModelsById.get(collectionId);
-    if (!collection) {
-        return undefined;
-    }
-
-    const items = (itemsByCollectionId.get(collectionId) ?? [])
-        .map((item) => itemSummariesById.get(item.id))
-        .filter((item) => item !== undefined);
-
-    return {
-        collection,
-        items: sortByUpdatedAtDesc(items),
     };
 }
 

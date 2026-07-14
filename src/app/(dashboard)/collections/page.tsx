@@ -1,9 +1,9 @@
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getAllCollections } from "@/server/mock-data/queries";
+import { getCollections } from "@/server/collections";
 
 export default async function CollectionsPage() {
-    const collections = await getAllCollections();
+    const collections = await getCollections();
 
     return (
         <div className="mx-auto max-w-6xl space-y-6">

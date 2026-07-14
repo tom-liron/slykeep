@@ -50,16 +50,20 @@ export interface UserViewModel {
     isPro: boolean;
 }
 
-export interface DashboardStats {
-    totalItems: number;
+/**
+ * The dashboard is sourced in two halves while the items layer is still mock-backed: collections
+ * come from the database, items do not. Keeping them apart means the items half can be swapped
+ * later without touching the page's collection wiring.
+ */
+export interface DashboardCollectionsViewModel {
     totalCollections: number;
-    favoriteItems: number;
     favoriteCollections: number;
+    recentCollections: CollectionViewModel[];
 }
 
-export interface DashboardViewModel {
-    stats: DashboardStats;
-    recentlyUpdatedCollections: CollectionViewModel[];
+export interface DashboardItemsViewModel {
+    totalItems: number;
+    favoriteItems: number;
     pinnedItems: ItemSummaryViewModel[];
     recentItems: ItemSummaryViewModel[];
 }
@@ -80,12 +84,19 @@ export interface SidebarCollectionViewModel {
     isFavorite: boolean;
 }
 
-export interface SidebarViewModel {
-    itemTypes: SidebarItemTypeViewModel[];
+/** The sidebar's collection lists, read from the database. */
+export interface SidebarCollectionsViewModel {
     favoriteCollections: SidebarCollectionViewModel[];
     recentNonFavoriteCollections: SidebarCollectionViewModel[];
+}
+
+/** Item types and the signed-in user; still mock-backed. */
+export interface SidebarNavViewModel {
+    itemTypes: SidebarItemTypeViewModel[];
     user: UserViewModel;
 }
+
+export type SidebarViewModel = SidebarNavViewModel & SidebarCollectionsViewModel;
 
 export interface ItemTypePageViewModel {
     itemType: ItemTypeViewModel;
