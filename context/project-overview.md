@@ -58,17 +58,17 @@ USER
 
 Items have a type. Users will eventually create **custom types**, but we launch with these **system types** (immutable):
 
-| Type | Data Kind | Route | Pro Only |
-|------|-----------|-------|----------|
-| Snippet | text | `/items/snippets` | — |
-| Prompt | text | `/items/prompts` | — |
-| Note | text | `/items/notes` | — |
-| Command | text | `/items/commands` | — |
-| Link | url | `/items/links` | — |
-| File | file | `/items/files` | ✅ |
-| Image | file | `/items/images` | ✅ |
+| Name | Label | Content Type | Route | Pro Only |
+|------|-------|--------------|-------|----------|
+| `snippet` | Snippets | `TEXT` | `/items/snippets` | — |
+| `prompt` | Prompts | `TEXT` | `/items/prompts` | — |
+| `note` | Notes | `TEXT` | `/items/notes` | — |
+| `command` | Commands | `TEXT` | `/items/commands` | — |
+| `link` | Links | `URL` | `/items/links` | — |
+| `file` | Files | `FILE` | `/items/files` | ✅ |
+| `image` | Images | `FILE` | `/items/images` | ✅ |
 
-Each type resolves to one of three **content kinds**: `text` (snippet, note, prompt, command), `url` (link), or `file` (file, image).
+**Name** is the persisted natural key. **Label**, **content type**, **route**, and Pro gating are application configuration (`config/item-type-catalog.ts`), not database columns — see §5.
 
 Items should be **quick to access and create** via a slide-out drawer.
 
@@ -114,16 +114,22 @@ Email / password **or** GitHub sign-in.
 
 ## 5. Data Model (Prisma)
 
-> Prisma-ready draft. Uses PostgreSQL (Neon) via Prisma 7. Reconcile it with the installed Prisma version and the Auth.js adapter models before creating the initial migration.
+> Prisma 7 on PostgreSQL (Neon). This is the migration target: the persisted shape only.
 > **Rule:** never use `prisma db push` or edit the DB structure directly. All schema changes go through **migrations**, run in dev first, then prod.
+
+**Identity vs. presentation.** `ItemType` persists only `{ id, name, icon, color, isSystem, userId }`. The *name* is the natural key — lowercase singular (`snippet`, `prompt`, …). Everything else an item type needs in order to render — its plural display label, its route slug, its content type, and whether it is Pro-gated — is application configuration in `config/item-type-catalog.ts`, keyed by that name. The two are joined into an `ItemTypeViewModel` at the server boundary, which is also where the persisted `icon` string is validated against the supported icon set.
+
+Note that `contentType` lives on **Item**, not on `ItemType`: it is a property of the stored content, and it discriminates which of `content` / `url` / `fileUrl` is populated.
 
 ```prisma
 // ----- User (extends NextAuth) -----
 model User {
   id                   String       @id @default(cuid())
   email                String       @unique
+  emailVerified        DateTime?
   name                 String?
   image                String?
+  password             String?      // null for OAuth-only accounts
 
   // Monetization
   isPro                Boolean      @default(false)
@@ -134,23 +140,72 @@ model User {
   items                Item[]
   collections          Collection[]
   itemTypes            ItemType[]   // custom types; null owner = system type
-  accounts             Account[]    // NextAuth
-  sessions             Session[]    // NextAuth
+  accounts             Account[]
+  sessions             Session[]
 
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
+
+  @@map("users")
+}
+
+// ----- NextAuth -----
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 // ----- Item -----
+enum ContentType {
+  TEXT
+  FILE
+  URL
+}
+
 model Item {
   id          String           @id @default(cuid())
   title       String
-  contentKind ContentKind      // TEXT | URL | FILE
-  content     String?          // text content for TEXT items
-  url         String?          // destination for URL items
-  fileUrl     String?          // Cloudflare R2 URL for FILE items
-  fileName    String?          // original filename
-  fileSize    Int?             // bytes
+  contentType ContentType      // discriminates the three fields below
+  content     String?          // TEXT items
+  url         String?          // URL items
+  fileUrl     String?          // FILE items — Cloudflare R2 object
+  fileName    String?          // FILE items — original filename
+  fileSize    Int?             // FILE items — bytes
   description String?
   language    String?          // optional, for code highlighting
   isFavorite  Boolean          @default(false)
@@ -161,32 +216,34 @@ model Item {
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   itemTypeId  String
   itemType    ItemType         @relation(fields: [itemTypeId], references: [id])
-  tags        Tag[]
+  tags        Tag[]            @relation("ItemTags")
   collections ItemCollection[] // many-to-many via join table
 
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
   @@index([userId])
+  @@index([itemTypeId])
+  @@index([createdAt])
+  @@map("items")
 }
 
 // ----- ItemType -----
 model ItemType {
-  id       String      @id @default(cuid())
-  name     String
-  slug     String
-  icon     String      // one of the application-supported Lucide icon names
-  color    String      // hex
-  kind     ContentKind
-  isPro    Boolean     @default(false)
-  isSystem Boolean     @default(false)
+  id       String  @id @default(cuid())
+  name     String  // natural key: lowercase singular — "snippet", "prompt", ...
+  icon     String  // one of the application-supported Lucide icon names
+  color    String  // hex
+  isSystem Boolean @default(false)
 
   // Relations — user is null for system types
-  userId   String?
-  user     User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items    Item[]
+  userId                String?
+  user                  User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                 Item[]
+  defaultForCollections Collection[]
 
-  @@unique([userId, slug])
+  @@unique([name, userId])
+  @@map("item_types")
 }
 
 // ----- Collection -----
@@ -195,17 +252,19 @@ model Collection {
   name          String           // "React Hooks", "Prototype Prompts", ...
   description   String?
   isFavorite    Boolean          @default(false)
-  defaultTypeId String?          // default type for new, empty collections
 
   // Relations
   userId        String
   user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultTypeId String?          // default type for new, empty collections
+  defaultType   ItemType?        @relation(fields: [defaultTypeId], references: [id])
   items         ItemCollection[] // many-to-many via join table
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   @@index([userId])
+  @@map("collections")
 }
 
 // ----- ItemCollection (join table) -----
@@ -218,29 +277,26 @@ model ItemCollection {
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@id([itemId, collectionId])
+  @@map("item_collections")
 }
 
 // ----- Tag -----
 model Tag {
   id    String @id @default(cuid())
-  name  String
-  items Item[]
-}
+  name  String @unique
+  items Item[] @relation("ItemTags")
 
-enum ContentKind {
-  TEXT
-  URL
-  FILE
+  @@map("tags")
 }
 ```
 
 > **Notes / open questions**
-> - `Tag` is currently global. Consider scoping tags per-user (`userId`) and uniquely indexing `@@unique([userId, name])` to avoid cross-user collisions.
-> - NextAuth `Account` and `Session` models are assumed but omitted above for brevity — they come from the NextAuth Prisma adapter.
-> - Seed the immutable system types from `config/item-type-catalog.ts`. Persisted icon values must be validated against the application's supported icon set at the repository/view-model boundary.
-> - UI view models normalize nullable database fields such as `User.name`, `Item.description`, and `Collection.description` into display-safe values. List view models must not select item bodies; detail queries select content only when the detail drawer/page needs it.
-
----
+> - **The system-type unique constraint does not hold.** `@@unique([name, userId])` with `userId = NULL` for system types does not prevent duplicates: Postgres treats `NULL`s as distinct in unique indexes, so two `('snippet', NULL)` rows are both accepted and a re-run of the seed inserts a second set. Fix before seeding — either a partial unique index (`CREATE UNIQUE INDEX ... ON item_types (name) WHERE user_id IS NULL`, added via `migration.sql`) or a `findFirst`-then-create seed rather than `upsert`.
+> - Seed the seven system types from `config/item-type-catalog.ts` (name, icon, color). The seed is the only place the catalog's colors and icons flow into the database.
+> - `Tag` is global (`name @unique`), which collides across users and pollutes autocomplete. Per-user scoping (`@@unique([userId, name])`) is the better model; deferred to keep the migration path aligned with the course.
+> - `Item.contentType` is denormalized against its `ItemType` — a "snippet" is always `TEXT`. Enforced at the write boundary (Server Actions), not by the schema.
+> - UI view models normalize nullable database fields such as `User.name`, `Item.description`, and `Collection.description` into display-safe values, and serialize `DateTime` to ISO strings. List view models must not select item bodies; detail queries select content only when the detail drawer/page needs it.
+> - A collection with no items and no `defaultTypeId` has **no** dominant type. `CollectionViewModel.dominantItemType` is nullable, and the card renders a neutral accent in that case.
 
 ## 6. Tech Stack
 

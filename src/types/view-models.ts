@@ -1,4 +1,19 @@
-import type { IconName, ItemTypeMetadata } from "./item-type";
+import type { ContentType, IconName, ItemTypeName } from "./item-type";
+
+/**
+ * A persisted item type joined with its configured presentation. Built at the server boundary by
+ * `toItemTypeViewModel`, which is where the untyped persisted `icon` is validated.
+ */
+export interface ItemTypeViewModel {
+    id: string;
+    name: ItemTypeName;
+    label: string;
+    icon: IconName;
+    color: string;
+    slug: string;
+    contentType: ContentType;
+    isPro: boolean;
+}
 
 /** Item data prepared for cards and lists, independent of the persistence layer. */
 export interface ItemSummaryViewModel {
@@ -9,10 +24,13 @@ export interface ItemSummaryViewModel {
     isFavorite: boolean;
     isPinned: boolean;
     updatedAt: string;
-    itemType: ItemTypeMetadata;
+    itemType: ItemTypeViewModel;
 }
 
-/** Collection data prepared with all derived display metadata. */
+/**
+ * Collection data prepared with all derived display metadata. A collection with no items and no
+ * default type has no dominant type, so `dominantItemType` is nullable.
+ */
 export interface CollectionViewModel {
     id: string;
     name: string;
@@ -20,8 +38,8 @@ export interface CollectionViewModel {
     isFavorite: boolean;
     updatedAt: string;
     itemCount: number;
-    itemTypes: ItemTypeMetadata[];
-    dominantItemType: ItemTypeMetadata;
+    itemTypes: ItemTypeViewModel[];
+    dominantItemType: ItemTypeViewModel | null;
 }
 
 export interface UserViewModel {
@@ -48,7 +66,7 @@ export interface DashboardViewModel {
 
 export interface SidebarItemTypeViewModel {
     id: string;
-    name: string;
+    label: string;
     icon: IconName;
     color: string;
     slug: string;
@@ -70,7 +88,7 @@ export interface SidebarViewModel {
 }
 
 export interface ItemTypePageViewModel {
-    itemType: ItemTypeMetadata;
+    itemType: ItemTypeViewModel;
     items: ItemSummaryViewModel[];
 }
 

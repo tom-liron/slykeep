@@ -23,7 +23,7 @@ export default async function ItemTypePage({ params }: { params: Promise<{ slug:
                     <TypeIcon name={data.itemType.icon} className="size-5" aria-hidden="true" />
                 </span>
                 <div>
-                    <h1 className="text-2xl font-bold">{data.itemType.name}</h1>
+                    <h1 className="text-2xl font-bold">{data.itemType.label}</h1>
                     <p className="text-muted-foreground">
                         {data.items.length} {data.items.length === 1 ? "item" : "items"}
                     </p>
@@ -37,7 +37,7 @@ export default async function ItemTypePage({ params }: { params: Promise<{ slug:
                     ))}
                 </div>
             ) : (
-                <EmptyState message={`No ${data.itemType.name.toLowerCase()} yet.`} />
+                <EmptyState message={`No ${data.itemType.label.toLowerCase()} yet.`} />
             )}
         </div>
     );

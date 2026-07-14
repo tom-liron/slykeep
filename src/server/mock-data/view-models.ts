@@ -1,43 +1,85 @@
 import "server-only";
 
-import type { ItemTypeMetadata } from "@/types/item-type";
+import { ITEM_TYPE_CATALOG, isIconName } from "@/config/item-type-catalog";
 import type {
     CollectionViewModel,
     DashboardViewModel,
     ItemSummaryViewModel,
+    ItemTypeViewModel,
     UserViewModel,
 } from "@/types/view-models";
-import type { MockCollectionRecord, MockItemRecord, MockUserRecord } from "./records";
+import type {
+    MockCollectionRecord,
+    MockItemRecord,
+    MockItemTypeRecord,
+    MockUserRecord,
+} from "./records";
 
-type ItemTypeMap = ReadonlyMap<string, ItemTypeMetadata>;
+type ItemTypeMap = ReadonlyMap<string, ItemTypeViewModel>;
 
-export function sortByUpdatedAtDesc<T extends { updatedAt: string }>(records: T[]): T[] {
-    return [...records].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+function toTime(value: Date | string): number {
+    return value instanceof Date ? value.getTime() : Date.parse(value);
 }
 
+export function sortByUpdatedAtDesc<T extends { updatedAt: Date | string }>(records: T[]): T[] {
+    return [...records].sort((left, right) => toTime(right.updatedAt) - toTime(left.updatedAt));
+}
+
+/**
+ * Joins a persisted item type with its configured presentation. The persisted `icon` is an
+ * untyped string, so it is validated here rather than trusted downstream.
+ */
+export function toItemTypeViewModel(row: MockItemTypeRecord): ItemTypeViewModel {
+    if (!isIconName(row.icon)) {
+        throw new Error(`Unsupported icon "${row.icon}" on item type "${row.name}"`);
+    }
+
+    const { label, slug, contentType, isPro } = ITEM_TYPE_CATALOG[row.name];
+
+    return {
+        id: row.id,
+        name: row.name,
+        label,
+        icon: row.icon,
+        color: row.color,
+        slug,
+        contentType,
+        isPro,
+    };
+}
+
+function requireItemType(itemTypeId: string, itemTypesById: ItemTypeMap): ItemTypeViewModel {
+    const itemType = itemTypesById.get(itemTypeId);
+    if (!itemType) {
+        throw new Error(`Unknown item type: ${itemTypeId}`);
+    }
+    return itemType;
+}
+
+/** Null when the collection is empty and has no default type. */
 export function resolveDominantTypeId(
     collection: MockCollectionRecord,
     collectionItems: MockItemRecord[],
-): string {
+): string | null {
     if (collectionItems.length === 0) {
         return collection.defaultTypeId;
     }
 
     const counts = new Map<string, number>();
     for (const item of collectionItems) {
-        counts.set(item.typeId, (counts.get(item.typeId) ?? 0) + 1);
+        counts.set(item.itemTypeId, (counts.get(item.itemTypeId) ?? 0) + 1);
     }
 
     const highestCount = Math.max(...counts.values());
     const tiedTypeIds = new Set(
         [...counts.entries()]
             .filter(([, count]) => count === highestCount)
-            .map(([typeId]) => typeId),
+            .map(([itemTypeId]) => itemTypeId),
     );
 
     return (
-        sortByUpdatedAtDesc(collectionItems).find((item) => tiedTypeIds.has(item.typeId))?.typeId ??
-        collection.defaultTypeId
+        sortByUpdatedAtDesc(collectionItems).find((item) => tiedTypeIds.has(item.itemTypeId))
+            ?.itemTypeId ?? collection.defaultTypeId
     );
 }
 
@@ -45,20 +87,15 @@ export function buildItemSummaryViewModel(
     item: MockItemRecord,
     itemTypesById: ItemTypeMap,
 ): ItemSummaryViewModel {
-    const itemType = itemTypesById.get(item.typeId);
-    if (!itemType) {
-        throw new Error(`Unknown item type: ${item.typeId}`);
-    }
-
     return {
         id: item.id,
         title: item.title,
-        description: item.description,
+        description: item.description ?? "",
         tags: [...item.tags],
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
-        updatedAt: item.updatedAt,
-        itemType,
+        updatedAt: item.updatedAt.toISOString(),
+        itemType: requireItemType(item.itemTypeId, itemTypesById),
     };
 }
 
@@ -68,34 +105,34 @@ export function buildCollectionViewModel(
     itemTypesById: ItemTypeMap,
 ): CollectionViewModel {
     const dominantTypeId = resolveDominantTypeId(collection, collectionItems);
-    const dominantItemType = itemTypesById.get(dominantTypeId);
-    if (!dominantItemType) {
-        throw new Error(`Unknown item type: ${dominantTypeId}`);
-    }
 
-    const containedTypeIds = new Set(collectionItems.map((item) => item.typeId));
-    if (containedTypeIds.size === 0) {
+    const containedTypeIds = new Set(collectionItems.map((item) => item.itemTypeId));
+    if (containedTypeIds.size === 0 && collection.defaultTypeId) {
         containedTypeIds.add(collection.defaultTypeId);
     }
-
-    const itemTypes = [...itemTypesById.values()].filter((itemType) =>
-        containedTypeIds.has(itemType.id),
-    );
 
     return {
         id: collection.id,
         name: collection.name,
-        description: collection.description,
+        description: collection.description ?? "",
         isFavorite: collection.isFavorite,
-        updatedAt: collection.updatedAt,
+        updatedAt: collection.updatedAt.toISOString(),
         itemCount: collectionItems.length,
-        itemTypes,
-        dominantItemType,
+        itemTypes: [...itemTypesById.values()].filter((itemType) =>
+            containedTypeIds.has(itemType.id),
+        ),
+        dominantItemType: dominantTypeId ? requireItemType(dominantTypeId, itemTypesById) : null,
     };
 }
 
 export function buildUserViewModel(user: MockUserRecord): UserViewModel {
-    return { ...user };
+    return {
+        id: user.id,
+        name: user.name ?? user.email,
+        email: user.email,
+        image: user.image,
+        isPro: user.isPro,
+    };
 }
 
 export function buildDashboardViewModel(

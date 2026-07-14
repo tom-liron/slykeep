@@ -1,4 +1,4 @@
-import type { ItemTypeMetadata } from "@/types/item-type";
+import type { IconName, ItemTypeName, ItemTypePresentation } from "@/types/item-type";
 
 export const ITEM_TYPE_COLORS = {
     snippet: "#3b82f6",
@@ -10,80 +10,100 @@ export const ITEM_TYPE_COLORS = {
     link: "#10b981",
 } as const;
 
-export const SYSTEM_ITEM_TYPE_CATALOG: readonly ItemTypeMetadata[] = [
-    {
-        id: "type_snippet",
-        name: "Snippets",
+/**
+ * Presentation and gating for the built-in item types, keyed by their persisted natural name.
+ * Item-type ids are assigned by the database, so they are deliberately absent here — resolve a
+ * type by name (or by slug, for routes) and join it to its persisted row.
+ */
+export const ITEM_TYPE_CATALOG: Record<ItemTypeName, ItemTypePresentation> = {
+    snippet: {
+        label: "Snippets",
         icon: "Code",
         color: ITEM_TYPE_COLORS.snippet,
         slug: "snippets",
-        kind: "text",
+        contentType: "TEXT",
         isPro: false,
     },
-    {
-        id: "type_prompt",
-        name: "Prompts",
+    prompt: {
+        label: "Prompts",
         icon: "Sparkles",
         color: ITEM_TYPE_COLORS.prompt,
         slug: "prompts",
-        kind: "text",
+        contentType: "TEXT",
         isPro: false,
     },
-    {
-        id: "type_command",
-        name: "Commands",
+    command: {
+        label: "Commands",
         icon: "Terminal",
         color: ITEM_TYPE_COLORS.command,
         slug: "commands",
-        kind: "text",
+        contentType: "TEXT",
         isPro: false,
     },
-    {
-        id: "type_note",
-        name: "Notes",
+    note: {
+        label: "Notes",
         icon: "StickyNote",
         color: ITEM_TYPE_COLORS.note,
         slug: "notes",
-        kind: "text",
+        contentType: "TEXT",
         isPro: false,
     },
-    {
-        id: "type_file",
-        name: "Files",
+    file: {
+        label: "Files",
         icon: "File",
         color: ITEM_TYPE_COLORS.file,
         slug: "files",
-        kind: "file",
+        contentType: "FILE",
         isPro: true,
     },
-    {
-        id: "type_image",
-        name: "Images",
+    image: {
+        label: "Images",
         icon: "Image",
         color: ITEM_TYPE_COLORS.image,
         slug: "images",
-        kind: "file",
+        contentType: "FILE",
         isPro: true,
     },
-    {
-        id: "type_link",
-        name: "Links",
+    link: {
+        label: "Links",
         icon: "Link",
         color: ITEM_TYPE_COLORS.link,
         slug: "links",
-        kind: "url",
+        contentType: "URL",
         isPro: false,
     },
+};
+
+/** Display order for the sidebar, and the order the seed writes rows in. */
+export const SYSTEM_ITEM_TYPE_NAMES: readonly ItemTypeName[] = [
+    "snippet",
+    "prompt",
+    "command",
+    "note",
+    "file",
+    "image",
+    "link",
 ];
 
-export const SYSTEM_ITEM_TYPE_BY_ID: ReadonlyMap<string, ItemTypeMetadata> = new Map(
-    SYSTEM_ITEM_TYPE_CATALOG.map((itemType) => [itemType.id, itemType]),
+const ICON_NAMES: readonly IconName[] = [
+    "Code",
+    "Sparkles",
+    "Terminal",
+    "StickyNote",
+    "File",
+    "Image",
+    "Link",
+];
+
+const itemTypeNameBySlug = new Map<string, ItemTypeName>(
+    SYSTEM_ITEM_TYPE_NAMES.map((name) => [ITEM_TYPE_CATALOG[name].slug, name]),
 );
 
-const systemItemTypeBySlug = new Map(
-    SYSTEM_ITEM_TYPE_CATALOG.map((itemType) => [itemType.slug, itemType]),
-);
+/** Guards the persisted `ItemType.icon` string, which the database stores untyped. */
+export function isIconName(value: string): value is IconName {
+    return (ICON_NAMES as readonly string[]).includes(value);
+}
 
-export function getSystemItemTypeBySlug(slug: string): ItemTypeMetadata | undefined {
-    return systemItemTypeBySlug.get(slug);
+export function getItemTypeNameBySlug(slug: string): ItemTypeName | undefined {
+    return itemTypeNameBySlug.get(slug);
 }
