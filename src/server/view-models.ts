@@ -3,7 +3,6 @@ import "server-only";
 import { ITEM_TYPE_CATALOG, isIconName, isItemTypeName } from "@/config/item-type-catalog";
 import type {
     CollectionViewModel,
-    DashboardItemsViewModel,
     ItemSummaryViewModel,
     ItemTypeViewModel,
     UserViewModel,
@@ -181,16 +180,5 @@ export function buildUserViewModel(user: UserRow): UserViewModel {
         email: user.email,
         image: user.image,
         isPro: user.isPro,
-    };
-}
-
-export function buildDashboardItemsViewModel(
-    items: ItemSummaryViewModel[],
-): DashboardItemsViewModel {
-    return {
-        totalItems: items.length,
-        favoriteItems: items.filter((item) => item.isFavorite).length,
-        pinnedItems: sortByUpdatedAtDesc(items.filter((item) => item.isPinned)),
-        recentItems: sortByUpdatedAtDesc(items.filter((item) => !item.isPinned)).slice(0, 10),
     };
 }
