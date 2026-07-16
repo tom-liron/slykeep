@@ -1,5 +1,6 @@
 import "server-only";
 
+import { Prisma } from "@/generated/prisma-client/client";
 import { prisma } from "@/lib/prisma";
 import type {
     CollectionPageViewModel,
@@ -39,15 +40,7 @@ const SIDEBAR_COLLECTION_SELECT = {
     _count: { select: { items: true } },
 } as const;
 
-type CollectionRowWithItems = {
-    id: string;
-    name: string;
-    description: string | null;
-    isFavorite: boolean;
-    defaultTypeId: string | null;
-    updatedAt: Date;
-    items: { item: { itemTypeId: string; updatedAt: Date } }[];
-};
+type CollectionRowWithItems = Prisma.CollectionGetPayload<{ select: typeof COLLECTION_SELECT }>;
 
 async function toCollectionViewModels(
     rows: CollectionRowWithItems[],
@@ -99,7 +92,7 @@ export async function getDashboardCollections(): Promise<DashboardCollectionsVie
     };
 }
 
-/** Favourites (all of them) and the five most recent non-favourites. */
+/** Favorites (all of them) and the five most recent non-favorites. */
 export async function getSidebarCollections(): Promise<SidebarCollectionsViewModel> {
     const userId = await getCurrentUserId();
 
@@ -117,12 +110,9 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
         }),
     ]);
 
-    const toSidebarCollection = (row: {
-        id: string;
-        name: string;
-        isFavorite: boolean;
-        _count: { items: number };
-    }) => ({
+    const toSidebarCollection = (
+        row: Prisma.CollectionGetPayload<{ select: typeof SIDEBAR_COLLECTION_SELECT }>,
+    ) => ({
         id: row.id,
         name: row.name,
         isFavorite: row.isFavorite,

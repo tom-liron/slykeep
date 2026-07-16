@@ -2,13 +2,8 @@ import "server-only";
 
 import { getItemTypeNameBySlug } from "@/config/item-type-catalog";
 import { canAccessItemType } from "@/lib/limits";
-import type {
-    DashboardItemsViewModel,
-    ItemTypePageViewModel,
-    SidebarNavViewModel,
-} from "@/types/view-models";
+import type { ItemTypePageViewModel, SidebarNavViewModel } from "@/types/view-models";
 import {
-    buildDashboardItemsViewModel,
     buildItemSummaryViewModel,
     buildUserViewModel,
     sortByUpdatedAtDesc,
@@ -17,8 +12,9 @@ import {
 import { currentUserRecord, itemRecords, itemTypeRecords } from "./records";
 
 /**
- * The items half of the application, still backed by mock records. Collections now read from the
- * database (`src/server/collections.ts`); this module is what remains to be replaced.
+ * The sidebar nav (item types + user) and item-type pages, still backed by mock records. The
+ * dashboard items read path now comes from the database (`src/server/items.ts`); this module is
+ * what remains to be replaced.
  */
 
 const itemTypes = itemTypeRecords.map(toItemTypeViewModel);
@@ -30,10 +26,6 @@ const itemSummaries = itemRecords.map((item) => buildItemSummaryViewModel(item, 
 const itemCountByTypeId = new Map<string, number>();
 for (const item of itemRecords) {
     itemCountByTypeId.set(item.itemTypeId, (itemCountByTypeId.get(item.itemTypeId) ?? 0) + 1);
-}
-
-export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
-    return buildDashboardItemsViewModel(itemSummaries);
 }
 
 /** The sidebar's item types and user. Its collection lists come from the database. */

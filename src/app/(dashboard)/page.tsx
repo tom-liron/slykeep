@@ -7,7 +7,7 @@ import { ItemCard } from "@/components/items/ItemCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DASHBOARD_STAT_COLORS } from "@/config/dashboard";
 import { getDashboardCollections } from "@/server/collections";
-import { getDashboardItems } from "@/server/mock-data/queries";
+import { getDashboardItems } from "@/server/items";
 
 export default async function DashboardPage() {
     const [collections, items] = await Promise.all([

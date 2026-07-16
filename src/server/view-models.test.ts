@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
 import type { ItemTypeName } from "@/types/item-type";
-import type { ItemSummaryViewModel } from "@/types/view-models";
 import { collectionRecords, itemRecords, itemTypeRecords } from "./mock-data/records";
 import type { MockCollectionRecord, MockItemRecord } from "./mock-data/records";
 import {
     buildCollectionViewModel,
-    buildDashboardItemsViewModel,
     buildItemSummaryViewModel,
     buildUserViewModel,
     resolveDominantTypeId,
@@ -204,37 +202,6 @@ describe("collection view models", () => {
         );
 
         expect(summary).not.toHaveProperty("content");
-    });
-});
-
-describe("dashboard item view models", () => {
-    it("keeps pinned items out of recent items and derives stats", () => {
-        const snippetType = itemTypes[0];
-        const pinned = {
-            id: "pinned",
-            title: "Pinned",
-            description: "",
-            tags: [],
-            isFavorite: true,
-            isPinned: true,
-            updatedAt: "2026-01-03T00:00:00.000Z",
-            itemType: snippetType,
-        } satisfies ItemSummaryViewModel;
-        const recent = {
-            ...pinned,
-            id: "recent",
-            title: "Recent",
-            isFavorite: false,
-            isPinned: false,
-            updatedAt: "2026-01-02T00:00:00.000Z",
-        } satisfies ItemSummaryViewModel;
-
-        const dashboard = buildDashboardItemsViewModel([recent, pinned]);
-
-        expect(dashboard.pinnedItems.map((item) => item.id)).toEqual(["pinned"]);
-        expect(dashboard.recentItems.map((item) => item.id)).toEqual(["recent"]);
-        expect(dashboard.totalItems).toBe(2);
-        expect(dashboard.favoriteItems).toBe(1);
     });
 });
 
