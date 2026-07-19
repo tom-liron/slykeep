@@ -1,11 +1,13 @@
 import "server-only";
 
+import { getItemTypeNameBySlug } from "@/config/item-type-catalog";
 import { Prisma } from "@/generated/prisma-client/client";
+import { canAccessItemType } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
-import type { DashboardItemsViewModel } from "@/types/view-models";
-import { getCurrentUserId } from "./current-user";
+import type { DashboardItemsViewModel, ItemTypePageViewModel } from "@/types/view-models";
+import { getCurrentUser, getCurrentUserId } from "./current-user";
 import { getItemTypesById } from "./item-types";
-import { buildItemSummaryViewModel } from "./view-models";
+import { buildItemSummaryViewModel, toItemTypeViewModel } from "./view-models";
 
 /**
  * Only the columns a card reads — never an item body (`content` / `url` / `fileUrl`), which keeps
@@ -60,5 +62,53 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
         favoriteItems,
         pinnedItems: pinnedRows.map(toViewModel),
         recentItems: recentRows.map(toViewModel),
+    };
+}
+
+/**
+ * An item-type page (`/items/snippets`, ...): the type and all of the user's items of that type,
+ * most recently updated first. The slug resolves to a system type only, so it is looked up with
+ * `userId: null` — a user's custom type could share the name (see `project-overview.md` §5).
+ * Returns undefined for an unknown slug or a type the user cannot access, so the page can 404.
+ */
+export async function getItemTypePageData(
+    slug: string,
+): Promise<ItemTypePageViewModel | undefined> {
+    const name = getItemTypeNameBySlug(slug);
+    if (!name) {
+        return undefined;
+    }
+
+    const user = await getCurrentUser();
+
+    const typeRow = await prisma.itemType.findFirst({
+        where: { name, userId: null },
+        select: { id: true, name: true, icon: true, color: true },
+    });
+    if (!typeRow) {
+        return undefined;
+    }
+
+    const itemType = toItemTypeViewModel(typeRow);
+    if (!canAccessItemType(user.isPro, itemType.isPro)) {
+        return undefined;
+    }
+
+    const rows = await prisma.item.findMany({
+        where: { userId: user.id, itemTypeId: itemType.id },
+        orderBy: { updatedAt: "desc" },
+        select: ITEM_SUMMARY_SELECT,
+    });
+
+    const itemTypesById = new Map([[itemType.id, itemType]]);
+
+    return {
+        itemType,
+        items: rows.map((row) =>
+            buildItemSummaryViewModel(
+                { ...row, tags: row.tags.map((tag) => tag.name) },
+                itemTypesById,
+            ),
+        ),
     };
 }

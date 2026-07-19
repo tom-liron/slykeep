@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
 import type { ItemTypeName } from "@/types/item-type";
-import { collectionRecords, itemRecords, itemTypeRecords } from "./mock-data/records";
-import type { MockCollectionRecord, MockItemRecord } from "./mock-data/records";
 import {
     buildCollectionViewModel,
     buildItemSummaryViewModel,
@@ -12,9 +10,18 @@ import {
     sortByUpdatedAtDesc,
     toItemTypeViewModel,
 } from "./view-models";
-import type { ItemTypeRow } from "./view-models";
+import type { CollectionRow, ItemSummaryRow, ItemTypeRow } from "./view-models";
 
-const itemTypes = itemTypeRecords.map(toItemTypeViewModel);
+// Self-contained fixtures: the item types the seed writes, joined to their configured presentation
+// under synthetic ids. Nothing here reads the database — these exercise the pure derivation rules.
+const itemTypes = SYSTEM_ITEM_TYPE_NAMES.map((name) =>
+    toItemTypeViewModel({
+        id: `type-${name}`,
+        name,
+        icon: ITEM_TYPE_CATALOG[name].icon,
+        color: ITEM_TYPE_CATALOG[name].color,
+    }),
+);
 const itemTypesById = new Map(itemTypes.map((itemType) => [itemType.id, itemType]));
 
 function typeId(name: ItemTypeName): string {
@@ -25,7 +32,7 @@ function typeId(name: ItemTypeName): string {
     return itemType.id;
 }
 
-const collection: MockCollectionRecord = {
+const collection: CollectionRow = {
     id: "collection",
     name: "Test collection",
     description: "Test",
@@ -34,30 +41,16 @@ const collection: MockCollectionRecord = {
     updatedAt: new Date("2026-01-01T00:00:00Z"),
 };
 
-function makeItem(
-    id: string,
-    itemTypeId: string,
-    updatedAt: string,
-    overrides: Partial<MockItemRecord> = {},
-): MockItemRecord {
+function makeItem(id: string, itemTypeId: string, updatedAt: string): ItemSummaryRow {
     return {
         id,
         title: id,
         description: null,
         itemTypeId,
-        contentType: "TEXT",
-        content: null,
-        url: null,
-        fileUrl: null,
-        fileName: null,
-        fileSize: null,
-        language: null,
         tags: [],
         isFavorite: false,
         isPinned: false,
-        collectionIds: [collection.id],
         updatedAt: new Date(`${updatedAt}T00:00:00Z`),
-        ...overrides,
     };
 }
 
@@ -196,41 +189,15 @@ describe("collection view models", () => {
     });
 
     it("builds item summaries without list-inaccessible content", () => {
-        const summary = buildItemSummaryViewModel(
-            makeItem("item", typeId("snippet"), "2026-01-01", { content: "private body" }),
-            itemTypesById,
-        );
+        // A row carrying a content body must not leak it into the summary: the builder constructs
+        // its output explicitly rather than spreading the input.
+        const rowWithContent = {
+            ...makeItem("item", typeId("snippet"), "2026-01-01"),
+            content: "private body",
+        };
+
+        const summary = buildItemSummaryViewModel(rowWithContent, itemTypesById);
 
         expect(summary).not.toHaveProperty("content");
-    });
-});
-
-describe("mock records", () => {
-    it("keeps every mock item-type reference resolvable", () => {
-        const referencedIds = [
-            ...itemRecords.map((item) => item.itemTypeId),
-            ...collectionRecords.map((record) => record.defaultTypeId).filter((id) => id !== null),
-        ];
-
-        expect(referencedIds.every((id) => itemTypesById.has(id))).toBe(true);
-    });
-
-    it("populates exactly the content column its contentType declares", () => {
-        for (const item of itemRecords) {
-            if (item.contentType === "TEXT") {
-                expect(item.content, item.title).not.toBeNull();
-                expect(item.url, item.title).toBeNull();
-                expect(item.fileUrl, item.title).toBeNull();
-            } else if (item.contentType === "URL") {
-                expect(item.url, item.title).not.toBeNull();
-                expect(item.content, item.title).toBeNull();
-                expect(item.fileUrl, item.title).toBeNull();
-            } else {
-                expect(item.fileUrl, item.title).not.toBeNull();
-                expect(item.fileName, item.title).not.toBeNull();
-                expect(item.content, item.title).toBeNull();
-                expect(item.url, item.title).toBeNull();
-            }
-        }
     });
 });
