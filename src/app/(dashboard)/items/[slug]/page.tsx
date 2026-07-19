@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ItemCard } from "@/components/items/ItemCard";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getItemTypePageData } from "@/server/mock-data/queries";
+import { getItemTypePageData } from "@/server/items";
 
 export default async function ItemTypePage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;

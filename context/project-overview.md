@@ -406,7 +406,7 @@ Icons are [lucide-react](https://lucide.dev) names.
 
 ## 9. Project Structure
 
-The current application implements the dashboard routes, feature components, runtime configuration, and the server-only mock query layer shown below. Entries marked **(planned)** are target additions for later product phases, not files that already exist.
+The current application implements the dashboard routes, feature components, runtime configuration, and the server-only, Prisma-backed query layer shown below. Entries marked **(planned)** are target additions for later product phases, not files that already exist.
 
 ```
 devstash/
@@ -460,9 +460,11 @@ devstash/
 │   │   └── limits.ts            # item-type entitlement policy
 │   ├── actions/                 # (planned) Server Actions for mutations
 │   ├── server/                  # server-only queries, repositories, and view-model preparation
-│   │   ├── mock-data/           # temporary records, view-model preparation, queries
-│   │   ├── items.ts             # (planned)
-│   │   ├── collections.ts       # (planned)
+│   │   ├── items.ts             # item reads + item-type pages
+│   │   ├── collections.ts       # collection reads
+│   │   ├── item-types.ts        # item types + sidebar nav
+│   │   ├── current-user.ts      # signed-in user resolution (demo user until auth lands)
+│   │   ├── view-models.ts       # persistence-independent view-model builders
 │   │   └── search.ts            # (planned)
 │   ├── hooks/                   # (planned)
 │   ├── types/
@@ -477,7 +479,7 @@ devstash/
 └── package.json
 ```
 
-A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` will own write-side Server Actions. Prisma replaces the current mock query layer without changing presentation components.
+A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` will own write-side Server Actions. Reads go through Prisma end to end; the earlier mock query layer has been fully retired.
 
 ---
 
