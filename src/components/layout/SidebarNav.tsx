@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
-import { ChevronDown, Folder, Settings, Star } from "lucide-react";
+import { ArrowRight, ChevronDown, Settings, Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { getInitials } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { SidebarViewModel } from "@/types/view-models";
+import type { SidebarCollectionViewModel, SidebarViewModel } from "@/types/view-models";
 
 export function SidebarNav({
     data,
@@ -90,11 +90,16 @@ export function SidebarNav({
                                             name={collection.name}
                                             active={pathname === `/collections/${collection.id}`}
                                             onNavigate={onNavigate}
-                                            trailing={
+                                            leading={
                                                 <Star
-                                                    className="size-3.5 fill-yellow-400 text-yellow-400"
+                                                    className="size-4 shrink-0 fill-yellow-400 text-yellow-400"
                                                     aria-label="Favorite"
                                                 />
+                                            }
+                                            trailing={
+                                                <span className="text-xs text-muted-foreground">
+                                                    {collection.itemCount}
+                                                </span>
                                             }
                                         />
                                     ))}
@@ -115,6 +120,11 @@ export function SidebarNav({
                                             name={collection.name}
                                             active={pathname === `/collections/${collection.id}`}
                                             onNavigate={onNavigate}
+                                            leading={
+                                                <CollectionDot
+                                                    itemType={collection.dominantItemType}
+                                                />
+                                            }
                                             trailing={
                                                 <span className="text-xs text-muted-foreground">
                                                     {collection.itemCount}
@@ -125,6 +135,15 @@ export function SidebarNav({
                                 </ul>
                             </div>
                         )}
+
+                        <Link
+                            href="/collections"
+                            onClick={onNavigate}
+                            className="flex items-center gap-3 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+                        >
+                            <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+                            <span>View all collections</span>
+                        </Link>
                     </div>
                 )}
             </nav>
@@ -193,13 +212,15 @@ function CollectionLink({
     href,
     name,
     active,
+    leading,
     trailing,
     onNavigate,
 }: {
     href: string;
     name: string;
     active: boolean;
-    trailing: ReactNode;
+    leading: ReactNode;
+    trailing?: ReactNode;
     onNavigate?: () => void;
 }) {
     return (
@@ -212,10 +233,32 @@ function CollectionLink({
                     active && "bg-sidebar-accent font-medium",
                 )}
             >
-                <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                {leading}
                 <span className="flex-1 truncate">{name}</span>
                 {trailing}
             </Link>
         </li>
+    );
+}
+
+/**
+ * A collection's dominant-type colour, as a dot the width of the sidebar icons so names stay
+ * aligned. Renders a neutral outline when the collection has no dominant type.
+ */
+function CollectionDot({ itemType }: { itemType: SidebarCollectionViewModel["dominantItemType"] }) {
+    return (
+        <span
+            className="flex size-4 shrink-0 items-center justify-center"
+            title={itemType ? `Mostly ${itemType.label}` : "No items yet"}
+        >
+            <span
+                className={cn(
+                    "size-2.5 rounded-full",
+                    !itemType && "border border-muted-foreground/40",
+                )}
+                style={itemType ? { backgroundColor: itemType.color } : undefined}
+                aria-hidden="true"
+            />
+        </span>
     );
 }

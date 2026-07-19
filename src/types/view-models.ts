@@ -80,8 +80,10 @@ export interface SidebarItemTypeViewModel {
 export interface SidebarCollectionViewModel {
     id: string;
     name: string;
-    itemCount: number;
     isFavorite: boolean;
+    itemCount: number;
+    /** Drives the recent-collection colour dot. Null when the collection has no dominant type. */
+    dominantItemType: ItemTypeViewModel | null;
 }
 
 /** The sidebar's collection lists, read from the database. */
@@ -90,7 +92,7 @@ export interface SidebarCollectionsViewModel {
     recentNonFavoriteCollections: SidebarCollectionViewModel[];
 }
 
-/** Item types and the signed-in user; still mock-backed. */
+/** Item types (with per-user item counts) and the signed-in user, read from the database. */
 export interface SidebarNavViewModel {
     itemTypes: SidebarItemTypeViewModel[];
     user: UserViewModel;

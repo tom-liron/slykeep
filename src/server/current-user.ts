@@ -1,6 +1,8 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import type { UserViewModel } from "@/types/view-models";
+import { buildUserViewModel } from "./view-models";
 
 /**
  * TEMPORARY, until roadmap Phase 1 lands NextAuth.
@@ -25,4 +27,20 @@ export async function getCurrentUserId(): Promise<string> {
     }
 
     return user.id;
+}
+
+/** The signed-in user prepared for display. Same demo-user resolution as `getCurrentUserId`. */
+export async function getCurrentUser(): Promise<UserViewModel> {
+    const user = await prisma.user.findUnique({
+        where: { email: DEMO_USER_EMAIL },
+        select: { id: true, name: true, email: true, image: true, isPro: true },
+    });
+
+    if (!user) {
+        throw new Error(
+            `Demo user ${DEMO_USER_EMAIL} not found. Run \`npm run db:seed\` to populate the database.`,
+        );
+    }
+
+    return buildUserViewModel(user);
 }
