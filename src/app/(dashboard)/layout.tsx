@@ -2,7 +2,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { TopBar } from "@/components/layout/TopBar";
 import { getSidebarCollections } from "@/server/collections";
-import { getSidebarNav } from "@/server/mock-data/queries";
+import { getSidebarNav } from "@/server/item-types";
 
 /**
  * Every route under this layout reads per-user, mutable data. Without this, Next prerenders the

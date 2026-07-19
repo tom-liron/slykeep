@@ -13,6 +13,7 @@ import { getItemTypesById } from "./item-types";
 import {
     buildCollectionViewModel,
     buildItemSummaryViewModel,
+    resolveDominantTypeId,
     sortByUpdatedAtDesc,
 } from "./view-models";
 
@@ -32,12 +33,18 @@ const COLLECTION_SELECT = {
     },
 } as const;
 
-/** The sidebar renders a name and a count, so it does not need the type joins above. */
+/**
+ * The sidebar renders a name plus the dominant-type colour dot, so it needs the same item joins as
+ * a card — but none of the description/timestamp columns those cards also read.
+ */
 const SIDEBAR_COLLECTION_SELECT = {
     id: true,
     name: true,
     isFavorite: true,
-    _count: { select: { items: true } },
+    defaultTypeId: true,
+    items: {
+        select: { item: { select: { itemTypeId: true, updatedAt: true } } },
+    },
 } as const;
 
 type CollectionRowWithItems = Prisma.CollectionGetPayload<{ select: typeof COLLECTION_SELECT }>;
@@ -96,7 +103,7 @@ export async function getDashboardCollections(): Promise<DashboardCollectionsVie
 export async function getSidebarCollections(): Promise<SidebarCollectionsViewModel> {
     const userId = await getCurrentUserId();
 
-    const [favorites, recentNonFavorites] = await Promise.all([
+    const [favorites, recentNonFavorites, itemTypesById] = await Promise.all([
         prisma.collection.findMany({
             where: { userId, isFavorite: true },
             orderBy: { updatedAt: "desc" },
@@ -108,16 +115,22 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
             take: 5,
             select: SIDEBAR_COLLECTION_SELECT,
         }),
+        getItemTypesById(userId),
     ]);
 
     const toSidebarCollection = (
         row: Prisma.CollectionGetPayload<{ select: typeof SIDEBAR_COLLECTION_SELECT }>,
-    ) => ({
-        id: row.id,
-        name: row.name,
-        isFavorite: row.isFavorite,
-        itemCount: row._count.items,
-    });
+    ) => {
+        const items = row.items.map(({ item }) => item);
+        const dominantTypeId = resolveDominantTypeId(row, items);
+        return {
+            id: row.id,
+            name: row.name,
+            isFavorite: row.isFavorite,
+            itemCount: items.length,
+            dominantItemType: dominantTypeId ? (itemTypesById.get(dominantTypeId) ?? null) : null,
+        };
+    };
 
     return {
         favoriteCollections: favorites.map(toSidebarCollection),
