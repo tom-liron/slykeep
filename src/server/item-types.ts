@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
 import { canAccessItemType } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -11,21 +13,21 @@ import { toItemTypeViewModel } from "./view-models";
  * The item types a user can see: the system types (`userId: null`) plus any custom types they own.
  * Returned as a map because callers resolve types by the foreign key on an item or collection.
  */
-export async function getItemTypesById(
-    userId: string,
-): Promise<ReadonlyMap<string, ItemTypeViewModel>> {
-    const rows = await prisma.itemType.findMany({
-        where: { OR: [{ userId: null }, { userId }] },
-        select: { id: true, name: true, icon: true, color: true },
-    });
+export const getItemTypesById = cache(
+    async (userId: string): Promise<ReadonlyMap<string, ItemTypeViewModel>> => {
+        const rows = await prisma.itemType.findMany({
+            where: { OR: [{ userId: null }, { userId }] },
+            select: { id: true, name: true, icon: true, color: true },
+        });
 
-    return new Map(
-        rows.map((row) => {
-            const itemType = toItemTypeViewModel(row);
-            return [itemType.id, itemType];
-        }),
-    );
-}
+        return new Map(
+            rows.map((row) => {
+                const itemType = toItemTypeViewModel(row);
+                return [itemType.id, itemType];
+            }),
+        );
+    },
+);
 
 /**
  * The sidebar nav: the system item types the user can access — in catalog order, each with a live

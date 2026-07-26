@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { prisma } from "@/lib/prisma";
 import type { UserViewModel } from "@/types/view-models";
 import { buildUserViewModel } from "./view-models";
@@ -14,7 +16,7 @@ import { buildUserViewModel } from "./view-models";
  */
 const DEMO_USER_EMAIL = "demo@devstash.io";
 
-export async function getCurrentUserId(): Promise<string> {
+export const getCurrentUserId = cache(async (): Promise<string> => {
     const user = await prisma.user.findUnique({
         where: { email: DEMO_USER_EMAIL },
         select: { id: true },
@@ -27,10 +29,10 @@ export async function getCurrentUserId(): Promise<string> {
     }
 
     return user.id;
-}
+});
 
 /** The signed-in user prepared for display. Same demo-user resolution as `getCurrentUserId`. */
-export async function getCurrentUser(): Promise<UserViewModel> {
+export const getCurrentUser = cache(async (): Promise<UserViewModel> => {
     const user = await prisma.user.findUnique({
         where: { email: DEMO_USER_EMAIL },
         select: { id: true, name: true, email: true, image: true, isPro: true },
@@ -43,4 +45,4 @@ export async function getCurrentUser(): Promise<UserViewModel> {
     }
 
     return buildUserViewModel(user);
-}
+});

@@ -9,10 +9,10 @@ import type {
 } from "@/types/view-models";
 
 /**
- * Inputs are declared structurally rather than against Prisma's generated types, so that the mock
- * layer and the database layer share one implementation of the derivation rules below. Each row
- * type lists only the columns a view model actually reads — notably, nothing here selects an item
- * body, which keeps list queries off the large `content` column.
+ * Inputs are declared structurally rather than against Prisma's generated types, so the derivation
+ * rules below stay decoupled from the persistence shape and are trivial to unit-test with plain
+ * fixtures. Each row type lists only the columns a view model actually reads — notably, nothing here
+ * selects an item body, which keeps list queries off the large `content` column.
  */
 
 /** `name` and `icon` are plain strings in the database, so both are validated here. */
