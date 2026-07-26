@@ -30,6 +30,14 @@ type ItemSummaryRow = Prisma.ItemGetPayload<{ select: typeof ITEM_SUMMARY_SELECT
 const RECENT_ITEMS_LIMIT = 10;
 
 /**
+ * Defensive upper bound on the item-type page list. The page renders every row as a card, so an
+ * unbounded read would pull a Pro user's entire type into one DOM list. Set well above the free
+ * tier's 50-item cap, so it is a safety valve rather than a visible limit until real pagination
+ * lands.
+ */
+const ITEM_TYPE_PAGE_LIMIT = 200;
+
+/**
  * The dashboard's pinned + recent item lists and the two item stat cards. Totals come from
  * `count()` rather than the length of a full item load, and the lists carry no item bodies — the
  * same shape the collection read path settled on.
@@ -97,6 +105,7 @@ export async function getItemTypePageData(
     const rows = await prisma.item.findMany({
         where: { userId: user.id, itemTypeId: itemType.id },
         orderBy: { updatedAt: "desc" },
+        take: ITEM_TYPE_PAGE_LIMIT,
         select: ITEM_SUMMARY_SELECT,
     });
 

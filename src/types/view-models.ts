@@ -51,9 +51,9 @@ export interface UserViewModel {
 }
 
 /**
- * The dashboard is sourced in two halves while the items layer is still mock-backed: collections
- * come from the database, items do not. Keeping them apart means the items half can be swapped
- * later without touching the page's collection wiring.
+ * The dashboard's collection and item data are prepared as two independent view models, each by its
+ * own server query module. Keeping them apart lets either half evolve without touching the other's
+ * wiring on the page.
  */
 export interface DashboardCollectionsViewModel {
     totalCollections: number;
