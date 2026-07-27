@@ -128,9 +128,23 @@ async function seedCollections(userId: string, itemTypeIds: Record<ItemTypeName,
     return { collections: SEED_COLLECTIONS.length, items: itemCount };
 }
 
+/**
+ * `--types-only` seeds the system item types and stops. That is the only part of this script that
+ * is safe to run against production: item types are reference data (every `Item` carries an
+ * `itemTypeId` FK into them), whereas the demo user and its content are development fixtures.
+ * `DEMO_USER.password` lives in a committed file, so the demo account must never reach a
+ * public deployment.
+ */
+const typesOnly = process.argv.includes("--types-only");
+
 async function main() {
     const itemTypeIds = await seedSystemItemTypes();
     console.log(`System item types: ${SYSTEM_ITEM_TYPE_NAMES.length}`);
+
+    if (typesOnly) {
+        console.log("Types only:        skipped demo user, collections, and items");
+        return;
+    }
 
     const user = await seedDemoUser();
     console.log(`Demo user:         ${user.email}`);

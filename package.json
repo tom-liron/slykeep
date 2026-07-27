@@ -12,6 +12,7 @@
         "postinstall": "prisma generate",
         "db:migrate": "prisma migrate dev",
         "db:seed": "prisma db seed",
+        "db:seed:types": "tsx prisma/seed.ts --types-only",
         "db:test": "tsx scripts/test-db.ts",
         "db:status": "prisma migrate status",
         "db:studio": "prisma studio",
