@@ -1,7 +1,7 @@
 ---
 name: feature
-description: Manage current feature workflow - start, review, explain or complete
-argument-hint: load|start|review|explain|complete
+description: Manage current feature workflow - load, start, review, test, explain or complete
+argument-hint: load|start|review|test|explain|complete
 ---
 
 # Feature Workflow
@@ -10,7 +10,7 @@ Manages the full lifecycle of a feature from spec to merge.
 
 ## Working File
 
-@context/current-feature.md
+`context/current-feature.md` — each action reads it when it needs it.
 
 ### File Structure
 
@@ -26,14 +26,15 @@ current-feature.md has these sections:
 
 Execute the requested action: $ARGUMENTS
 
+**If no action was provided:** print the table below, ask which action to run, and stop. Do not read any action file, do not read `current-feature.md`, do not investigate anything. This is a one-message response.
+
 | Action | Description |
 |--------|-------------|
 | `load` | Load a feature spec or inline description |
 | `start` | Begin implementation, create branch |
 | `review` | Check goals met, code quality |
+| `test` | Write and run unit tests for the feature's logic |
 | `explain` | Document what changed and why |
 | `complete` | Commit, push, merge, reset |
 
-See [actions/](actions/) for detailed instructions.
-
-If no action provided, explain the available options.
+Otherwise, read `actions/<action>.md` — that one file only — and follow it.
