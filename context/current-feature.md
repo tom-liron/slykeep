@@ -1,41 +1,20 @@
-# Current Feature: Auth UI — Sign In, Register & Sign Out
+# Current Feature
 
 ## Feature
 
-Auth Phase 3. Replace NextAuth's built-in pages with custom `/sign-in` and `/register` routes, and turn the sidebar's existing user area into a working account menu with sign-out.
-
-Spec: `context/features/auth-phase-3-spec.md` — used as a general guide; the goals below are adapted to this project's actual structure.
+<!-- Feature Name and Short Description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Add the `(auth)` route group with `/sign-in` and `/register` pages, styled to match the dashboard shell and with no sidebar.
-- Open both routes in `src/proxy.ts`. The matcher denies by default, so until they are excluded a signed-out visitor is redirected away from the very pages that let them sign in.
-- Point NextAuth at the custom page with `pages: { signIn: "/sign-in" }` in `auth.config.ts`, and replace the hardcoded `/api/auth/signin` redirect in `proxy.ts`.
-- Sign-in page: email + password fields, a "Sign in with GitHub" button, a link to `/register`, and inline error display for a rejected credential.
-- Register page: name, email, password, confirm password; client-side validation reusing `registerSchema`; POST to the existing `/api/auth/register`; redirect to `/sign-in` on success.
-- Extract the avatar markup from `SidebarNav` into a reusable component (GitHub `image`, else initials).
-- Turn the sidebar user area into a dropdown: sign out, and a link to the profile page.
-- Add `src/actions/auth.ts` with the sign-in / sign-out Server Actions.
+<!-- Goals and requirements -->
 
 ## Notes
 
-**Structural divergences from the spec — the reason this is a guide, not a checklist:**
-
-- **The user area already exists** at the bottom of `SidebarNav.tsx:151`, already rendering the avatar with an image-or-initials fallback, name, and email. The spec reads as though this is new work; it is not. What is actually missing is the dropdown, the sign-out, and the profile link. There is a disabled "Settings" button sitting in that slot to replace.
-- **`getInitials` already exists** in `src/lib/format.ts`, with tests in `format.test.ts`. The spec's "create a reusable avatar component" means extracting the *markup*, not reimplementing the logic.
-- **The spec contradicts itself on placement.** Its overview says "bottom of sidebar"; testing step 4 says "verify avatar shows in top bar". This project puts it in the sidebar — follow the overview and ignore step 4.
-- **`/dashboard` is not a URL here.** Post-sign-in redirect goes to `/`. Same translation as every previous auth phase.
-- **`project-overview.md` §9 plans the route group as `(auth)/login/`,** but `proxy.ts` already documents the target as `/sign-in`, and the spec agrees. Going with `/sign-in`; §9 needs updating to match rather than being left to contradict the code.
-- **`/profile` does not exist and is not in §9** — the planned route is `(dashboard)/settings/`. Either point the menu item at a stub `/profile` page or retarget it; do not ship a link to a 404.
-- **`src/actions/` does not exist yet.** This feature creates it, so it sets the pattern for every mutation that follows.
-- **shadcn has only `button` and `input` installed.** The dropdown needs `dropdown-menu` added; the avatar can stay hand-rolled since the markup already exists.
-- `SidebarNav` is already `"use client"`, so the dropdown does not force a boundary change.
-
-**Watch for:** `signIn("credentials", …)` throws `CredentialsSignin` on failure rather than returning a result — the form has to catch it and show a generic message, keeping the non-enumeration property Phase 2 established. Do not let the error distinguish a wrong password from an unknown email.
+<!-- Any extra notes -->
 
 ## History
 
@@ -62,3 +41,4 @@ In Progress
 19. **Types-only seed** (`feature/seed-types-only`) — Added a `--types-only` flag to the seed (`npm run db:seed:types`) that writes the seven system item types and skips the demo user, collections, and items, then ran it against the Neon production branch, which had the `init` migration applied but no rows at all. Item types are reference data every `Item` FKs into, whereas the demo account's password lives in a committed file and must never reach a public deployment. The deployed site still throws until Phase 1 auth replaces the demo-user lookup in `getCurrentUserId()`.
 20. **Auth setup — NextAuth + GitHub** (`feature/auth-setup`) — Roadmap Phase 1: NextAuth v5 with the Prisma adapter and GitHub OAuth, on the split config pattern so the edge proxy never pulls in the adapter. Route protection denies by default rather than matching the spec's `/dashboard/*`, which is a route group and therefore not a URL here. `current-user.ts` now resolves the session with no demo-user fallback, since a default owner would hand signed-out requests shared data. The JWT type augmentation has to target `@auth/core/jwt` — `next-auth/jwt` is a bare re-export that declarations cannot reach.
 21. **Auth credentials — email/password** (`feature/auth-credentials`) — Roadmap Phase 1, part 2: a Credentials provider beside GitHub and a `POST /api/auth/register` route handler, chosen over a Server Action so the client can tell 400 from 409. `auth.config.ts` holds a placeholder that always returns null and `auth.ts` substitutes the working provider *by id* — appending would leave the placeholder earlier in the array where every sign-in hits it first. All three failure modes (wrong password, unknown email, OAuth-only account) return null and pay the same bcrypt cost via a precomputed decoy hash; without it the miss answered in ~70ms against ~550ms for a hit. Zod validates both entry points from one schema, with email normalization piped *ahead* of validation, since chaining `.trim()` after `z.email()` transforms output that the anchored pattern has already rejected. Added `zod`, which the coding standards require but nothing had needed yet. Known gaps: a mixed-case GitHub email escapes the register route's lowercased duplicate check (needs citext), and neither endpoint is rate limited.
+22. **Auth UI — sign in, register & account menu** (`feature/auth-ui`) — Auth Phase 3: an `(auth)` route group serving `/sign-in` and `/register`, plus a sidebar account menu with sign out and a `/profile` stub. The two routes are handled inside the proxy callback rather than excluded from its matcher, since an excluded path never runs the callback and a signed-in user could not then be redirected away from the sign-in form. Success toasts ride the redirect URL (`/?welcome=back|new`) because sign-in redirects from the server and the form is unmounted before it could raise one; `getFirstName` keeps the greeting from addressing people by the email fallback in `UserViewModel.name`. Errors all report inline, toasts are for successful auth only. Three things the spec did not anticipate: `noValidate` is required on the sign-in form or the browser rejects a malformed address silently and no message appears at all, lucide-react v1 dropped its brand icons so the GitHub mark is inlined, and sonner's shipped wiring to `next-themes` would have rendered light toasts over the dark app.
