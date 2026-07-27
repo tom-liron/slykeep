@@ -1,20 +1,58 @@
-# Current Feature
+# Current Feature: Auth Setup — NextAuth + GitHub Provider
 
 ## Feature
 
-<!-- Feature Name and Short Description -->
+**Auth Phase 1** — NextAuth v5 with the Prisma adapter and GitHub OAuth, using NextAuth's default
+sign-in page. Roadmap Phase 1; spec: `context/features/auth-phase-1-spec.md`.
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Install `next-auth@beta` (v5) and `@auth/prisma-adapter`.
+- Split auth config for edge compatibility:
+    - `src/auth.config.ts` — providers only, no adapter.
+    - `src/auth.ts` — full config with the Prisma adapter and `session: { strategy: "jwt" }`.
+- Add the GitHub OAuth provider.
+- `src/app/api/auth/[...nextauth]/route.ts` — re-export the handlers from `auth.ts`.
+- `src/proxy.ts` — route protection via the Next.js 16 proxy, named export
+  `export const proxy = auth(...)`.
+- `src/types/next-auth.d.ts` — extend `Session` with `user.id`.
+- Redirect unauthenticated users to sign-in.
+- Environment: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (local `.env` **and** Vercel).
 
 ## Notes
 
-<!-- Any extra notes -->
+**Verify the API against Context7 before writing config** — the spec says so explicitly, and v5 is
+still beta with moving conventions.
+
+**Spec gotchas:** `next-auth@beta`, not `@latest` (that installs v4). The proxy file goes at
+`src/proxy.ts`, the same level as `app/`. Named export, not default. Do not set a custom
+`pages.signIn` — the default page is what this phase tests against.
+
+**The spec's `/dashboard/*` path does not exist in this codebase.** `(dashboard)` is a route *group*,
+so it contributes nothing to the URL: the protected routes are `/`, `/collections`,
+`/collections/[id]`, and `/items/[slug]`. The proxy matcher has to cover those, and protecting a
+literal `/dashboard/*` prefix would protect nothing. Worth confirming the intended matcher before
+implementing.
+
+**Delete the demo-user fallback outright.** `getCurrentUserId()` and `getCurrentUser()` in
+`src/server/current-user.ts` currently resolve the hardcoded `demo@devstash.io` and throw when it is
+missing. Replace both with the session lookup and remove the demo branch entirely — no
+`?? DEMO_USER_EMAIL`, no default owner. Every read in the app is user-scoped through those two
+functions, so a fallback would let signed-out requests read one shared pile of data: a silent auth
+bypass, worse than today's loud throw. On a missing session, fail or redirect.
+
+**Deployment state:** production has the seven system item types seeded but zero users, so real
+signups resolve correctly once this lands. The deployed site 500s on every route until then. If the
+Prisma adapter requires schema changes, the migration reaches production automatically via the
+`prisma migrate deploy && next build` build step — but the three `AUTH_*` env vars must be added to
+Vercel by hand.
+
+**Follow-on work:** `context/features/auth-phase-2-spec.md` and `auth-phase-3-spec.md` exist; this
+is the first of three.
 
 ## History
 
