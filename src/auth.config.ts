@@ -21,6 +21,9 @@ import type { NextAuthConfig } from "next-auth";
  * bcrypt and Prisma, neither of which can cross into the edge bundle.
  */
 export default {
+    // Points NextAuth's own redirects at the custom page instead of its built-in one — the error
+    // query param it appends on a failed OAuth callback lands here too.
+    pages: { signIn: "/sign-in" },
     providers: [
         GitHub,
         Credentials({

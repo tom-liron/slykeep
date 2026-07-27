@@ -420,9 +420,10 @@ devstash/
 ├── public/                      # (planned, when static assets are needed)
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/              # (planned) sign-in / sign-up routes, no sidebar
-│   │   │   ├── login/
-│   │   │   └── register/
+│   │   ├── (auth)/              # signed-out routes, no sidebar
+│   │   │   ├── layout.tsx       # centered card shell
+│   │   │   ├── sign-in/         # /sign-in — credentials form + GitHub
+│   │   │   └── register/        # /register — account creation
 │   │   ├── (dashboard)/        # authed app, sidebar layout
 │   │   │   ├── layout.tsx       # sidebar + main shell
 │   │   │   ├── page.tsx         # dashboard overview (home)
@@ -430,6 +431,7 @@ devstash/
 │   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
+│   │   │   ├── profile/         # read-only account summary
 │   │   │   ├── search/          # (planned)
 │   │   │   └── settings/        # (planned) account, billing, export
 │   │   ├── api/                 # (planned)
@@ -451,14 +453,18 @@ devstash/
 │   │                            # Build output: gitignored, never edited, rewritten by
 │   │                            # `prisma generate` (runs on every `npm install`).
 │   │                            # Named `prisma-client` so it is not mistaken for /prisma.
+│   ├── auth.config.ts           # edge-safe half: providers + pages, no adapter
+│   ├── auth.ts                  # node half: adapter, JWT callbacks, real authorize
+│   ├── proxy.ts                 # deny-by-default route protection (edge)
 │   ├── lib/
 │   │   ├── prisma.ts            # singleton Prisma client (PrismaPg adapter)
-│   │   ├── auth.ts              # (planned) Auth.js config
+│   │   ├── auth-schemas.ts      # Zod contracts for sign-in and registration
 │   │   ├── r2.ts                # (planned) Cloudflare R2 client
 │   │   ├── openai.ts            # (planned) AI client + prompt helpers
 │   │   ├── stripe.ts            # (planned) Stripe client
 │   │   └── limits.ts            # item-type entitlement policy
-│   ├── actions/                 # (planned) Server Actions for mutations
+│   ├── actions/                 # Server Actions for mutations
+│   │   └── auth.ts              # sign-in / sign-out
 │   ├── server/                  # server-only queries, repositories, and view-model preparation
 │   │   ├── items.ts             # item reads + item-type pages
 │   │   ├── collections.ts       # collection reads
@@ -479,7 +485,7 @@ devstash/
 └── package.json
 ```
 
-A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` will own write-side Server Actions. Reads go through Prisma end to end; the earlier mock query layer has been fully retired.
+A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs — which is exactly why the sign-in page is `/sign-in` and the dashboard is `/`, never `/dashboard`. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` will own write-side Server Actions. Reads go through Prisma end to end; the earlier mock query layer has been fully retired.
 
 ---
 

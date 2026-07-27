@@ -1,22 +1,34 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Boxes, Folder, FolderHeart, Pin, Star } from "lucide-react";
 
+import { WelcomeToast } from "@/components/auth/WelcomeToast";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { ItemCard } from "@/components/items/ItemCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DASHBOARD_STAT_COLORS } from "@/config/dashboard";
+import { getFirstName } from "@/lib/format";
 import { getDashboardCollections } from "@/server/collections";
+import { getCurrentUser } from "@/server/current-user";
 import { getDashboardItems } from "@/server/items";
 
 export default async function DashboardPage() {
-    const [collections, items] = await Promise.all([
+    // `getCurrentUser` is request-cached, so this shares the read the sidebar already performs.
+    const [collections, items, user] = await Promise.all([
         getDashboardCollections(),
         getDashboardItems(),
+        getCurrentUser(),
     ]);
 
     return (
         <div className="mx-auto max-w-6xl space-y-8">
+            {/* Suspense because `useSearchParams` opts its subtree into client-side rendering; the
+                boundary keeps that from bubbling up and deopting the whole page. */}
+            <Suspense fallback={null}>
+                <WelcomeToast name={getFirstName(user.name)} />
+            </Suspense>
+
             <header>
                 <h1 className="text-2xl font-bold">Dashboard</h1>
                 <p className="text-muted-foreground">Your developer knowledge hub</p>

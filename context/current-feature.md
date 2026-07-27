@@ -1,20 +1,41 @@
-# Current Feature
+# Current Feature: Auth UI — Sign In, Register & Sign Out
 
 ## Feature
 
-<!-- Feature Name and Short Description -->
+Auth Phase 3. Replace NextAuth's built-in pages with custom `/sign-in` and `/register` routes, and turn the sidebar's existing user area into a working account menu with sign-out.
+
+Spec: `context/features/auth-phase-3-spec.md` — used as a general guide; the goals below are adapted to this project's actual structure.
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add the `(auth)` route group with `/sign-in` and `/register` pages, styled to match the dashboard shell and with no sidebar.
+- Open both routes in `src/proxy.ts`. The matcher denies by default, so until they are excluded a signed-out visitor is redirected away from the very pages that let them sign in.
+- Point NextAuth at the custom page with `pages: { signIn: "/sign-in" }` in `auth.config.ts`, and replace the hardcoded `/api/auth/signin` redirect in `proxy.ts`.
+- Sign-in page: email + password fields, a "Sign in with GitHub" button, a link to `/register`, and inline error display for a rejected credential.
+- Register page: name, email, password, confirm password; client-side validation reusing `registerSchema`; POST to the existing `/api/auth/register`; redirect to `/sign-in` on success.
+- Extract the avatar markup from `SidebarNav` into a reusable component (GitHub `image`, else initials).
+- Turn the sidebar user area into a dropdown: sign out, and a link to the profile page.
+- Add `src/actions/auth.ts` with the sign-in / sign-out Server Actions.
 
 ## Notes
 
-<!-- Any extra notes -->
+**Structural divergences from the spec — the reason this is a guide, not a checklist:**
+
+- **The user area already exists** at the bottom of `SidebarNav.tsx:151`, already rendering the avatar with an image-or-initials fallback, name, and email. The spec reads as though this is new work; it is not. What is actually missing is the dropdown, the sign-out, and the profile link. There is a disabled "Settings" button sitting in that slot to replace.
+- **`getInitials` already exists** in `src/lib/format.ts`, with tests in `format.test.ts`. The spec's "create a reusable avatar component" means extracting the *markup*, not reimplementing the logic.
+- **The spec contradicts itself on placement.** Its overview says "bottom of sidebar"; testing step 4 says "verify avatar shows in top bar". This project puts it in the sidebar — follow the overview and ignore step 4.
+- **`/dashboard` is not a URL here.** Post-sign-in redirect goes to `/`. Same translation as every previous auth phase.
+- **`project-overview.md` §9 plans the route group as `(auth)/login/`,** but `proxy.ts` already documents the target as `/sign-in`, and the spec agrees. Going with `/sign-in`; §9 needs updating to match rather than being left to contradict the code.
+- **`/profile` does not exist and is not in §9** — the planned route is `(dashboard)/settings/`. Either point the menu item at a stub `/profile` page or retarget it; do not ship a link to a 404.
+- **`src/actions/` does not exist yet.** This feature creates it, so it sets the pattern for every mutation that follows.
+- **shadcn has only `button` and `input` installed.** The dropdown needs `dropdown-menu` added; the avatar can stay hand-rolled since the markup already exists.
+- `SidebarNav` is already `"use client"`, so the dropdown does not force a boundary change.
+
+**Watch for:** `signIn("credentials", …)` throws `CredentialsSignin` on failure rather than returning a result — the form has to catch it and show a generic message, keeping the non-enumeration property Phase 2 established. Do not let the error distinguish a wrong password from an unknown email.
 
 ## History
 
