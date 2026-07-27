@@ -5,7 +5,6 @@ Add Credentials provider for email/password authentication with registration.
 
 ## Requirements
 - Use bcryptjs for hashing (already installed)
-- Add password field to User model via migration if not already there
 - Update `auth.config.ts` with Credentials provider placeholder
 - Update `auth.ts` to override Credentials with bcrypt validation
 - Create registration API route at `/api/auth/register`
