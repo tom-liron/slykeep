@@ -19,6 +19,20 @@ Read the following to get the full context of the project:
 - `npm run format` — format the whole project with Prettier (not for routine work — see `context/ai-interaction.md`)
 - `npm test` — run unit tests
 
+## Neon MCP
+
+All Neon MCP operations for this project target the **development** branch — never production — unless I explicitly say otherwise in the request.
+
+- **Project:** `devstash` — id `blue-lab-48337415`
+- **Development branch (default target):** `br-royal-glade-asmi66p0`
+- **Production branch (off-limits):** `br-cold-frost-asmwwtlg`
+
+Rules:
+- Always pass `projectId: blue-lab-48337415` **and** `branchId: br-royal-glade-asmi66p0` on every Neon tool call (`run_sql`, `run_sql_transaction`, `get_database_tables`, `describe_table_schema`, migration tools, etc.).
+- ⚠️ Never omit `branchId`. Production is the project's *default* branch, so any call without an explicit `branchId` hits production.
+- Never run any operation against `br-cold-frost-asmwwtlg` (production) unless I name production explicitly in that specific request. General approval to "use Neon" is never approval to touch production.
+- Never run destructive SQL (DROP, DELETE, TRUNCATE, UPDATE/INSERT without my go-ahead) or any migration/branch-mutation tool against production — ask first, every time.
+
 ## Course Mapping
 
 This project follows a course, but has deliberately diverged from it where our own refactors landed somewhere better. When a lesson's file path doesn't exist here, this is why:
