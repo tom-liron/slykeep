@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +31,12 @@ export default function RootLayout({
         >
             {/* h-full, not min-h-full: the app shell is a fixed-height frame that scrolls its own
                 main pane. A growable body would scroll too, giving two nested scrollbars. */}
-            <body className="h-full overflow-hidden">{children}</body>
+            <body className="h-full overflow-hidden">
+                {children}
+                {/* Mounted at the root so a toast survives the client-side navigation that a
+                    successful sign-in triggers — a Toaster inside a route would unmount with it. */}
+                <Toaster />
+            </body>
         </html>
     );
 }

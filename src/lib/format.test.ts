@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, getInitials } from "./format";
+import { formatDate, getFirstName, getInitials } from "./format";
 
 describe("format helpers", () => {
     it("formats date-only strings consistently in UTC", () => {
@@ -17,5 +17,19 @@ describe("format helpers", () => {
 
     it("handles empty names", () => {
         expect(getInitials("   ")).toBe("");
+    });
+
+    it("takes the first word as the greeting name", () => {
+        expect(getFirstName("  John   Doe  ")).toBe("John");
+    });
+
+    it("reduces the email fallback to its local part", () => {
+        // `buildUserViewModel` uses the email as the name when the account has none, so this is
+        // the difference between "Welcome back, John!" and "Welcome back, john@example.com!".
+        expect(getFirstName("john@example.com")).toBe("john");
+    });
+
+    it("handles empty names", () => {
+        expect(getFirstName("   ")).toBe("");
     });
 });

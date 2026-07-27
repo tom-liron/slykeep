@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
-import { ArrowRight, ChevronDown, Settings, Star } from "lucide-react";
+import { ArrowRight, ChevronDown, Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
-import { getInitials } from "@/lib/format";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
 import type { SidebarCollectionViewModel, SidebarViewModel } from "@/types/view-models";
 
@@ -148,34 +148,7 @@ export function SidebarNav({
                 )}
             </nav>
 
-            {/* User area */}
-            <div className="flex shrink-0 items-center gap-3 border-t border-border p-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                    {data.user.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={data.user.image}
-                            alt={data.user.name}
-                            className="size-9 rounded-full object-cover"
-                        />
-                    ) : (
-                        getInitials(data.user.name)
-                    )}
-                </span>
-                <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{data.user.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{data.user.email}</p>
-                </div>
-                <button
-                    type="button"
-                    disabled
-                    aria-label="Settings"
-                    title="Settings are coming soon"
-                    className="flex size-8 shrink-0 cursor-not-allowed items-center justify-center rounded-md text-muted-foreground opacity-50"
-                >
-                    <Settings className="size-4" aria-hidden="true" />
-                </button>
-            </div>
+            <UserMenu user={data.user} />
         </div>
     );
 }
