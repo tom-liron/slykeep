@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 
-import { signInWithCredentials } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { registerSchema } from "@/lib/auth-schemas";
-import { EMPTY_AUTH_STATE } from "@/types/auth";
 
 type FieldErrors = Partial<Record<"name" | "email" | "password" | "confirmPassword", string[]>>;
 
@@ -51,6 +49,7 @@ export function RegisterForm() {
         setIsPending(true);
 
         let created = false;
+        let emailSent = false;
 
         try {
             const response = await fetch("/api/auth/register", {
@@ -61,9 +60,15 @@ export function RegisterForm() {
 
             created = response.ok;
 
-            if (!created) {
-                const body = await response.json().catch(() => null);
+            const body = await response.json().catch(() => null);
 
+            if (created) {
+                // An unreadable body on a 201 is a transport hiccup, not evidence the email failed
+                // — the route always includes the flag. Assume it was sent rather than alarming
+                // someone about a send that probably happened; either way the next screen carries
+                // a resend control.
+                emailSent = body === null || body.emailSent === true;
+            } else {
                 setFieldErrors(body?.fields ?? {});
                 setFormError(body?.error ?? "Could not create your account. Try again.");
             }
@@ -76,23 +81,18 @@ export function RegisterForm() {
             return;
         }
 
-        // Signing in happens outside the fetch's try/catch on purpose: a successful sign-in leaves
-        // by throwing NEXT_REDIRECT, and catching that here would swallow the navigation and show
-        // a network error on what was actually a success.
-        const credentials = new FormData();
-        credentials.set("email", parsed.data.email);
-        credentials.set("password", parsed.data.password);
-        // Tells the action to land on `/?welcome=new`, so the toast greets a new account rather
-        // than welcoming back someone who has never signed in.
-        credentials.set("welcome", "new");
+        // `isPending` stays true through the redirect on purpose: the button keeps its disabled,
+        // "Creating account…" state until the new page takes over, which is what stops a second
+        // submission during the navigation. Clearing it here would flash an enabled button.
 
-        const result = await signInWithCredentials(EMPTY_AUTH_STATE, credentials);
-
-        // Only reachable if the account was created but the sign-in did not take. The account is
-        // real, so say so and send them to sign in by hand rather than implying it failed.
-        setIsPending(false);
-        setFormError(result.error ?? "Account created, but we could not sign you in.");
-        router.push("/sign-in?registered=1");
+        // The account is deliberately *not* signed in here. It is created with `emailVerified`
+        // null, and `authorize` refuses that — attempting a sign-in would fail on purpose and read
+        // to the user as a broken registration. The link in their inbox is the next step.
+        //
+        // `emailSent` only means Resend accepted the request, so `registered=sent` is a claim about
+        // what we attempted, not proof anything was delivered. When the send fails outright the
+        // sign-in page says so rather than pointing at an inbox that will stay empty.
+        router.push(`/sign-in?registered=${emailSent ? "sent" : "unsent"}`);
     }
 
     return (

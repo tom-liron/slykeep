@@ -18,6 +18,12 @@ export type AuthActionState = {
      * as well as their password.
      */
     email: string;
+    /**
+     * Set when the credentials were correct but the address is unconfirmed. Distinct from `error`
+     * because the form does more than show a message in this case — it offers to resend the link,
+     * which needs a positive signal rather than a string comparison against the copy.
+     */
+    unverified?: boolean;
 };
 
 export const EMPTY_AUTH_STATE: AuthActionState = { error: null, email: "" };

@@ -1,11 +1,25 @@
 import NextAuth from "next-auth";
+import { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
+import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
 import { signInSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/lib/prisma";
 import authConfig from "./auth.config";
+
+/**
+ * Thrown when the password was right but the address was never confirmed.
+ *
+ * A `CredentialsSignin` subclass rather than a bare `null` so the sign-in form can tell this apart
+ * from a bad password and offer to resend the link — a generic "invalid email or password" would
+ * strand someone whose credentials are perfectly correct. `code` is the only field Auth.js carries
+ * through to the caller; everything else about the error is flattened.
+ */
+class EmailUnverifiedError extends CredentialsSignin {
+    code = EMAIL_UNVERIFIED_CODE;
+}
 
 /**
  * A real bcrypt hash of a random string that nothing knows, compared against when no account
@@ -36,7 +50,14 @@ const credentials = Credentials({
 
         const user = await prisma.user.findUnique({
             where: { email: parsed.data.email },
-            select: { id: true, email: true, name: true, image: true, password: true },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+                password: true,
+                emailVerified: true,
+            },
         });
 
         // A null hash means an OAuth-only account (see `User.password` in the schema) — an account
@@ -47,6 +68,12 @@ const credentials = Credentials({
         const passwordMatches = await bcrypt.compare(parsed.data.password, hash);
 
         if (!passwordMatches || !user?.password) return null;
+
+        // Deliberately *after* the compare, and this ordering is the whole reason the check is
+        // safe. By this line the caller has proven they know the password, so naming the account's
+        // state discloses nothing they had not already established. Moving it above the compare
+        // would leak which emails are registered and reopen the timing gap the decoy hash closes.
+        if (!user.emailVerified) throw new EmailUnverifiedError();
 
         return { id: user.id, email: user.email, name: user.name, image: user.image };
     },
@@ -70,6 +97,26 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     ),
     adapter: PrismaAdapter(prisma),
     session: { strategy: "jwt" },
+    events: {
+        /**
+         * Marks a GitHub sign-up verified.
+         *
+         * The provider's profile mapping does not populate `emailVerified`, so every OAuth account
+         * would otherwise land with `null` — making the column mean "verified, or signed up with
+         * GitHub, we cannot tell". That ambiguity would make the column useless as the safety
+         * condition for the account-linking work this feature exists to enable.
+         *
+         * Asserting it is sound because GitHub only ever exposes addresses it has itself verified.
+         * `linkAccount` is the right hook: it fires exactly once, when the `Account` row is created,
+         * so this does not re-run on every subsequent sign-in.
+         */
+        async linkAccount({ user }) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { emailVerified: new Date() },
+            });
+        },
+    },
     callbacks: {
         // `user` is only populated on the sign-in pass; afterwards the id is already in the token.
         jwt({ token, user }) {

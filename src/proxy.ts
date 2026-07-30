@@ -6,7 +6,14 @@ import authConfig from "./auth.config";
 // the edge bundle. This instance can authorize but not query.
 const { auth } = NextAuth(authConfig);
 
-/** Signed-out visitors need these; everything else requires a session. */
+/**
+ * Signed-out visitors need these; everything else requires a session.
+ *
+ * Verification deliberately has no entry. The spec called for `/verify-email` here, but the token
+ * is consumed by a route handler at `/api/auth/verify-email`, and `api/auth` is already outside the
+ * matcher below — listing a page path that does not exist would protect nothing and imply a route
+ * someone would later go looking for.
+ */
 const PUBLIC_ROUTES = new Set(["/sign-in", "/register"]);
 
 export const proxy = auth((req) => {

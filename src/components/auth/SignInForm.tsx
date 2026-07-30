@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { signInWithCredentials } from "@/actions/auth";
+import { ResendVerification } from "@/components/auth/ResendVerification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -64,9 +65,13 @@ export function SignInForm() {
             {/* Every failure reports here or against its field. Toasts are for the successful
                 outcome only, so there is exactly one place to look when something goes wrong. */}
             {state.error && (
-                <p role="alert" className="text-sm text-destructive">
-                    {state.error}
-                </p>
+                <div className="text-sm text-destructive">
+                    <p role="alert">{state.error}</p>
+                    {/* The only failure a user can act on from this form. Their password was
+                        accepted, so the address is theirs and prefilling it is safe — and it
+                        spares them retyping it into a second box on the same screen. */}
+                    {state.unverified && <ResendVerification defaultEmail={state.email} />}
+                </div>
             )}
 
             <Button type="submit" disabled={isPending} className="w-full">
