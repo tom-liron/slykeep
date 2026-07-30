@@ -9,6 +9,19 @@
  * as `Configuration`. Unmapped codes fall back to a generic message, so a raw error type is never
  * rendered to a user.
  */
+/**
+ * `code` carried by the `CredentialsSignin` subclass `authorize` throws for an unconfirmed address.
+ *
+ * Lives in this module — which imports nothing — so that `src/auth.ts` and the sign-in action can
+ * agree on the string without the action pulling in a server-only module, and without the constant
+ * being duplicated in two places that could drift apart silently.
+ */
+export const EMAIL_UNVERIFIED_CODE = "email_unverified";
+
+/** What the sign-in form shows when the password was right but the address is unconfirmed. */
+export const EMAIL_UNVERIFIED_MESSAGE =
+    "Confirm your email address before signing in. Check your inbox for the link we sent.";
+
 const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
     // The one that motivated this module: GitHub returned an email that already belongs to a
     // password account. Naming the cause is safe here — reaching this error required
@@ -23,6 +36,13 @@ const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
     OAuthCallbackError: "GitHub sign-in did not complete. Try again.",
     AccessDenied: "GitHub sign-in was cancelled or declined.",
     Verification: "That sign-in link has expired or was already used. Request a new one.",
+    // Ours, not Auth.js's — set by the redirect out of `GET /api/auth/verify-email` when the token
+    // could not be consumed. Both messages point at the resend control rather than dead-ending,
+    // since the account exists in every case and only the link is spent.
+    VerificationExpired:
+        "That verification link has expired. Request a new one below and we will send a fresh link.",
+    VerificationInvalid:
+        "That verification link is not valid or has already been used. Request a new one below.",
     MissingCSRF: "Your session expired before sign-in finished. Try again.",
     // Ours to fix, not the user's. Say so plainly instead of implying they did something wrong;
     // the real cause is in the server logs.

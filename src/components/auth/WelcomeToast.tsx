@@ -10,7 +10,6 @@ import { toast } from "sonner";
  * than no name at all.
  */
 const MESSAGES = {
-    new: (name: string) => (name ? `Welcome to DevStash, ${name}!` : "Welcome to DevStash!"),
     back: (name: string) => (name ? `Welcome back, ${name}!` : "Welcome back!"),
 } as const;
 

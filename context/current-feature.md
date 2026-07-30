@@ -8,7 +8,7 @@ and cannot sign in until the user clicks a single-use link emailed to the addres
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
@@ -23,9 +23,20 @@ Not Started
 - Add a resend-verification path so a lost or expired email is not a locked-out account.
 - Set `emailVerified` for GitHub sign-ups too (see Notes — the provider does not do it).
 - Add `/verify-email` to `PUBLIC_ROUTES` in `src/proxy.ts`.
-- Document `RESEND_API_KEY` and `AUTH_URL` in `.env.example`.
+- Document `RESEND_API_KEY`, `EMAIL_FROM`, and `AUTH_URL` in `.env.example`.
 - Report every outcome in the UI: inbox prompt after registering, invalid/expired/used token,
   and an unverified sign-in attempt with a resend link.
+- Remove the now-dead `welcome=new` path once registration stops signing accounts in.
+
+Added during implementation, not in the original spec — both are developer tooling in `scripts/`,
+kept out of the application on purpose (see Notes, "Why the workarounds live in `scripts/`"):
+
+- `npm run email:test -- addr@example.com` (`scripts/test-email.ts`) — sends one email and polls
+  `GET /emails/:id` until `last_event` settles, so the asynchronous failure becomes a synchronous
+  verdict. The tool that says whether the transport works, before or after any domain change.
+- `npm run user:verify -- addr@example.com` (`scripts/verify-user.ts`) — marks an account verified
+  by hand, the stand-in for clicking the link while no email can arrive. Refuses to run when
+  `NODE_ENV=production`, before it reads argv or opens a connection.
 
 ## Notes
 
@@ -65,12 +76,70 @@ yield working verification links. Random 32 bytes, 24-hour expiry, deleted on us
 `/?welcome=new`. That block goes away. Check whether `welcome=new` in `actions/auth.ts` /
 `WelcomeToast` still has a caller afterwards, and remove it if not.
 
-### Resend in development
+### Delivery is blocked at Resend, and it is their defect — ticket open
 
-Sending to arbitrary addresses needs a verified sending domain; until one is set up Resend only
-delivers to the account owner's own address, with `onboarding@resend.dev` as the sender. Plan dev
-testing around that. `RESEND_API_KEY` also has to be set in the Vercel project environment — a
+**The application code is complete and does not need changing.** Every email this Resend account has
+ever sent has failed, from its first onward. The dashboard reason is always:
+
+> **Domain is not verified:** The domain used to send this email needs to be verified.
+
+That message is misleading. It appears for sends from `onboarding@resend.dev`, which is *Resend's*
+domain and cannot be verified by us. `GET /domains` returns an empty list, so there is no
+half-finished verification to resume either.
+
+Every precondition for Resend's documented no-domain testing path is satisfied, and it still fails:
+
+| Requirement | Status |
+|---|---|
+| Recipient is the account owner's own address | ✅ `tomliron88@gmail.com` |
+| Sender is `onboarding@resend.dev` | ✅ |
+| API key is full access, not `sending_access` scoped to a `domain_id` | ✅ proven — the key serves `GET /domains` and `GET /api-keys`, which a sending-only key cannot |
+| An unauthorized recipient would return a synchronous **403** | ✅ we get `200`, so that rule is not what fires |
+| `onboarding@resend.dev` → `delivered@resend.dev` (Resend's own simulator) | ❌ fails too — no recipient rule can explain this |
+
+A support ticket is open. Until it is answered, treat delivery as unavailable and everything behind
+the link as verified by other means (see below).
+
+Do not conclude from this that a verified domain is merely optional — production needs one
+regardless, and verifying one is also the fastest way to route around the defect if the ticket
+stalls. `EMAIL_FROM` currently defaults to `onboarding@resend.dev` so the app runs; pointing it at a
+verified domain is the entire fix, with no code change beside it.
+
+What makes this class of failure expensive: nothing synchronous reports it. `POST /emails` returns
+`200` with an id, the SDK's `error` is `null`, and the API-log page shows a green `200`. The failure
+is asynchronous and surfaces only in `last_event`. `npm run email:test` exists to collapse that gap.
+
+`RESEND_API_KEY` and `EMAIL_FROM` also have to be set in the Vercel project environment — a
 committed `.env.production` is not read by Vercel.
+
+### Why the workarounds live in `scripts/`, not in the app
+
+The first attempt printed the verification link to the server console from inside
+`sendVerificationEmail` whenever `NODE_ENV !== "production"`. That is the mistake to avoid repeating.
+It made the *application* dishonest: the feature reported success while the transport was broken, so
+it reached "done" without ever delivering an email, and the real fault stayed hidden behind a
+workaround that felt like progress.
+
+`scripts/test-email.ts` and `scripts/verify-user.ts` do the same jobs without that cost. A developer
+running a script against a dev database cannot make the product lie — no code path in the app
+changes, a failed send still reports itself in the UI, and the scripts are visibly separate from the
+feature rather than woven into it.
+
+### Verified without a working inbox
+
+The token lifecycle was exercised against the dev database with a throwaway harness — 12 cases, all
+passing: the raw token is never stored (only its SHA-256), a valid token verifies, a reused one is
+rejected, an already-verified account is distinguished from an invalid link, a resend supersedes the
+previous token, an expired token reports `expired` *and* is still consumed, and unknown/empty tokens
+are invalid. Plus `auth-errors` unit tests for the two verification error codes.
+
+What remains unproven is exactly one hop: whether Resend hands the message to a mailbox.
+
+### Prior attempt
+
+`wip/email-verification-attempt-1` (`df0a40a`) holds the discarded first implementation, reset
+because the fault was never in it. Kept only as history — the current implementation supersedes it,
+minus the console-link fallback and plus the two scripts. Safe to delete once this merges.
 
 ### Still unrated: rate limiting
 

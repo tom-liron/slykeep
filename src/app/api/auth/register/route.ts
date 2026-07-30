@@ -3,7 +3,9 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { registerSchema } from "@/lib/auth-schemas";
+import { sendVerificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { createVerificationToken } from "@/server/verification";
 
 /**
  * Account creation for the Credentials provider.
@@ -73,12 +75,36 @@ export async function POST(request: Request) {
             );
         }
 
+        // `emailVerified` is left null by default, which is what makes the account unusable until
+        // the link is clicked — `authorize` in `src/auth.ts` refuses to sign in without it.
         const user = await prisma.user.create({
             data: { name, email, password: await bcrypt.hash(password, PASSWORD_HASH_ROUNDS) },
             select: { id: true, name: true, email: true },
         });
 
-        return NextResponse.json({ user }, { status: 201 });
+        // Sending is attempted after the account exists, and its failure does not undo it. Rolling
+        // back would be worse than it sounds: the user retries, and a deleted-then-recreated account
+        // is indistinguishable to them from one that never worked. Leaving it and reporting the
+        // failure lets them resend, which is the one action that can actually fix it.
+        //
+        // `emailSent` means "Resend accepted the request", which is weaker than it reads: delivery
+        // is settled asynchronously, so a send that fails later still arrives here as `true`. With
+        // `EMAIL_FROM` still on `onboarding@resend.dev` that is the *expected* case, not an edge
+        // one — see `src/lib/email.ts`. Closing the gap needs an `email.failed` webhook.
+        let emailSent = true;
+
+        try {
+            await sendVerificationEmail({
+                to: user.email,
+                name: user.name,
+                token: await createVerificationToken(user.email),
+            });
+        } catch (error) {
+            console.error("Verification email failed to send:", error);
+            emailSent = false;
+        }
+
+        return NextResponse.json({ user, emailSent }, { status: 201 });
     } catch (error) {
         // Includes the unique-constraint race the check above cannot close: two requests for the
         // same email can both pass it, and the second create is the one that fails.
