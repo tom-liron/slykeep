@@ -1,0 +1,50 @@
+/**
+ * Human messages for the `error` query param Auth.js appends when a sign-in fails.
+ *
+ * These arrive on `/sign-in` rather than a dedicated error page because `SignInError.kind` is
+ * `"signIn"`, and `@auth/core` resolves its redirect target from `pages[kind]` — so every failure
+ * below lands on the page named by `pages.signIn` in `auth.config.ts`.
+ *
+ * Only the codes `@auth/core` considers client-safe can appear verbatim; everything else it reports
+ * as `Configuration`. Unmapped codes fall back to a generic message, so a raw error type is never
+ * rendered to a user.
+ */
+const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
+    // The one that motivated this module: GitHub returned an email that already belongs to a
+    // password account. Naming the cause is safe here — reaching this error required
+    // authenticating at GitHub as the owner of that address, so the only account it reveals is the
+    // visitor's own. (The deliberately vague credentials failures in `actions/auth.ts` guard
+    // against a different threat: an unauthenticated visitor probing for registered emails.)
+    OAuthAccountNotLinked:
+        "That email already has a DevStash account with a password. Sign in with your email and password below.",
+    AccountNotLinked:
+        "That email already has a DevStash account with a password. Sign in with your email and password below.",
+    // The provider itself refused or returned an error response — retrying is the useful advice.
+    OAuthCallbackError: "GitHub sign-in did not complete. Try again.",
+    AccessDenied: "GitHub sign-in was cancelled or declined.",
+    Verification: "That sign-in link has expired or was already used. Request a new one.",
+    MissingCSRF: "Your session expired before sign-in finished. Try again.",
+    // Ours to fix, not the user's. Say so plainly instead of implying they did something wrong;
+    // the real cause is in the server logs.
+    Configuration: "Sign-in is temporarily unavailable. Please try again later.",
+};
+
+const FALLBACK_MESSAGE = "Something went wrong signing you in. Try again.";
+
+/**
+ * Resolves a sign-in error code to a message, or `null` when there is no error to report.
+ *
+ * Takes `string | string[] | undefined` because that is what Next hands back from `searchParams`: a
+ * duplicated param (`?error=a&error=b`) arrives as an array. Only a single value is meaningful, so
+ * anything else is treated as an unrecognized failure rather than ignored — the whole point of this
+ * module is that a failed sign-in never renders a clean form.
+ */
+export function getSignInErrorMessage(code: string | string[] | undefined): string | null {
+    if (code === undefined) return null;
+    if (typeof code !== "string") return FALLBACK_MESSAGE;
+
+    // `?error=` with no value is a hand-edited URL, not a failure — Auth.js always sets a type.
+    if (code.trim() === "") return null;
+
+    return SIGN_IN_ERROR_MESSAGES[code] ?? FALLBACK_MESSAGE;
+}
