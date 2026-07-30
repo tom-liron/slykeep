@@ -40,15 +40,20 @@ function origin(): string {
 /**
  * Sender address.
  *
- * Defaults to `onboarding@resend.dev` because no domain is available yet. Be aware of what that
- * means: on this Resend account that sender does not deliver. `POST /emails` answers `200` with an
- * id and the SDK's `error` is null, then the send fails asynchronously with "Domain is not
- * verified" — observable only on the dashboard's Emails page or via the email's `last_event`.
- * Verified by sending `onboarding@resend.dev` -> `delivered@resend.dev` as a bare request with no
- * application code in the path; it failed like every other send the account has made.
+ * Defaults to `onboarding@resend.dev`, which works without a verified domain but only reaches the
+ * Resend account owner's own address — every other recipient is refused with a `403`. That is
+ * enough to develop against and useless in production, where the recipient is by definition
+ * somebody else.
  *
- * So this default makes the feature *runnable*, not *working*. Swapping `EMAIL_FROM` to an address
- * on a verified domain is the whole fix — no code here changes.
+ * So this default makes the feature testable, not shippable. Pointing `EMAIL_FROM` at an address on
+ * a verified domain is the whole fix; nothing in this file changes with it.
+ *
+ * Historical note, because it cost a day: for a period this account could not send at all, and every
+ * send failed asynchronously with "Domain is not verified" — including from `onboarding@resend.dev`
+ * to Resend's own `delivered@resend.dev` simulator. That was an outage on Resend's side, confirmed
+ * and fixed by their support. It was not a configuration problem here, and the code was correct
+ * throughout. If sends start failing that way again, check `npm run email:test` before suspecting
+ * anything in this repository.
  */
 const FROM = process.env.EMAIL_FROM ?? "DevStash <onboarding@resend.dev>";
 

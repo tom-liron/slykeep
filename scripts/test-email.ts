@@ -68,10 +68,11 @@ async function main() {
 
     if (verified.length === 0) {
         console.log(
-            "\n⚠ No verified domain. Sends will be accepted and then fail with\n" +
-                "  'Domain is not verified' — including from onboarding@resend.dev, and\n" +
-                "  including to Resend's own delivered@resend.dev simulator.\n" +
-                "  Add one at https://resend.com/domains and set EMAIL_FROM to an address on it.\n",
+            "\n⚠ No verified domain. `onboarding@resend.dev` can only reach the Resend\n" +
+                "  account owner's own address and the delivered@resend.dev simulator —\n" +
+                "  fine for development, useless for real users, who will be refused with\n" +
+                "  a 403. Add a domain at https://resend.com/domains and point EMAIL_FROM\n" +
+                "  at an address on it before anyone else can receive mail.\n",
         );
     }
 
@@ -98,7 +99,17 @@ async function main() {
     let lastSeen = "";
 
     while (Date.now() < deadline) {
-        const { data: email } = await resend.emails.get(data.id);
+        // A send is not immediately readable back — `GET /emails/:id` can 404 for a second or two
+        // after `POST /emails` returns its id. That is read-after-write lag, not a failure, so it
+        // is treated as "not settled yet" rather than surfaced. Without this the script prints a
+        // raw API error on a send that is about to succeed.
+        const { data: email, error: readError } = await resend.emails.get(data.id);
+
+        if (readError) {
+            await sleep(POLL_INTERVAL_MS);
+            continue;
+        }
+
         const event = email?.last_event ?? "unknown";
 
         if (event !== lastSeen) {
