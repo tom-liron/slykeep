@@ -2,19 +2,70 @@
 
 ## Feature
 
-<!-- Feature Name and Short Description -->
+**Same-email collision feedback** — tell the user what happened when an email already belongs to an
+account created the other way. Two directions: a password account blocking GitHub sign-in (silent
+today — visible only in the Vercel logs), and a GitHub-only account blocking registration (reported,
+but with a message that sends the user somewhere they cannot get in).
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+### Case A — password account, then GitHub sign-in (`OAuthAccountNotLinked`)
+
+- Read the `error` query param on `/sign-in` and render it in the existing inline notice slot.
+- Map `OAuthAccountNotLinked` to a message that names the real cause and points at the working
+  path: the email already has a password account, so sign in with email and password.
+- Map the other reachable OAuth codes (`OAuthCallback`, `AccessDenied`, `Verification`) and fall
+  back to one generic message for anything unmapped — never print the raw code.
+- Style it as an error, distinct from the existing neutral "Account created" notice.
+
+### Case B — GitHub-only account, then registration (409)
+
+- Select `password` in the register route's duplicate check and branch the message on it: a null
+  hash means an OAuth-only account, so name GitHub and point at that button.
+- Leave the both-exist message as it was. No client change — `RegisterForm` already renders the
+  route's `error` string.
+
+### Case C — GitHub-only account, then credentials sign-in (no change)
+
+- Stays the deliberately vague "Invalid email or password." This is the endpoint `auth.ts` hardened
+  against enumeration, and it is reachable by an anonymous visitor with no proof of email ownership.
+  Case B is where the user learns the truth instead.
 
 ## Notes
 
-<!-- Any extra notes -->
+- The error was never lost. `OAuthAccountNotLinked extends SignInError`, and
+  `SignInError.kind = "signIn"`, so `@auth/core` builds its redirect from `pages[kind]` — i.e. the
+  `pages: { signIn: "/sign-in" }` in `auth.config.ts`. The user lands on
+  `/sign-in?error=OAuthAccountNotLinked` already; the page just typed `searchParams` as
+  `{ registered?: string }` and read nothing else.
+- Naming the cause here does not leak account existence, unlike the credentials path. To reach this
+  error the visitor has already authenticated at GitHub as the owner of that address, so the only
+  account they can learn about is their own. The generic-message discipline in `actions/auth.ts`
+  exists for a different threat and does not apply.
+- Case B's dead end is the worse of the two. Case A's old behaviour said nothing; Case B said
+  "an account already exists", which reads as "go sign in with your password" — and `password` is
+  null on a GitHub account, so `authorize` returns null every time, and there is no password reset
+  to fall back on. The user loops between two forms that both refuse them.
+- Case B widens what the 409 discloses from "this email exists" to "this email exists via GitHub".
+  The existence signal was already accepted here (the route comment says so); the provider is the
+  new part. The genuinely leak-free design is to return an identical response either way and send
+  an email explaining how to sign in — that needs email infrastructure the project does not have,
+  and would mean giving up the existing 409 too. Revisit with transactional email.
+- Neither case is fixed properly until an account can hold both methods: *Connect GitHub* from
+  `/profile` for Case A, and a verified set-a-password flow for Case B. Both must require email
+  verification or they become takeover vectors. Settings phase.
+- **Not** auto-linking the GitHub account to the matching user. Auth.js blocks that deliberately:
+  it turns "can create a GitHub account with this email" into takeover of a password account. The
+  correct version is an explicit *Connect GitHub* flow from `/profile`, which belongs in the
+  settings phase.
+- Inline, not a toast — matches the existing rule that failures report inline and toasts are for
+  successful auth only, and it survives a reload.
+- Out of scope: the register route's lowercase-only duplicate check still lets a mixed-case GitHub
+  email create a second row (known gap from History 21). That needs a `citext` migration.
 
 ## History
 

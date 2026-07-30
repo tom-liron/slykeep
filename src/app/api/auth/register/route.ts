@@ -49,9 +49,26 @@ export async function POST(request: Request) {
     try {
         // Registration cannot hide whether an email is taken — the user has to be told why they
         // cannot proceed. The signal is confined to this route; the sign-in path stays silent.
-        if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) {
+        const existing = await prisma.user.findUnique({
+            where: { email },
+            // Selected to tell the two collisions apart, not to compare: a null hash is an
+            // OAuth-only account (see `User.password` in the schema).
+            select: { password: true },
+        });
+
+        if (existing) {
+            // "An account already exists" is true of an OAuth-only account but strands the user:
+            // it implies signing in with a password, which can never succeed, and there is no
+            // password reset to fall back on. Naming GitHub is the only message that leads
+            // anywhere. It discloses the provider on top of the existence this route already
+            // reveals above — an accepted widening of that same signal, not a new one.
             return NextResponse.json(
-                { error: "An account with that email already exists." },
+                {
+                    error:
+                        existing.password === null
+                            ? "That email is already registered through GitHub. Use “Sign in with GitHub” to continue."
+                            : "An account with that email already exists.",
+                },
                 { status: 409 },
             );
         }
