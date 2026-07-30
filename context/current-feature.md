@@ -1,165 +1,21 @@
-# Current Feature: Email Verification
+# Current Feature
 
 ## Feature
 
-**Email verification on registration (Resend)** — a new credentials account is created unverified
-and cannot sign in until the user clicks a single-use link emailed to the address. Establishes
-`User.emailVerified` as a trustworthy signal, which the account-linking work that follows depends on.
+_None loaded. Run `/feature load <spec>` to begin._
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Install `resend`; add a server-only `src/lib/email.ts` holding the client and a
-  `sendVerificationEmail` helper.
-- On successful registration: create a `VerificationToken`, email an absolute link, and return
-  "check your inbox" — no longer sign the new account straight in.
-- `GET /verify-email?token=…` consumes the token: reject unknown/expired, set `User.emailVerified`,
-  delete the row (single use), redirect to `/sign-in?verified=1`.
-- Block credentials sign-in while `emailVerified` is null, without weakening the uniform-failure
-  discipline in `authorize()` (see Notes — the unverified branch goes *after* the bcrypt compare).
-- Add a resend-verification path so a lost or expired email is not a locked-out account.
-- Set `emailVerified` for GitHub sign-ups too (see Notes — the provider does not do it).
-- Add `/verify-email` to `PUBLIC_ROUTES` in `src/proxy.ts`.
-- Document `RESEND_API_KEY`, `EMAIL_FROM`, and `AUTH_URL` in `.env.example`.
-- Report every outcome in the UI: inbox prompt after registering, invalid/expired/used token,
-  and an unverified sign-in attempt with a resend link.
-- Remove the now-dead `welcome=new` path once registration stops signing accounts in.
-
-Added during implementation, not in the original spec — both are developer tooling in `scripts/`,
-kept out of the application on purpose (see Notes, "Why the workarounds live in `scripts/`"):
-
-- `npm run email:test -- addr@example.com` (`scripts/test-email.ts`) — sends one email and polls
-  `GET /emails/:id` until `last_event` settles, so the asynchronous failure becomes a synchronous
-  verdict. The tool that says whether the transport works, before or after any domain change.
-- `npm run user:verify -- addr@example.com` (`scripts/verify-user.ts`) — marks an account verified
-  by hand, the stand-in for clicking the link while no email can arrive. Refuses to run when
-  `NODE_ENV=production`, before it reads argv or opens a connection.
+_Populated by `/feature load`._
 
 ## Notes
 
-### No migration needed
+_Populated by `/feature load`._
 
-`User.emailVerified` and the `VerificationToken` model already exist from the NextAuth scaffold
-(`prisma/schema.prisma`). This feature is application code only.
-
-### Telling an unverified user why, without an enumeration leak
-
-`authorize()` deliberately makes a wrong password, an unknown email, and an OAuth-only account
-indistinguishable. "Unverified" must not become the exception that breaks it — but it does not have
-to. Check verification only **after** `bcrypt.compare` succeeds: at that point the caller has proven
-they know the password, so telling *them* the account is unverified discloses nothing they did not
-already establish. Returning it before the compare would both leak existence and reopen the timing
-gap the decoy hash closes.
-
-Carry it as a `CredentialsSignin` subclass with a distinct `code`, so the sign-in form can render a
-resend link rather than the generic "Invalid email or password."
-
-### GitHub accounts are created unverified
-
-The GitHub provider's profile mapping does not populate `emailVerified`, so every OAuth sign-up
-lands with `null`. Left alone, `emailVerified` would mean "verified, or signed up with GitHub, we
-can't tell" — and the Case A linking rule that this whole feature exists to enable could never trust
-it. Set it explicitly for GitHub sign-ups, which is sound because GitHub only exposes verified
-addresses.
-
-### Token handling
-
-Store a SHA-256 hash of the token and put the raw value in the link, so a database read does not
-yield working verification links. Random 32 bytes, 24-hour expiry, deleted on use.
-
-### Knock-on changes to existing code
-
-`RegisterForm` currently signs the new account in immediately after a 201 and redirects to
-`/?welcome=new`. That block goes away. Check whether `welcome=new` in `actions/auth.ts` /
-`WelcomeToast` still has a caller afterwards, and remove it if not.
-
-### Delivery is blocked at Resend, and it is their defect — ticket open
-
-**The application code is complete and does not need changing.** Every email this Resend account has
-ever sent has failed, from its first onward. The dashboard reason is always:
-
-> **Domain is not verified:** The domain used to send this email needs to be verified.
-
-That message is misleading. It appears for sends from `onboarding@resend.dev`, which is *Resend's*
-domain and cannot be verified by us. `GET /domains` returns an empty list, so there is no
-half-finished verification to resume either.
-
-Every precondition for Resend's documented no-domain testing path is satisfied, and it still fails:
-
-| Requirement | Status |
-|---|---|
-| Recipient is the account owner's own address | ✅ `tomliron88@gmail.com` |
-| Sender is `onboarding@resend.dev` | ✅ |
-| API key is full access, not `sending_access` scoped to a `domain_id` | ✅ proven — the key serves `GET /domains` and `GET /api-keys`, which a sending-only key cannot |
-| An unauthorized recipient would return a synchronous **403** | ✅ we get `200`, so that rule is not what fires |
-| `onboarding@resend.dev` → `delivered@resend.dev` (Resend's own simulator) | ❌ fails too — no recipient rule can explain this |
-
-A support ticket is open. Until it is answered, treat delivery as unavailable and everything behind
-the link as verified by other means (see below).
-
-Do not conclude from this that a verified domain is merely optional — production needs one
-regardless, and verifying one is also the fastest way to route around the defect if the ticket
-stalls. `EMAIL_FROM` currently defaults to `onboarding@resend.dev` so the app runs; pointing it at a
-verified domain is the entire fix, with no code change beside it.
-
-What makes this class of failure expensive: nothing synchronous reports it. `POST /emails` returns
-`200` with an id, the SDK's `error` is `null`, and the API-log page shows a green `200`. The failure
-is asynchronous and surfaces only in `last_event`. `npm run email:test` exists to collapse that gap.
-
-`RESEND_API_KEY` and `EMAIL_FROM` also have to be set in the Vercel project environment — a
-committed `.env.production` is not read by Vercel.
-
-### Why the workarounds live in `scripts/`, not in the app
-
-The first attempt printed the verification link to the server console from inside
-`sendVerificationEmail` whenever `NODE_ENV !== "production"`. That is the mistake to avoid repeating.
-It made the *application* dishonest: the feature reported success while the transport was broken, so
-it reached "done" without ever delivering an email, and the real fault stayed hidden behind a
-workaround that felt like progress.
-
-`scripts/test-email.ts` and `scripts/verify-user.ts` do the same jobs without that cost. A developer
-running a script against a dev database cannot make the product lie — no code path in the app
-changes, a failed send still reports itself in the UI, and the scripts are visibly separate from the
-feature rather than woven into it.
-
-### Verified without a working inbox
-
-The token lifecycle was exercised against the dev database with a throwaway harness — 12 cases, all
-passing: the raw token is never stored (only its SHA-256), a valid token verifies, a reused one is
-rejected, an already-verified account is distinguished from an invalid link, a resend supersedes the
-previous token, an expired token reports `expired` *and* is still consumed, and unknown/empty tokens
-are invalid. Plus `auth-errors` unit tests for the two verification error codes.
-
-What remains unproven is exactly one hop: whether Resend hands the message to a mailbox.
-
-### Prior attempt
-
-`wip/email-verification-attempt-1` (`df0a40a`) holds the discarded first implementation, reset
-because the fault was never in it. Kept only as history — the current implementation supersedes it,
-minus the console-link fallback and plus the two scripts. Safe to delete once this merges.
-
-### Still unrated: rate limiting
-
-Neither `/api/auth/register` nor the resend path is throttled, and resend-verification is an email
-bomb aimed at any address. Throttle per address at minimum. Pre-existing gap, now with more surface.
-
-### Relationship to the A/B/C collision cases
-
-This does **not** by itself fix any of them — it is the prerequisite that makes fixing A safe:
-
-- **Case A** (password account → GitHub) stays blocked until a `signIn` callback links the account,
-  and that callback is only safe when it requires the existing user's `emailVerified` to be non-null.
-  Without that condition: register `victim@x.com` with a known password, never verify, wait for the
-  victim to sign in with GitHub, and auto-linking hands over their account.
-- **Case B** (GitHub-only → register) needs a separate set-a-password-by-email flow. Registration
-  still 409s until then; the message shipped in `b0e5d2e` remains the correct answer.
-- **Case C** (GitHub-only → credentials sign-in) resolves once B exists, via a "forgot password"
-  link that leaks nothing because it emails either way.
-
-Sequence: verification (this) → linking (A) → set password (B, which settles C).
 
 ## History
 
@@ -188,3 +44,5 @@ Sequence: verification (this) → linking (A) → set password (B, which settles
 21. **Auth credentials — email/password** (`feature/auth-credentials`) — Roadmap Phase 1, part 2: a Credentials provider beside GitHub and a `POST /api/auth/register` route handler, chosen over a Server Action so the client can tell 400 from 409. `auth.config.ts` holds a placeholder that always returns null and `auth.ts` substitutes the working provider *by id* — appending would leave the placeholder earlier in the array where every sign-in hits it first. All three failure modes (wrong password, unknown email, OAuth-only account) return null and pay the same bcrypt cost via a precomputed decoy hash; without it the miss answered in ~70ms against ~550ms for a hit. Zod validates both entry points from one schema, with email normalization piped *ahead* of validation, since chaining `.trim()` after `z.email()` transforms output that the anchored pattern has already rejected. Added `zod`, which the coding standards require but nothing had needed yet. Known gaps: a mixed-case GitHub email escapes the register route's lowercased duplicate check (needs citext), and neither endpoint is rate limited.
 22. **Auth UI — sign in, register & account menu** (`feature/auth-ui`) — Auth Phase 3: an `(auth)` route group serving `/sign-in` and `/register`, plus a sidebar account menu with sign out and a `/profile` stub. The two routes are handled inside the proxy callback rather than excluded from its matcher, since an excluded path never runs the callback and a signed-in user could not then be redirected away from the sign-in form. Success toasts ride the redirect URL (`/?welcome=back|new`) because sign-in redirects from the server and the form is unmounted before it could raise one; `getFirstName` keeps the greeting from addressing people by the email fallback in `UserViewModel.name`. Errors all report inline, toasts are for successful auth only. Three things the spec did not anticipate: `noValidate` is required on the sign-in form or the browser rejects a malformed address silently and no message appears at all, lucide-react v1 dropped its brand icons so the GitHub mark is inlined, and sonner's shipped wiring to `next-themes` would have rendered light toasts over the dark app.
 23. **Same-email collision feedback** (`fix/oauth-sign-in-error-feedback`, `b0e5d2e`) — Reported both directions of an email that already belongs to an account created the other way. A password account blocking GitHub sign-in was silent: Auth.js already redirects to `/sign-in?error=OAuthAccountNotLinked` (because `SignInError.kind` is `"signIn"`, so `@auth/core` resolves the target from `pages.signIn`), but the page typed `searchParams` as `{ registered?: string }` and dropped it, leaving the cause visible only in the Vercel logs. A GitHub-only account blocking registration was worse than silent — "an account already exists" implies signing in with a password, which can never succeed against a null hash, with no reset to fall back on. New `lib/auth-errors.ts` maps the client-safe codes with a generic fallback so a raw code is never rendered, and the register route's duplicate check now selects `password` to name GitHub when the hash is null. That widens the 409's disclosure from "this email exists" to "exists via GitHub"; the leak-free alternative needs transactional email. Credentials sign-in stays deliberately vague — it is anonymous, with no proof of address ownership.
+
+24. **Email verification on registration** (`feature/email-verification`) — New credentials accounts are created unverified and cannot sign in until they click a single-use link, making `User.emailVerified` a signal the account-linking work can trust. Tokens are 32 random bytes stored as a SHA-256 digest, so a database read yields no working links; the unverified check sits *after* the bcrypt compare, where naming the account's state discloses nothing the caller has not already proven, and the decoy-hash timing guard survives intact. GitHub sign-ups are marked verified by a `linkAccount` event, since the provider's profile mapping leaves the column null and the ambiguity would make it useless. The whole feature was written, discarded, and rewritten: delivery fails at Resend, not in this code — every send from the account fails asynchronously with "Domain is not verified", including `onboarding@resend.dev` to Resend's own `delivered@resend.dev` simulator, with `POST /emails` returning 200 and a null error throughout. The first attempt hid that behind a console-printed link and so reached "done" without ever sending an email; this one keeps the workarounds in `scripts/` (`email:test` polls `last_event` until it settles, `user:verify` marks an account by hand) where they cannot make the product lie. A support ticket is open and the branch is deliberately unpushed — shipping a verification gate no email can open would be worse than what is live.
