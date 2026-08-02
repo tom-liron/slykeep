@@ -1,33 +1,12 @@
 import NextAuth from "next-auth";
 
+import { OPEN_ROUTES, SIGNED_OUT_ROUTES } from "@/lib/auth-redirects";
 import authConfig from "./auth.config";
 
 // Built from the edge-safe config only — importing `@/auth` here would drag the Prisma adapter into
-// the edge bundle. This instance can authorize but not query.
+// the edge bundle. This instance can authorize but not query. `lib/auth-redirects` is safe to pull
+// in for the same reason: it is strings and string handling, with no Node built-ins behind it.
 const { auth } = NextAuth(authConfig);
-
-/**
- * Routes for people who do not have a session yet. A signed-in visitor is sent to the app instead:
- * these forms would only sign them in as who they already are, or reset a password they evidently
- * remember.
- *
- * Verification deliberately has no entry. The spec called for `/verify-email` here, but the token
- * is consumed by a route handler at `/api/auth/verify-email`, and `api/auth` is already outside the
- * matcher below — listing a page path that does not exist would protect nothing and imply a route
- * someone would later go looking for.
- */
-const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-password"]);
-
-/**
- * Reachable with or without a session.
- *
- * `/reset-password` cannot be in the set above. A reset link is opened from an inbox, in whatever
- * browser the mail client hands it to — quite possibly one still signed in as the person resetting,
- * or as somebody else on a shared machine. Redirecting a signed-in visitor to `/` would swallow the
- * link and leave them with no way to finish, and the page is safe for them anyway: it grants nothing
- * the token in the URL does not already.
- */
-const OPEN_ROUTES = new Set(["/reset-password"]);
 
 export const proxy = auth((req) => {
     const { pathname } = req.nextUrl;
@@ -42,7 +21,12 @@ export const proxy = auth((req) => {
     if (isSignedOutRoute || OPEN_ROUTES.has(pathname)) return;
 
     const signInUrl = new URL("/sign-in", req.nextUrl.origin);
-    signInUrl.searchParams.set("callbackUrl", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+    const target = `${pathname}${req.nextUrl.search}`;
+
+    // Omitted when the target is the destination sign-in would have chosen anyway. `?callbackUrl=%2F`
+    // on the most common bounce in the app is pure noise in the address bar: it survives the whole
+    // flow, encodes a slash into something that looks like a bug, and changes nothing.
+    if (target !== "/") signInUrl.searchParams.set("callbackUrl", target);
 
     return Response.redirect(signInUrl);
 });

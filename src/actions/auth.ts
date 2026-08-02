@@ -5,22 +5,29 @@ import { z } from "zod";
 
 import { signIn, signOut } from "@/auth";
 import { EMAIL_UNVERIFIED_CODE, EMAIL_UNVERIFIED_MESSAGE } from "@/lib/auth-errors";
+import { resolveCallbackUrl, signInDestination } from "@/lib/auth-redirects";
 import { signInSchema } from "@/lib/auth-schemas";
 import { EMPTY_AUTH_STATE, type AuthActionState } from "@/types/auth";
 
 /**
- * Where a successful sign-in lands. Not `/dashboard` — `(dashboard)` is a route group, so it
- * contributes nothing to the URL and the dashboard is served at the root.
+ * Where a successful sign-in lands: the page the proxy bounced them off, or the dashboard.
  *
- * The `welcome` flag is how a success toast survives: the redirect happens on the server, so the
- * form that would have raised the toast is gone by the time the user arrives. `WelcomeToast` on the
- * destination reads the flag and fires there instead.
+ * Not `/dashboard` in the default case — `(dashboard)` is a route group, so it contributes nothing
+ * to the URL and the dashboard is served at the root.
  *
- * Only `back` remains. The `new` variant existed for the register form signing a fresh account
- * straight in, which email verification removes — a new account now goes to the sign-in page to
- * wait for its confirmation link, so nobody reaches the app without having signed in at least once.
+ * The `welcome` flag on that default is how a success toast survives: the redirect happens on the
+ * server, so the form that would have raised the toast is gone by the time the user arrives.
+ * `WelcomeToast` on the destination reads the flag and fires there instead. Only `back` remains —
+ * the `new` variant existed for the register form signing a fresh account straight in, which email
+ * verification removes.
+ *
+ * The callback comes from a form field rather than being read from the request, because a Server
+ * Action has no access to the URL of the page that invoked it. Both forms carry it in a hidden
+ * input; `resolveCallbackUrl` is what stops that field from pointing off-site.
  */
-const AFTER_SIGN_IN = "/?welcome=back";
+function destinationFrom(formData: FormData): string {
+    return signInDestination(resolveCallbackUrl(formData.get("callbackUrl")?.toString()));
+}
 
 /**
  * Email/password sign-in.
@@ -54,7 +61,7 @@ export async function signInWithCredentials(
     }
 
     try {
-        await signIn("credentials", { ...parsed.data, redirectTo: AFTER_SIGN_IN });
+        await signIn("credentials", { ...parsed.data, redirectTo: destinationFrom(formData) });
     } catch (error) {
         // A successful sign-in also leaves via `throw` — `redirectTo` raises NEXT_REDIRECT, which
         // Next needs to receive. Only genuine auth failures are ours to report; rethrow the rest or
@@ -77,9 +84,15 @@ export async function signInWithCredentials(
     return EMPTY_AUTH_STATE;
 }
 
-/** Kicks off the GitHub OAuth handshake; the provider decides where the user goes next. */
-export async function signInWithGitHub() {
-    await signIn("github", { redirectTo: AFTER_SIGN_IN });
+/**
+ * Kicks off the GitHub OAuth handshake; the provider decides where the user goes next.
+ *
+ * `redirectTo` survives the round trip to GitHub — Auth.js stores it and applies it once its own
+ * `/api/auth/callback/github` handler completes. That handler's URL is a separate thing configured
+ * in the GitHub OAuth app and is not affected by any of this.
+ */
+export async function signInWithGitHub(formData: FormData) {
+    await signIn("github", { redirectTo: destinationFrom(formData) });
 }
 
 /** Clears the session and returns to the sign-in page rather than a route the proxy would bounce. */

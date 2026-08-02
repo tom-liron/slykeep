@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { EMPTY_AUTH_STATE } from "@/types/auth";
 
-export function SignInForm() {
+export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
     const [state, formAction, isPending] = useActionState(signInWithCredentials, EMPTY_AUTH_STATE);
 
     // `noValidate` because `type="email"` otherwise lets the browser reject a malformed address
@@ -19,6 +19,10 @@ export function SignInForm() {
     // matching the register form.
     return (
         <form action={formAction} noValidate className="space-y-4">
+            {/* Submitted rather than read: a Server Action has no access to the URL of the page it
+                was invoked from, so the destination has to travel with the form. */}
+            {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
+
             <div className="space-y-1.5">
                 <label htmlFor="email" className="text-sm font-medium">
                     Email

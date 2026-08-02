@@ -4,6 +4,7 @@ import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
 import { ResendVerification } from "@/components/auth/ResendVerification";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { getSignInErrorMessage } from "@/lib/auth-errors";
+import { resolveCallbackUrl } from "@/lib/auth-redirects";
 
 export const metadata: Metadata = {
     title: "Sign in · DevStash",
@@ -16,10 +17,17 @@ export default async function SignInPage({
         registered?: string;
         verified?: string;
         reset?: string;
+        callbackUrl?: string | string[];
         error?: string | string[];
     }>;
 }) {
     const params = await searchParams;
+
+    // Written by `src/proxy.ts` when it bounced a signed-out visitor off a protected page. Validated
+    // here, at the edge of the request, so neither form can be handed a destination that leaves the
+    // site — and validated again in the action, since the hidden field it produces is just as
+    // forgeable as the query param.
+    const callbackUrl = resolveCallbackUrl(params.callbackUrl) ?? undefined;
 
     // Set by the reset form's redirect once the new password is saved.
     const justReset = params.reset === "1";
@@ -105,7 +113,7 @@ export default async function SignInPage({
                 </div>
             )}
 
-            <GitHubSignInButton />
+            <GitHubSignInButton callbackUrl={callbackUrl} />
 
             <div className="my-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-border" />
@@ -113,7 +121,7 @@ export default async function SignInPage({
                 <span className="h-px flex-1 bg-border" />
             </div>
 
-            <SignInForm />
+            <SignInForm callbackUrl={callbackUrl} />
         </div>
     );
 }
