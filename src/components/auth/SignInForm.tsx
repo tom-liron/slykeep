@@ -45,9 +45,19 @@ export function SignInForm() {
             </div>
 
             <div className="space-y-1.5">
-                <label htmlFor="password" className="text-sm font-medium">
-                    Password
-                </label>
+                <div className="flex items-baseline justify-between gap-3">
+                    <label htmlFor="password" className="text-sm font-medium">
+                        Password
+                    </label>
+                    {/* Beside the field it is about, which is where someone looks the moment they
+                        realise they cannot fill it in. */}
+                    <Link
+                        href="/forgot-password"
+                        className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                        Forgot password?
+                    </Link>
+                </div>
                 <PasswordInput
                     id="password"
                     name="password"
