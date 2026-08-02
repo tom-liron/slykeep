@@ -17,10 +17,14 @@ function GitHubMark() {
 /**
  * A form rather than an onClick handler: the OAuth handshake starts with a redirect issued by the
  * server action, so there is nothing for the client to do and no reason to make this interactive.
+ *
+ * The form is also what carries `callbackUrl` to the action — a Server Action cannot see the URL of
+ * the page that invoked it, so the value has to be submitted rather than read.
  */
-export function GitHubSignInButton() {
+export function GitHubSignInButton({ callbackUrl }: { callbackUrl?: string }) {
     return (
         <form action={signInWithGitHub}>
+            {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
             <Button type="submit" variant="outline" className="w-full">
                 <GitHubMark />
                 Sign in with GitHub
