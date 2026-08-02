@@ -26,19 +26,45 @@ const password = z
         message: "Password must be at most 72 bytes.",
     });
 
+/**
+ * Choosing a password and confirming it — shared by registration and reset, which have to agree.
+ *
+ * Kept as a plain shape rather than a finished schema because both users of it add fields *and* the
+ * cross-field refinement below, and a refinement cannot be extended after the fact.
+ */
+const newPasswordFields = { password, confirmPassword: z.string() };
+
+const passwordsMatch = (data: { password: string; confirmPassword: string }) =>
+    data.password === data.confirmPassword;
+
+const mismatchError = { message: "Passwords do not match.", path: ["confirmPassword"] };
+
 export const registerSchema = z
     .object({
         name: z.string().trim().min(1, "Name is required.").max(100),
         email,
-        password,
-        confirmPassword: z.string(),
+        ...newPasswordFields,
     })
-    .refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords do not match.",
-        path: ["confirmPassword"],
-    });
+    .refine(passwordsMatch, mismatchError);
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+/** Asking for a reset link. Only the address, and only well-formed enough to look up. */
+export const forgotPasswordSchema = z.object({ email });
+
+/**
+ * What the reset *form* validates: the two password fields, since the token is not something the
+ * user typed and nothing they could fix if it were wrong.
+ */
+export const newPasswordSchema = z.object(newPasswordFields).refine(passwordsMatch, mismatchError);
+
+/**
+ * What the reset *endpoint* validates. The token joins the payload here because the server has no
+ * other way to know which account is being reset; the form carries it over from the link.
+ */
+export const resetPasswordSchema = z
+    .object({ token: z.string().min(1, "The reset link is incomplete."), ...newPasswordFields })
+    .refine(passwordsMatch, mismatchError);
 
 /**
  * Deliberately looser than `registerSchema`: sign-in only needs the fields to be present and

@@ -15,10 +15,14 @@ export default async function SignInPage({
     searchParams: Promise<{
         registered?: string;
         verified?: string;
+        reset?: string;
         error?: string | string[];
     }>;
 }) {
     const params = await searchParams;
+
+    // Set by the reset form's redirect once the new password is saved.
+    const justReset = params.reset === "1";
 
     // Set by the register form's redirect. `unsent` is the honest case: the account exists but
     // Resend refused, so pointing at an inbox would be a lie — offer the resend control instead.
@@ -56,6 +60,12 @@ export default async function SignInPage({
                         message comes with the control that fixes it rather than just an apology. */}
                     {needsNewLink && <ResendVerification />}
                 </div>
+            )}
+
+            {justReset && (
+                <p className="mb-5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
+                    Password updated. Sign in with your new one.
+                </p>
             )}
 
             {justVerified && (
