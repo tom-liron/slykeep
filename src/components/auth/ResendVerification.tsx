@@ -41,7 +41,8 @@ export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: strin
     if (sent) {
         return (
             <p className="mt-3 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
-                If that address needs confirming, a new link is on its way. It expires in 24 hours.
+                Check your email — if <span className="font-medium">{email}</span> still needs
+                confirming, a new link is on its way. It expires in 24 hours.
             </p>
         );
     }
