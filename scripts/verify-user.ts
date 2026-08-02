@@ -9,9 +9,10 @@ import { PrismaClient } from "../src/generated/prisma-client/client";
 /**
  * Marks an account's email verified by hand. Run with `npm run user:verify -- you@example.com`.
  *
- * A development stand-in for clicking the link, needed while Resend cannot deliver from this
- * account: registration creates users with `emailVerified` null, `authorize` refuses those, and
- * with no email arriving there is otherwise no way to reach the app with a fresh account.
+ * A development stand-in for clicking the link, needed for any test account whose address is not
+ * the Resend account owner's own: registration creates users with `emailVerified` null, `authorize`
+ * refuses those, and `onboarding@resend.dev` refuses every other recipient with a 403 (see
+ * `src/lib/email.ts`), so there is otherwise no way to reach the app with a fresh account.
  *
  * Deliberately a *script* rather than anything the application can reach. A fallback inside
  * `sendVerificationEmail` — printing the link, auto-verifying in development — makes the app itself
