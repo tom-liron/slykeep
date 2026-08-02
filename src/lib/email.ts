@@ -70,8 +70,13 @@ function escapeHtml(value: string) {
 }
 
 /**
- * The one HTML shell every message shares: a heading, a greeting, a paragraph or two of body, an
- * optional call-to-action button, and small print.
+ * The one HTML shell every message shares: a heading, a greeting, a paragraph or two of body, a
+ * call-to-action button, the same destination repeated as paste-able text, and small print.
+ *
+ * That repeated URL is not redundancy for its own sake. A button is a styled anchor, and enough mail
+ * clients strip or mangle the styling — or block the link outright — that the standard advice is to
+ * put the raw address in the body as well. Without it, a broken button is a dead end in the one
+ * email whose entire purpose is a single click.
  *
  * `heading`, `body` and `footnotes` are trusted literals from this module. `name` is the only
  * user-supplied value that reaches markup, and it is escaped on the way in below.
@@ -86,15 +91,10 @@ function renderHtml({
     heading: string;
     greeting: string;
     body: string[];
-    action?: { label: string; href: string };
+    action: { label: string; href: string };
     footnotes: string[];
 }) {
     const paragraphs = body.map((text) => `<p style="margin: 0 0 12px;">${text}</p>`).join("");
-    const button = action
-        ? `<p style="margin: 20px 0;">
-               <a href="${action.href}" style="display: inline-block; background: #18181b; color: #fafafa; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 500;">${action.label}</a>
-           </p>`
-        : "";
     const small = footnotes
         .map((text) => `<p style="margin: 0 0 12px; font-size: 14px; color: #52525b;">${text}</p>`)
         .join("");
@@ -104,7 +104,13 @@ function renderHtml({
             <h1 style="font-size: 20px; margin: 0 0 16px;">${heading}</h1>
             <p style="margin: 0 0 12px;">${greeting}</p>
             ${paragraphs}
-            ${button}
+            <p style="margin: 24px 0;">
+                <a href="${action.href}" style="display: inline-block; background: #18181b; color: #fafafa; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 500;">${action.label}</a>
+            </p>
+            <p style="margin: 0 0 20px; font-size: 14px; color: #52525b;">
+                Or paste this link into your browser:<br />
+                <a href="${action.href}" style="color: #52525b; word-break: break-all;">${action.href}</a>
+            </p>
             ${small}
         </div>
     `;
@@ -148,11 +154,13 @@ export async function sendVerificationEmail({
         subject: "Confirm your DevStash email",
         // Plain text alongside the HTML: some clients render it instead, and its presence measurably
         // lowers the odds of the whole message being scored as spam.
-        text: `${name ? `Hi ${name},` : "Hi,"}\n\nConfirm your email address to finish setting up your DevStash account:\n\n${link}\n\nThis link expires in 24 hours and can only be used once.\n\nIf you did not sign up for DevStash, you can ignore this email.`,
+        text: `${name ? `Hi ${name},` : "Hi,"}\n\nYou're almost done setting up your DevStash account. Confirm your email address using the link below:\n\n${link}\n\nThis link expires in 24 hours and can only be used once.\n\nIf you did not sign up for DevStash, you can ignore this email.`,
         html: renderHtml({
             heading: "Confirm your email",
             greeting: name ? `Hi ${escapeHtml(name)},` : "Hi,",
-            body: ["Confirm your email address to finish setting up your DevStash account."],
+            body: [
+                "You're almost done setting up your DevStash account. Use the button below to confirm your email address.",
+            ],
             action: { label: "Confirm email", href: link },
             footnotes: [
                 "This link expires in 24 hours and can only be used once.",
@@ -183,12 +191,17 @@ export async function sendPasswordResetEmail({
         from: FROM,
         to,
         subject: "Reset your DevStash password",
-        text: `${name ? `Hi ${name},` : "Hi,"}\n\nChoose a new password for your DevStash account:\n\n${link}\n\nThis link expires in 1 hour and can only be used once.\n\nIf you did not ask to reset your password, you can ignore this email — your current password still works and nothing has changed.`,
+        text: `${name ? `Hi ${name},` : "Hi,"}\n\nWe received a request to reset the password for your DevStash account. Use the link below to choose a new one:\n\n${link}\n\nThis link expires in 1 hour and can only be used once.\n\nIf you did not ask to reset your password, you can ignore this email — your current password still works and nothing has changed.`,
         html: renderHtml({
             heading: "Reset your password",
             greeting: name ? `Hi ${escapeHtml(name)},` : "Hi,",
-            body: ["Choose a new password for your DevStash account."],
-            action: { label: "Choose a new password", href: link },
+            // Says why the mail arrived, then points at the button. The button gets the verb, so the
+            // body must not also spend it — "Choose a new password" above a button reading "Choose a
+            // new password" was the same sentence twice with a box drawn round the second one.
+            body: [
+                "We received a request to reset the password for your DevStash account. Use the button below to choose a new one.",
+            ],
+            action: { label: "Reset password", href: link },
             footnotes: [
                 "This link expires in 1 hour and can only be used once.",
                 "If you did not ask to reset your password, you can ignore this email — your current password still works and nothing has changed.",
