@@ -20,4 +20,3 @@ _Populated by `/feature load`._
 
 Moved to `context/feature-history.md`, which is **not** `@`-imported — this file is loaded into
 every session and the history is not needed in most of them. `/feature complete` appends there.
-
