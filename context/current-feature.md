@@ -1,43 +1,20 @@
-# Current Feature: Profile Page
+# Current Feature
 
 ## Feature
 
-Build out `/profile` from its current read-only stub into a real account page: identity, usage
-stats, and the two account actions — change password (credentials accounts only) and delete
-account. Spec: `context/features/profile-spec.md`.
+_None loaded. Run `/feature load <spec>` to begin._
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- `/profile` shows email, name, avatar (GitHub image when present, initials otherwise), and account
-  creation date.
-- Usage stats: total items, total collections, and a per-item-type breakdown covering all seven
-  system types (including types with zero items).
-- Change password: visible only for accounts with a password hash; hidden for GitHub-only accounts.
-- Delete account: behind a confirmation dialog, removes the account and everything cascading from it.
-- Data fetching and components follow the existing patterns — server component page, server-only
-  query module, view models, Server Actions or a route handler for the mutations.
+_Populated by `/feature load`._
 
 ## Notes
 
-- The route already exists at [page.tsx](src/app/(dashboard)/profile/page.tsx) as a stub, and is
-  already protected: the proxy denies by default, so no new matcher work is needed.
-- `UserAvatar` already renders the GitHub image with an initials fallback — reuse it rather than
-  writing new avatar logic.
-- `UserViewModel` currently has no `createdAt` and no signal for "has a password". Both need adding
-  at the server boundary; the password hash itself must never reach the client — expose a boolean.
-- Counts belong in `src/server/` alongside the existing item/collection reads, aggregated in one
-  round trip (`groupBy` on `itemTypeId`) rather than one query per type, then joined against
-  `config/item-type-catalog.ts` for label, icon, and colour.
-- Change password must verify the current password before writing the new one, and reuse the Zod
-  password contract from `lib/auth-schemas.ts` so the rules match registration and reset.
-- Delete is irreversible: confirmation dialog, and the user's data disappears via the existing
-  `onDelete: Cascade` relations. Sign the session out afterwards.
-- Open question for `start`: whether deleting an account also needs the session invalidated
-  server-side — JWT sessions still carry no version claim (see History #26).
+_Populated by `/feature load`._
 
 
 ## History
@@ -73,3 +50,5 @@ In Progress
 26. **Password reset** (`feature/password-reset`) — A "Forgot password?" link on the sign-in form and the flow behind it: `/forgot-password` asks for an address, a single-use link lands on `/reset-password`, and the new password is written by `POST /api/auth/reset-password`. Reset tokens live in the same `VerificationToken` table as the confirmation ones, which is the whole risk of the feature: that table has no purpose column and a token is found by its digest alone, so without a namespace a *verification* token posted to the reset route would let anyone who can receive that email set a password on the account. Both purposes now carry an explicit `identifier` prefix — including verification, which previously used the bare address, because a purpose defined as "no prefix" has to exclude every future purpose by name and the failure mode of forgetting is silent. The request endpoint answers 200 for everything with the lookup and send in `after()`, the same enumeration parity `POST /api/auth/verify-email` settled on; the reset endpoint is free to name its failures, since the caller is identified by a token they had to receive rather than an address anyone can type. Three smaller decisions: a reset link also sets `emailVerified` (receiving it is the same proof the confirmation email asks for) but never overwrites an existing timestamp; the token is checked before the bcrypt hash and consumed after, so junk input cannot buy 500ms of CPU on an unrated endpoint and a hashing failure cannot spend a live link; and `/reset-password` is reachable *with* a session, unlike the other signed-out routes, because a reset link is opened from whatever browser the mail client hands it to. An account with no password gets a "you sign in with GitHub" email instead of silence, which discloses nothing — it only ever reaches the address that was entered. Rate limiting is still missing, and JWT sessions still have no version claim, so a reset cannot evict a session held by whoever knew the old password.
 27. **Honour the sign-in callback URL** (`fix/sign-in-callback-url`) — The proxy had been writing `?callbackUrl=` on every bounce and nothing ever read it: both sign-in paths hardcoded `redirectTo`, so a signed-out deep link to a collection always dumped you on the dashboard, and the most common bounce of all decorated the address bar with `?callbackUrl=%2F` for no benefit. Sign-in now returns you where you were headed. A Server Action cannot see the URL of the page that invoked it, so the value travels as a hidden field in both forms rather than being read from the request — which makes it exactly as forgeable as the query param, hence `resolveCallbackUrl` validating at both ends. It accepts same-origin relative paths only: absolute URLs, protocol-relative `//host`, and the `/\host` form browsers normalize into it are all refused, since honouring any of them is an open redirect that inherits the credibility of the site the user just trusted with a password. The auth pages are refused too, as returning to `/sign-in` after signing in is a loop. `welcome=back` stays on the default destination alone: `WelcomeToast` is rendered only by the dashboard home and clears its flag with a hardcoded `router.replace("/")`, so attaching it to a deep link would raise no toast, strand the param, and one day redirect people off the page they asked for. The proxy's route sets moved to `lib/auth-redirects.ts` because the guard needs the same list and two copies would drift.
 28. **Auth copy** (`fix/reset-copy`) — The reset flow read oddly in both places it speaks to a person. On screen, submitting the form left the page heading still saying "Reset your password / enter your email" above a message reporting a link had been sent; the heading moved into `ForgotPasswordForm` so it can become "Check your email", which is the pattern every comparable product uses, and the address is echoed back because a typo is the likeliest reason nothing arrives. In the email, the body and the button were the same sentence twice — "Choose a new password" above a button reading "Choose a new password" — so the body now says why the mail arrived and the button takes the verb, "Reset password". Both emails also gained the destination repeated as paste-able text under the button, since a button is only a styled anchor and enough clients mangle or block it that a broken one would dead-end the single thing the message exists to do. The identical-for-every-address wording stayed exactly as it was: it is what keeps the screen from being an enumeration oracle, and the sources recommend it independently. The verification email and the resend control got the same treatment rather than being left as the odd ones out. Separately, `/sign-in` stopped greeting strangers with "Welcome back": with no homepage yet, the proxy sends every signed-out visitor there, so it is the app's front door and meets first-time arrivals as often as returning ones. It now names the product and says what it does. The post-sign-in toast keeps "welcome back", where the account has actually authenticated and the assumption is earned.
+
+29. **Profile page** (`feature/profile-page`) — `/profile` grew from a read-only stub into the real account page: identity with the join date, usage totals, a per-type breakdown, and the two account actions. `getProfile` reads it in one pass, and the breakdown was already half-built inside `getSidebarNav`, so it moved to a shared `getItemTypeCounts` — where the `?? 0` is load-bearing, since `groupBy` returns no row for a type the user owns nothing of and Files and Images would otherwise vanish rather than read zero. The `password` column is selected but collapses to a `hasPassword` boolean before it leaves the server boundary. Both mutations are Server Actions, not route handlers: neither needs a status code the caller must read, which is the thing that made `api/auth/register` a route. Changing a password re-checks the current one despite a valid session, because a session proves who signed in once, not who is at the keyboard now; deletion is a single `delete` behind a typed email confirmation that the action re-checks, since a guard living only in component state is not a guard, and `signOut` sits outside the try because it exits by throwing NEXT_REDIRECT and the catch would report failure for a deletion that already succeeded. `PASSWORD_HASH_ROUNDS` and `ABSENT_USER_HASH` moved to `src/server/passwords.ts`: they existed in two copies each naming the other, this feature would have been a third, and divergence silently reopens the timing leak the decoy hash closes. Two copy decisions worth keeping: sections are named for the one thing they contain (Usage / Password / Delete account) rather than nesting a category over a single card, because "Danger zone" belongs to developer-infrastructure tools and not to the products §8 names as this app's references; and the GitHub-only account is told where its credentials actually live rather than only that a password is absent, which reads as a missing feature. Known gap: a password change still cannot evict sessions held elsewhere, as JWTs carry no version claim — deletion is unaffected, since the row is gone and every authenticated read fails closed.
