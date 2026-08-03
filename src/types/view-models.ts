@@ -68,7 +68,12 @@ export interface DashboardItemsViewModel {
     recentItems: ItemSummaryViewModel[];
 }
 
-export interface SidebarItemTypeViewModel {
+/**
+ * An item type reduced to what a count display needs: its presentation, and how many of the user's
+ * items carry it. Shared by the sidebar nav and the profile page's type breakdown, which ask the
+ * same question of the same data and would otherwise keep two identical shapes in step by hand.
+ */
+export interface ItemTypeCountViewModel {
     id: string;
     label: string;
     icon: IconName;
@@ -76,6 +81,8 @@ export interface SidebarItemTypeViewModel {
     slug: string;
     itemCount: number;
 }
+
+export type SidebarItemTypeViewModel = ItemTypeCountViewModel;
 
 export interface SidebarCollectionViewModel {
     id: string;
@@ -99,6 +106,23 @@ export interface SidebarNavViewModel {
 }
 
 export type SidebarViewModel = SidebarNavViewModel & SidebarCollectionsViewModel;
+
+/**
+ * The profile page: who the account belongs to, when it was opened, how much is in it, and which
+ * of the two account actions it can offer.
+ *
+ * `hasPassword` is deliberately a boolean rather than the hash it derives from. The page needs to
+ * know only whether a password exists — a credentials account can change one, a GitHub-only account
+ * has none to change — and the hash itself must never leave the server boundary.
+ */
+export interface ProfileViewModel {
+    user: UserViewModel;
+    createdAt: string;
+    hasPassword: boolean;
+    totalItems: number;
+    totalCollections: number;
+    itemTypeCounts: ItemTypeCountViewModel[];
+}
 
 export interface ItemTypePageViewModel {
     itemType: ItemTypeViewModel;

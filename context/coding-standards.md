@@ -76,6 +76,7 @@ Type files define compile-time contracts only. Configuration files contain runti
 - Use shadcn/ui components where applicable
 - Avoid inline styles except for runtime values that Tailwind cannot generate, such as user-configured type colors
 - Dark mode first, light mode as option
+- Toasts are colored by outcome: success and error render on a tinted surface with matching bright text, via sonner's `richColors` on the single `<Toaster>` in `src/components/ui/sonner.tsx`. Use that prop rather than styling toasts per call site, and keep plain/info/loading toasts neutral — they have no outcome to signal.
 
 ## Database
 

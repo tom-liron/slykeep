@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
 import { signInSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/lib/prisma";
+import { ABSENT_USER_HASH } from "@/server/passwords";
 import authConfig from "./auth.config";
 
 /**
@@ -20,16 +21,6 @@ import authConfig from "./auth.config";
 class EmailUnverifiedError extends CredentialsSignin {
     code = EMAIL_UNVERIFIED_CODE;
 }
-
-/**
- * A real bcrypt hash of a random string that nothing knows, compared against when no account
- * matches. Its only job is to burn the same ~500ms the genuine path spends hashing.
- *
- * Returning early on a missing account leaks which emails are registered: the miss answers in
- * ~70ms and the hit in ~550ms, which is a stopwatch away from an account list. Its cost factor
- * must match `PASSWORD_HASH_ROUNDS` in `app/api/auth/register/route.ts` or the gap reopens.
- */
-const ABSENT_USER_HASH = "$2b$12$1AOauVh.zv9Unpj6DzfsTumooYhJ3avF0tY1bvv.MnB0TqU9uu4Yq";
 
 /**
  * The real email/password check, replacing the always-null placeholder in `auth.config.ts`.

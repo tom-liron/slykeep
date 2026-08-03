@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { resetPasswordSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/server/passwords";
 import { checkPasswordResetToken, consumePasswordResetToken } from "@/server/verification";
 
 /**
@@ -15,14 +15,6 @@ import { checkPasswordResetToken, consumePasswordResetToken } from "@/server/ver
  * it reports are also the only ones a user can act on — an expired link needs a new one, and a
  * generic error would leave them retrying a form that can never succeed.
  */
-
-/**
- * Must match `PASSWORD_HASH_ROUNDS` in `app/api/auth/register/route.ts`, and `ABSENT_USER_HASH` in
- * `src/auth.ts` with it. A password reset that hashed at a different factor would make sign-in
- * measurably faster or slower for reset accounts than for registered ones — the timing leak the
- * decoy hash exists to close, reintroduced through the back door.
- */
-const PASSWORD_HASH_ROUNDS = 12;
 
 const TOKEN_ERRORS = {
     expired: "That reset link has expired. Request a new one to try again.",
@@ -64,7 +56,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: TOKEN_ERRORS[state], code: state }, { status: 400 });
         }
 
-        const hash = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
+        const hash = await hashPassword(password);
         const consumed = await consumePasswordResetToken(token);
 
         if (consumed.status !== "valid") {

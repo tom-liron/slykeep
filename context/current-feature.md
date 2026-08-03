@@ -1,20 +1,43 @@
-# Current Feature
+# Current Feature: Profile Page
 
 ## Feature
 
-_None loaded. Run `/feature load <spec>` to begin._
+Build out `/profile` from its current read-only stub into a real account page: identity, usage
+stats, and the two account actions — change password (credentials accounts only) and delete
+account. Spec: `context/features/profile-spec.md`.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-_Populated by `/feature load`._
+- `/profile` shows email, name, avatar (GitHub image when present, initials otherwise), and account
+  creation date.
+- Usage stats: total items, total collections, and a per-item-type breakdown covering all seven
+  system types (including types with zero items).
+- Change password: visible only for accounts with a password hash; hidden for GitHub-only accounts.
+- Delete account: behind a confirmation dialog, removes the account and everything cascading from it.
+- Data fetching and components follow the existing patterns — server component page, server-only
+  query module, view models, Server Actions or a route handler for the mutations.
 
 ## Notes
 
-_Populated by `/feature load`._
+- The route already exists at [page.tsx](src/app/(dashboard)/profile/page.tsx) as a stub, and is
+  already protected: the proxy denies by default, so no new matcher work is needed.
+- `UserAvatar` already renders the GitHub image with an initials fallback — reuse it rather than
+  writing new avatar logic.
+- `UserViewModel` currently has no `createdAt` and no signal for "has a password". Both need adding
+  at the server boundary; the password hash itself must never reach the client — expose a boolean.
+- Counts belong in `src/server/` alongside the existing item/collection reads, aggregated in one
+  round trip (`groupBy` on `itemTypeId`) rather than one query per type, then joined against
+  `config/item-type-catalog.ts` for label, icon, and colour.
+- Change password must verify the current password before writing the new one, and reuse the Zod
+  password contract from `lib/auth-schemas.ts` so the rules match registration and reset.
+- Delete is irreversible: confirmation dialog, and the user's data disappears via the existing
+  `onDelete: Cascade` relations. Sign the session out afterwards.
+- Open question for `start`: whether deleting an account also needs the session invalidated
+  server-side — JWT sessions still carry no version claim (see History #26).
 
 
 ## History

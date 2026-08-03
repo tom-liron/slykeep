@@ -17,6 +17,7 @@ export default async function SignInPage({
         registered?: string;
         verified?: string;
         reset?: string;
+        deleted?: string;
         callbackUrl?: string | string[];
         error?: string | string[];
     }>;
@@ -31,6 +32,10 @@ export default async function SignInPage({
 
     // Set by the reset form's redirect once the new password is saved.
     const justReset = params.reset === "1";
+
+    // Set by `deleteAccount`'s sign-out redirect. Confirming it here is the only acknowledgement
+    // the deletion can get — the profile page it was started from no longer belongs to anyone.
+    const justDeleted = params.deleted === "1";
 
     // Set by the register form's redirect. `unsent` is the honest case: the account exists but
     // Resend refused, so pointing at an inbox would be a lie — offer the resend control instead.
@@ -80,6 +85,12 @@ export default async function SignInPage({
             {justReset && (
                 <p className="mb-5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
                     Password updated. Sign in with your new one.
+                </p>
+            )}
+
+            {justDeleted && (
+                <p className="mb-5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
+                    Your account has been deleted.
                 </p>
             )}
 

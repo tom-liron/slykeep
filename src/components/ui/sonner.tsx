@@ -16,11 +16,18 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
  * `<html>` and has no provider to read from. shadcn ships this file wired to `next-themes`, whose
  * `useTheme()` would fall back to `"system"` here and render light toasts over a dark app whenever
  * the OS is set to light. Swap this for the real theme value when the light-mode toggle lands.
+ *
+ * `richColors` tints success and error toasts by outcome — a dark green/red surface with bright
+ * text of the same hue — instead of rendering every toast on the same neutral popover surface. It is
+ * sonner's own prop rather than hand-written CSS, so the palette stays consistent with the library
+ * and follows the theme. Neutral (`--normal-*` below) still covers plain, info, and loading toasts,
+ * which have no outcome to signal.
  */
 const Toaster = ({ ...props }: ToasterProps) => {
     return (
         <Sonner
             theme="dark"
+            richColors
             className="toaster group"
             position="top-center"
             icons={{

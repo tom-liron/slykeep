@@ -3,6 +3,12 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
+import {
+    emailFrom,
+    identifierFor,
+    IDENTIFIER_PREFIX,
+    type TokenPurpose,
+} from "./token-identifiers";
 
 /**
  * Single-use email tokens — address confirmation and password reset — both stored in the
@@ -24,13 +30,6 @@ import { prisma } from "@/lib/prisma";
  * exists to prevent. The cost is that verification links already in flight when this shipped no
  * longer match; they read as invalid, and `/sign-in` already offers a resend control for that.
  */
-
-type TokenPurpose = "email-verification" | "password-reset";
-
-const IDENTIFIER_PREFIX: Record<TokenPurpose, string> = {
-    "email-verification": "email-verification:",
-    "password-reset": "password-reset:",
-};
 
 /**
  * How long a link stays good.
@@ -60,14 +59,6 @@ function generateToken() {
  */
 function hashToken(token: string) {
     return createHash("sha256").update(token).digest("hex");
-}
-
-function identifierFor(purpose: TokenPurpose, email: string) {
-    return `${IDENTIFIER_PREFIX[purpose]}${email}`;
-}
-
-function emailFrom(purpose: TokenPurpose, identifier: string) {
-    return identifier.slice(IDENTIFIER_PREFIX[purpose].length);
 }
 
 /**

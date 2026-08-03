@@ -67,6 +67,20 @@ export const resetPasswordSchema = z
     .refine(passwordsMatch, mismatchError);
 
 /**
+ * Changing a password from the profile page, where the account is already signed in.
+ *
+ * `currentPassword` is only checked for presence, for the same reason `signInSchema` is loose: it
+ * is an existing credential, and applying today's rules to it would reject an account whose
+ * password predates them — locking a user out of the very form that would fix it.
+ */
+export const changePasswordSchema = z
+    .object({
+        currentPassword: z.string().min(1, "Enter your current password."),
+        ...newPasswordFields,
+    })
+    .refine(passwordsMatch, mismatchError);
+
+/**
  * Deliberately looser than `registerSchema`: sign-in only needs the fields to be present and
  * well-formed enough to query with. Applying the password rules here would reject valid legacy
  * credentials the moment those rules change.

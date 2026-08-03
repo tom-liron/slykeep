@@ -8,6 +8,21 @@ export function formatDate(iso: string): string {
 }
 
 /**
+ * Format an ISO 8601 date or timestamp as e.g. "January 15, 2026", always in UTC.
+ *
+ * Separate from `formatDate` because that one omits the year, which is right for a card showing
+ * something touched recently and wrong for a join date that is usually not from this year.
+ */
+export function formatLongDate(iso: string): string {
+    return new Date(iso).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+    });
+}
+
+/**
  * The name to greet someone by, e.g. "John Doe" → "John".
  *
  * `UserViewModel.name` falls back to the email address when the account has no name — every
