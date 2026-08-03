@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { registerSchema } from "@/lib/auth-schemas";
 import { sendVerificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/server/passwords";
 import { createVerificationToken } from "@/server/verification";
 
 /**
@@ -18,13 +18,6 @@ import { createVerificationToken } from "@/server/verification";
  * beside it, and `src/proxy.ts` already excludes `api/auth` from the deny-by-default matcher —
  * which it must, since the whole point is to be reachable while signed out.
  */
-/**
- * Cost factor for new password hashes. `ABSENT_USER_HASH` in `src/auth.ts` is precomputed at this
- * same factor so a failed sign-in costs the same whether or not the account exists — raising this
- * without regenerating that hash reintroduces the timing leak.
- */
-const PASSWORD_HASH_ROUNDS = 12;
-
 export async function POST(request: Request) {
     let body: unknown;
 
@@ -78,7 +71,7 @@ export async function POST(request: Request) {
         // `emailVerified` is left null by default, which is what makes the account unusable until
         // the link is clicked — `authorize` in `src/auth.ts` refuses to sign in without it.
         const user = await prisma.user.create({
-            data: { name, email, password: await bcrypt.hash(password, PASSWORD_HASH_ROUNDS) },
+            data: { name, email, password: await hashPassword(password) },
             select: { id: true, name: true, email: true },
         });
 

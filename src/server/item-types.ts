@@ -5,7 +5,12 @@ import { cache } from "react";
 import { SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
 import { canAccessItemType } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
-import type { ItemTypeViewModel, SidebarNavViewModel } from "@/types/view-models";
+import type {
+    ItemTypeCountViewModel,
+    ItemTypeViewModel,
+    SidebarNavViewModel,
+    UserViewModel,
+} from "@/types/view-models";
 import { getCurrentUser } from "./current-user";
 import { toItemTypeViewModel } from "./view-models";
 
@@ -30,13 +35,14 @@ export const getItemTypesById = cache(
 );
 
 /**
- * The sidebar nav: the system item types the user can access — in catalog order, each with a live
- * item count — plus the signed-in user. Custom types are intentionally excluded; the sidebar lists
- * system types only.
+ * The system item types a user can access, in catalog order, each with a live item count. Custom
+ * types are intentionally excluded — both callers list system types only.
+ *
+ * One `groupBy` rather than a count per type, and the `?? 0` is what keeps a type the user has no
+ * items of in the list: `groupBy` returns no row for an empty group, so the zero has to come from
+ * the catalog side of the join. Shared by the sidebar nav and the profile page's breakdown.
  */
-export async function getSidebarNav(): Promise<SidebarNavViewModel> {
-    const user = await getCurrentUser();
-
+export async function getItemTypeCounts(user: UserViewModel): Promise<ItemTypeCountViewModel[]> {
     const [typeRows, counts] = await Promise.all([
         prisma.itemType.findMany({
             where: { OR: [{ userId: null }, { userId: user.id }] },
@@ -52,7 +58,7 @@ export async function getSidebarNav(): Promise<SidebarNavViewModel> {
     const countByTypeId = new Map(counts.map((row) => [row.itemTypeId, row._count._all]));
     const rowByName = new Map(typeRows.map((row) => [row.name, row]));
 
-    const itemTypes = SYSTEM_ITEM_TYPE_NAMES.flatMap((name) => {
+    return SYSTEM_ITEM_TYPE_NAMES.flatMap((name) => {
         const row = rowByName.get(name);
         return row ? [toItemTypeViewModel(row)] : [];
     })
@@ -65,6 +71,11 @@ export async function getSidebarNav(): Promise<SidebarNavViewModel> {
             slug: itemType.slug,
             itemCount: countByTypeId.get(itemType.id) ?? 0,
         }));
+}
 
-    return { itemTypes, user };
+/** The sidebar nav: the accessible system item types with their counts, plus the signed-in user. */
+export async function getSidebarNav(): Promise<SidebarNavViewModel> {
+    const user = await getCurrentUser();
+
+    return { itemTypes: await getItemTypeCounts(user), user };
 }
