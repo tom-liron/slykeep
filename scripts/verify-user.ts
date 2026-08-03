@@ -5,6 +5,7 @@ import { createInterface } from "node:readline/promises";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../src/generated/prisma-client/client";
+import { identifierFor } from "../src/server/token-identifiers";
 
 /**
  * Marks an account's email verified by hand. Run with `npm run user:verify -- you@example.com`.
@@ -38,15 +39,19 @@ if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
 
 const args = process.argv.slice(2);
 const skipPrompt = args.includes("--yes");
-const email = args
+const emailArg = args
     .find((arg) => !arg.startsWith("--"))
     ?.trim()
     .toLowerCase();
 
-if (!email || !email.includes("@")) {
+if (!emailArg || !emailArg.includes("@")) {
     console.error("Usage: npm run user:verify -- someone@example.com [--yes]");
     process.exit(1);
 }
+
+// Rebound after the guard so the rest of the file has a plain `string`. The narrowing above does
+// not survive into `main()`, and every use there would otherwise need its own assertion.
+const email: string = emailArg;
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -123,7 +128,14 @@ async function main() {
         // Any outstanding link for this address is now pointless, and leaving it usable would keep
         // a live token in the table long after it stopped meaning anything. Clicking it afterwards
         // reports "already verified", which is accurate either way.
-        prisma.verificationToken.deleteMany({ where: { identifier: email } }),
+        //
+        // Scoped through `identifierFor`, not the bare address: token identifiers carry a purpose
+        // prefix, so matching on the email alone silently deleted nothing. Going through the shared
+        // helper is also what keeps any *reset* token for this address alive — verifying an address
+        // by hand is no reason to invalidate a password reset the user is in the middle of.
+        prisma.verificationToken.deleteMany({
+            where: { identifier: identifierFor("email-verification", email) },
+        }),
     ]);
 
     console.log(`✓ ${email} verified at ${verifiedAt.toISOString()}.`);
