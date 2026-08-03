@@ -40,4 +40,14 @@ describe("getSignInErrorMessage", () => {
             expect(message).not.toBe("Something went wrong signing you in. Try again.");
         },
     );
+
+    // Ours too, set by `GET /api/auth/stale-session`. The generic fallback invites the user to "try
+    // again", which is precisely the one thing that cannot work here — the account they were signed
+    // in as does not exist any more, so the same credentials will not bring it back.
+    it("explains a session cleared because its account is gone", () => {
+        const message = getSignInErrorMessage("SessionUserMissing");
+
+        expect(message).toContain("no longer available");
+        expect(message).not.toBe("Something went wrong signing you in. Try again.");
+    });
 });

@@ -44,6 +44,11 @@ const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
     VerificationInvalid:
         "That verification link is not valid or has already been used. Request a new one below.",
     MissingCSRF: "Your session expired before sign-in finished. Try again.",
+    // Also ours: set by `GET /api/auth/stale-session` after clearing a session whose account no
+    // longer exists. Deliberately vague about *why* the account is gone — this fires for a deletion
+    // from another device and for a re-seeded development database alike, and the honest answer
+    // ("we can't find you any more") is the same either way.
+    SessionUserMissing: "Your account is no longer available.",
     // Ours to fix, not the user's. Say so plainly instead of implying they did something wrong;
     // the real cause is in the server logs.
     Configuration: "Sign-in is temporarily unavailable. Please try again later.",
