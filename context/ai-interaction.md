@@ -15,13 +15,36 @@ This is the common workflow that we will use for every single feature/fix:
 1. **Document** - Document the feature in @context/current-feature.md.
 2. **Branch** - Create new branch for feature, fix, etc
 3. **Implement** - Implement the feature/fix that I create in @context/current-feature.md
-4. **Test** - Run focused unit tests, verify it works in the browser, then run `npm run lint` and `npm run build`
+4. **Test** - Run focused unit tests, verify in the browser *when the change warrants it* (see
+   Browser Verification), then run `npm run lint` and `npm run build`
 5. **Iterate** - Iterate and change things if needed
 6. **Commit** - Format the changed files (see Formatting), then commit — only after build passes and everything works
 7. **Merge** - Merge to main
 8. **Delete Branch** - Delete branch after merge
 9. **Review** - Review AI-generated code periodically and on demand.
-10. Mark as completed in @context/current-feature.md and add to history
+10. Mark as completed in @context/current-feature.md and append to `context/feature-history.md`
+
+## Browser Verification
+
+Driving the browser (Playwright MCP) is for **end-to-end territory only** — flows a human would
+click through, where the failure mode is invisible to unit tests and the type checker:
+
+- Auth flows: sign in, register, verification links, password reset
+- CRUD against the real UI: create, update, delete an item or collection
+- Layout, responsive behaviour, dark mode, and anything else genuinely visual
+- Client-side interactivity: drawers, dialogs, toasts
+
+Skip it when the change is not observable in a browser — schema and migration work, server-only
+query modules, Zod schemas, error paths, pure functions, copy in a file nobody renders yet. A unit
+test and a passing build are the stronger evidence there, and are cheaper.
+
+Two rules when it *is* warranted:
+
+- **Ask a narrow question.** Prefer `browser_evaluate` returning the one value in question over
+  `browser_snapshot`, which dumps the whole accessibility tree to answer something specific.
+  Screenshots are for visual questions, not for checking that text rendered.
+- **`/compact` once the answer is in hand.** MCP results persist for the rest of the session, so a
+  snapshot that has already done its job keeps being re-sent on every later turn.
 
 Do NOT commit without permission and until the build passes. If build fails, fix the issues first.
 
