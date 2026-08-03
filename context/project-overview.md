@@ -245,24 +245,29 @@ Icons are [lucide-react](https://lucide.dev) names.
 
 ## 9. Project Structure
 
-The current application implements the dashboard routes, feature components, runtime configuration, and the server-only, Prisma-backed query layer shown below. Entries marked **(planned)** are target additions for later product phases, not files that already exist.
+The current application implements the authentication routes and flows, the dashboard routes, feature components, runtime configuration, and the server-only, Prisma-backed query layer shown below. Entries marked **(planned)** are target additions for later product phases, not files that already exist.
 
 ```
 devstash/
 ├── prisma/
 │   ├── schema.prisma            # persisted model; datasource url lives in prisma.config.ts
-│   ├── seed.ts                  # seeds the seven system item types from the catalog
+│   ├── seed.ts                  # seeds the seven system item types, and demo content unless --types-only
+│   ├── seed-data.ts             # the demo collections and items, kept out of the seed's logic
 │   └── migrations/              # migration history (never edit applied ones)
 ├── prisma.config.ts             # Prisma 7 CLI config: schema path, migrations, seed, datasource
 ├── scripts/
-│   └── test-db.ts               # database smoke test (`npm run db:test`)
+│   ├── test-db.ts               # database smoke test (`npm run db:test`)
+│   ├── test-email.ts            # sends through Resend and polls the real outcome (`npm run email:test`)
+│   └── verify-user.ts           # marks a dev account verified by hand (`npm run user:verify`)
 ├── public/                      # (planned, when static assets are needed)
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/              # signed-out routes, no sidebar
 │   │   │   ├── layout.tsx       # centered card shell
 │   │   │   ├── sign-in/         # /sign-in — credentials form + GitHub
-│   │   │   └── register/        # /register — account creation
+│   │   │   ├── register/        # /register — account creation
+│   │   │   ├── forgot-password/ # /forgot-password — request a reset link
+│   │   │   └── reset-password/  # /reset-password — set a new password from a link
 │   │   ├── (dashboard)/        # authed app, sidebar layout
 │   │   │   ├── layout.tsx       # sidebar + main shell
 │   │   │   ├── page.tsx         # dashboard overview (home)
@@ -270,24 +275,31 @@ devstash/
 │   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
-│   │   │   ├── profile/         # read-only account summary
+│   │   │   ├── profile/         # account page: identity, usage, password, delete
 │   │   │   ├── search/          # (planned)
 │   │   │   └── settings/        # (planned) account, billing, export
-│   │   ├── api/                 # (planned)
-│   │   │   ├── auth/[...nextauth]/
-│   │   │   ├── items/
-│   │   │   ├── collections/
-│   │   │   ├── upload/          # R2 presigned URLs / uploads
-│   │   │   ├── ai/              # tag, summarize, explain, optimize
-│   │   │   ├── export/          # JSON / ZIP
-│   │   │   └── stripe/          # checkout + webhook
+│   │   ├── api/
+│   │   │   ├── auth/[...nextauth]/  # Auth.js handler
+│   │   │   ├── auth/register/       # account creation (needs 400 vs 409)
+│   │   │   ├── auth/verify-email/   # confirm a link, or resend one
+│   │   │   ├── auth/forgot-password/# request a reset link
+│   │   │   ├── auth/reset-password/ # spend a reset token
+│   │   │   ├── items/           # (planned)
+│   │   │   ├── collections/     # (planned)
+│   │   │   ├── upload/          # (planned) R2 presigned URLs / uploads
+│   │   │   ├── ai/              # (planned) tag, summarize, explain, optimize
+│   │   │   ├── export/          # (planned) JSON / ZIP
+│   │   │   └── stripe/          # (planned) checkout + webhook
 │   │   ├── layout.tsx           # root shell and default dark theme
 │   │   └── globals.css
 │   ├── components/
 │   │   ├── ui/                  # shared UI primitives and presentational components
+│   │   ├── auth/                # sign-in, register, reset, and verification forms
 │   │   ├── items/               # item card; drawer/editor planned
 │   │   ├── collections/         # collection card and page composition
-│   │   └── layout/              # sidebar, topbar, mobile drawer
+│   │   ├── dashboard/           # stat card
+│   │   ├── profile/             # change-password form, delete-account dialog
+│   │   └── layout/              # sidebar, topbar, mobile drawer, account menu
 │   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
 │   │                            # Build output: gitignored, never edited, rewritten by
 │   │                            # `prisma generate` (runs on every `npm install`).
@@ -298,33 +310,48 @@ devstash/
 │   ├── lib/
 │   │   ├── prisma.ts            # singleton Prisma client (PrismaPg adapter)
 │   │   ├── auth-schemas.ts      # Zod contracts for sign-in and registration
+│   │   ├── auth-errors.ts       # client-safe messages for Auth.js `error` codes
+│   │   ├── auth-redirects.ts    # signed-out route sets + callback-URL validation
+│   │   ├── email.ts             # Resend client, link building, transactional templates
+│   │   ├── limits.ts            # item-type entitlement policy
+│   │   ├── utils.ts             # `cn` class merging
 │   │   ├── r2.ts                # (planned) Cloudflare R2 client
 │   │   ├── openai.ts            # (planned) AI client + prompt helpers
-│   │   ├── stripe.ts            # (planned) Stripe client
-│   │   └── limits.ts            # item-type entitlement policy
+│   │   └── stripe.ts            # (planned) Stripe client
 │   ├── actions/                 # Server Actions for mutations
-│   │   └── auth.ts              # sign-in / sign-out
+│   │   ├── auth.ts              # sign-in / sign-out
+│   │   └── account.ts           # change password, delete account
 │   ├── server/                  # server-only queries, repositories, and view-model preparation
 │   │   ├── items.ts             # item reads + item-type pages
 │   │   ├── collections.ts       # collection reads
-│   │   ├── item-types.ts        # item types + sidebar nav
-│   │   ├── current-user.ts      # signed-in user resolution (demo user until auth lands)
+│   │   ├── item-types.ts        # item types, per-type counts, sidebar nav
+│   │   ├── current-user.ts      # signed-in user resolution from the session
+│   │   ├── profile.ts           # account page read: identity, usage, hasPassword
+│   │   ├── passwords.ts         # the one bcrypt cost factor and the decoy hash pinned to it
+│   │   ├── verification.ts      # issue, look up, and spend verification/reset tokens
+│   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
 │   │   ├── view-models.ts       # persistence-independent view-model builders
 │   │   └── search.ts            # (planned)
 │   ├── hooks/                   # (planned)
 │   ├── types/
 │   │   ├── item-type.ts         # item-type contracts
-│   │   └── view-models.ts       # persistence-independent UI models
+│   │   ├── view-models.ts       # persistence-independent UI models
+│   │   ├── auth.ts              # auth Server Action result shape
+│   │   ├── account.ts           # account Server Action result shape
+│   │   └── next-auth.d.ts       # session/JWT augmentation carrying `user.id`
 │   └── config/
 │       ├── access.ts            # temporary feature-entitlement configuration
 │       ├── dashboard.ts         # dashboard presentation values
 │       └── item-type-catalog.ts # built-in item types: colors, icons, routes
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed
+├── vitest.config.ts             # unit tests; tests sit beside the module as `*.test.ts`
 └── package.json
 ```
 
-A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs — which is exactly why the sign-in page is `/sign-in` and the dashboard is `/`, never `/dashboard`. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` will own write-side Server Actions. Reads go through Prisma end to end; the earlier mock query layer has been fully retired.
+A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` keep the signed-out and signed-in shells separate without affecting URLs — which is exactly why the sign-in page is `/sign-in` and the dashboard is `/`, never `/dashboard`. `types/` contains compile-time contracts, while `config/` contains runtime values that satisfy those contracts. A single `config/item-type-catalog.ts` is the source of truth for built-in item type colors, icons, and routes. The `server/` directory owns read-side persistence access and prepares persistence-independent view models; `actions/` owns write-side Server Actions. Reads go through Prisma end to end; the earlier mock query layer has been fully retired.
+
+Mutations are split between `actions/` and `api/` on one rule: a Server Action when the caller only needs success or a message, a route handler when it needs to read an HTTP status. That is why registration is a route — the client distinguishes a 400 from a 409 — while changing a password and deleting an account are actions. The two halves of the auth config exist because `proxy.ts` runs on the edge: `auth.config.ts` holds what is edge-safe, and `auth.ts` adds the Prisma adapter and the real `authorize` on top of it.
 
 ---
 
@@ -332,17 +359,18 @@ A few deliberate choices worth noting: route groups `(auth)` and `(dashboard)` k
 
 A phased build order. Each phase is shippable on its own and de-risks the next. The completed `context/features/dashboard-phase-*.md` documents describe earlier UI-only increments; they are not the same as the product roadmap phases below.
 
-**Phase 0 — Prisma Foundation (next)**
-- Set up Neon, connect Prisma, write the first migration (`init`)
-- Seed the seven system `ItemType` rows
-- Configure `.env.example` and the Prisma client singleton
+**Phase 0 — Prisma Foundation ✅ done**
+- ~~Set up Neon, connect Prisma, write the first migration (`init`)~~
+- ~~Seed the seven system `ItemType` rows~~
+- ~~Configure `.env.example` and the Prisma client singleton~~
 
-**Phase 1 — Auth & Shell**
-- NextAuth v5 with email/password + GitHub OAuth
-- Protected `(dashboard)` layout with collapsible sidebar
-- Dark mode (default) + light mode toggle
+**Phase 1 — Auth & Shell ✅ done, bar the light-mode toggle**
+- ~~NextAuth v5 with email/password + GitHub OAuth~~ — plus email verification, password reset, and the account page
+- ~~Protected `(dashboard)` layout with collapsible sidebar~~ — the proxy denies by default
+- Dark mode (default) + light mode toggle — dark ships; there is no theme provider or toggle yet
+- Deferred out of this phase: rate limiting on the auth endpoints, and session revocation (see §11)
 
-**Phase 2 — Core CRUD**
+**Phase 2 — Core CRUD (next)**
 - Create / read / update / delete items via the quick-access drawer
 - Markdown editor for text types, syntax highlighting for code
 - Collections: create, color-coding logic, add/remove items, many-to-many
