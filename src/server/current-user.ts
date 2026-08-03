@@ -1,5 +1,6 @@
 import "server-only";
 
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { auth } from "@/auth";
@@ -38,9 +39,14 @@ export const getCurrentUser = cache(async (): Promise<UserViewModel> => {
     });
 
     // The session carries an id for a row that no longer exists — a deleted account with a live
-    // JWT. Fail rather than render a half-built shell.
+    // JWT, or a development database that has been re-seeded underneath one.
+    //
+    // Throwing here 500s every page in the app with no way out: the token still parses, so the
+    // proxy treats the visitor as signed in and redirects them off `/sign-in` back to `/`, which
+    // throws again. The cookie is the thing that has to go, and a server component may not write
+    // cookies — so this hands off to a route handler that can. See `api/auth/stale-session`.
     if (!user) {
-        throw new Error(`Session user ${userId} not found.`);
+        redirect("/api/auth/stale-session");
     }
 
     return buildUserViewModel(user);
