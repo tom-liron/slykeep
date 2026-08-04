@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Copy, Folder, Pencil, Pin, Star, Tag, Trash2 } from "lucide-react";
+import { Calendar, Copy, Folder, Pencil, Pin, Star, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { formatLongDate } from "@/lib/format";
 import { withAlpha } from "@/lib/utils";
 import type { ItemDetailViewModel, ItemSummaryViewModel } from "@/types/view-models";
+import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
 import { TypeIcon } from "./TypeIcon";
 
@@ -121,7 +122,7 @@ export function ItemDrawer({
                         </div>
                     </div>
 
-                    {/* Edit and Copy are live; Favorite, Pin, and Delete are still layout only —
+                    {/* Edit, Copy, and Delete are live; Favorite and Pin are still layout only —
                         each is its own mutation. They render in their resting state, so a
                         favourited item shows a filled star and the bar is inert, not lying.
 
@@ -160,16 +161,14 @@ export function ItemDrawer({
                                     <Pencil aria-hidden="true" />
                                     Edit
                                 </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    disabled
-                                    title="Coming soon"
-                                    className="text-destructive"
-                                >
-                                    <Trash2 aria-hidden="true" />
-                                    <span className="sr-only">Delete</span>
-                                </Button>
+                                {/* Titled from `view`, so a rename saved a moment ago is what the
+                                    confirmation names. Closing is all this drawer has to do: the
+                                    row is gone, and `ItemList` drops the item on the refresh. */}
+                                <DeleteItemDialog
+                                    itemId={itemId}
+                                    title={view.title}
+                                    onDeleted={onClose}
+                                />
                             </div>
                         </div>
                     )}
