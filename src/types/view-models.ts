@@ -80,6 +80,8 @@ export interface ItemTypeCountViewModel {
     color: string;
     slug: string;
     itemCount: number;
+    /** Carried through so the sidebar can mark Pro-gated types without re-reading the catalog. */
+    isPro: boolean;
 }
 
 export type SidebarItemTypeViewModel = ItemTypeCountViewModel;
