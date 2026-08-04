@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { ItemCard } from "@/components/items/ItemCard";
+import { ItemList } from "@/components/items/ItemList";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getItemTypePageData } from "@/server/items";
@@ -31,11 +31,7 @@ export default async function ItemTypePage({ params }: { params: Promise<{ slug:
             </header>
 
             {data.items.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {data.items.map((item) => (
-                        <ItemCard key={item.id} item={item} />
-                    ))}
-                </div>
+                <ItemList items={data.items} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" />
             ) : (
                 <EmptyState message={`No ${data.itemType.label.toLowerCase()} yet.`} />
             )}

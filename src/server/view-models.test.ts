@@ -4,13 +4,14 @@ import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-ca
 import type { ItemTypeName } from "@/types/item-type";
 import {
     buildCollectionViewModel,
+    buildItemDetailViewModel,
     buildItemSummaryViewModel,
     buildUserViewModel,
     resolveDominantTypeId,
     sortByUpdatedAtDesc,
     toItemTypeViewModel,
 } from "./view-models";
-import type { CollectionRow, ItemSummaryRow, ItemTypeRow } from "./view-models";
+import type { CollectionRow, ItemDetailRow, ItemSummaryRow, ItemTypeRow } from "./view-models";
 
 // Self-contained fixtures: the item types the seed writes, joined to their configured presentation
 // under synthetic ids. Nothing here reads the database — these exercise the pure derivation rules.
@@ -88,6 +89,52 @@ describe("item type view models", () => {
         };
 
         expect(() => toItemTypeViewModel(row)).toThrow(/diagram/);
+    });
+});
+
+describe("item detail view models", () => {
+    function makeDetail(overrides: Partial<ItemDetailRow> = {}): ItemDetailRow {
+        return {
+            ...makeItem("item", typeId("snippet"), "2026-01-02"),
+            content: null,
+            url: null,
+            language: null,
+            collections: [],
+            createdAt: new Date("2026-01-01T00:00:00Z"),
+            ...overrides,
+        };
+    }
+
+    it("normalizes every absent body field to an empty string", () => {
+        const viewModel = buildItemDetailViewModel(makeDetail(), itemTypesById);
+
+        // A drawer renders these directly, so null must not reach it — one of them is always empty,
+        // since the content type decides which single field holds the body.
+        expect(viewModel.content).toBe("");
+        expect(viewModel.url).toBe("");
+        expect(viewModel.language).toBe("");
+    });
+
+    it("carries the summary's own normalization, so both timestamps are ISO strings", () => {
+        const viewModel = buildItemDetailViewModel(
+            makeDetail({ description: null, content: "const x = 1;" }),
+            itemTypesById,
+        );
+
+        expect(viewModel.description).toBe("");
+        expect(viewModel.content).toBe("const x = 1;");
+        expect(viewModel.createdAt).toBe("2026-01-01T00:00:00.000Z");
+        expect(viewModel.updatedAt).toBe("2026-01-02T00:00:00.000Z");
+        expect(viewModel.itemType.name).toBe("snippet");
+    });
+
+    it("copies the collection names rather than aliasing the row's array", () => {
+        const collections = ["React Patterns"];
+        const viewModel = buildItemDetailViewModel(makeDetail({ collections }), itemTypesById);
+
+        collections.push("Interview Prep");
+
+        expect(viewModel.collections).toEqual(["React Patterns"]);
     });
 });
 

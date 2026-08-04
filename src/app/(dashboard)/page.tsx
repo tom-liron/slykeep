@@ -5,7 +5,7 @@ import { Boxes, Folder, FolderHeart, Pin, Star } from "lucide-react";
 import { WelcomeToast } from "@/components/auth/WelcomeToast";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { ItemCard } from "@/components/items/ItemCard";
+import { ItemList } from "@/components/items/ItemList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DASHBOARD_STAT_COLORS } from "@/config/dashboard";
 import { getFirstName } from "@/lib/format";
@@ -88,11 +88,7 @@ export default async function DashboardPage() {
                     <h2 className="text-lg font-semibold">Pinned</h2>
                 </div>
                 {items.pinnedItems.length > 0 ? (
-                    <div className="space-y-3">
-                        {items.pinnedItems.map((item) => (
-                            <ItemCard key={item.id} item={item} />
-                        ))}
-                    </div>
+                    <ItemList items={items.pinnedItems} className="space-y-3" />
                 ) : (
                     <EmptyState message="No pinned items." />
                 )}
@@ -101,11 +97,7 @@ export default async function DashboardPage() {
             <section>
                 <h2 className="mb-4 text-lg font-semibold">Recent Items</h2>
                 {items.recentItems.length > 0 ? (
-                    <div className="space-y-3">
-                        {items.recentItems.map((item) => (
-                            <ItemCard key={item.id} item={item} />
-                        ))}
-                    </div>
+                    <ItemList items={items.recentItems} className="space-y-3" />
                 ) : (
                     <EmptyState message="No recent items." />
                 )}
