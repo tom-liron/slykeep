@@ -22,6 +22,26 @@ export const EMAIL_UNVERIFIED_CODE = "email_unverified";
 export const EMAIL_UNVERIFIED_MESSAGE =
     "Confirm your email address before signing in. Check your inbox for the link we sent.";
 
+/**
+ * `code` carried by the `CredentialsSignin` subclass `authorize` throws once the sign-in limit for
+ * this address and address block is spent. Here beside the other for the same reason.
+ */
+export const RATE_LIMITED_CODE = "rate_limited";
+
+/**
+ * What a throttled sign-in shows.
+ *
+ * Vaguer about the wait than the JSON routes are, and it has to be: `code` is the only field Auth.js
+ * carries out of `authorize`, so the minutes the limiter reported cannot travel with it. Encoding a
+ * number into the code would put it in the `?code=` of a redirect URL for a saving of one word.
+ *
+ * Says nothing about which of the address or the password was wrong, matching every other credentials
+ * failure — a message that appeared only for registered addresses would be an enumeration oracle
+ * built out of the defence against enumeration.
+ */
+export const RATE_LIMITED_MESSAGE =
+    "Too many sign-in attempts. Wait a few minutes before trying again.";
+
 const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
     // The one that motivated this module: GitHub returned an email that already belongs to a
     // password account. Naming the cause is safe here — reaching this error required

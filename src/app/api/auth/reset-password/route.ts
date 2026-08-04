@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { resetPasswordSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
 import { hashPassword } from "@/server/passwords";
 import { checkPasswordResetToken, consumePasswordResetToken } from "@/server/verification";
 
@@ -22,6 +23,13 @@ const TOKEN_ERRORS = {
 } as const;
 
 export async function POST(request: Request) {
+    // Keyed by IP with no token in the key, which is the only way round that works: a key that
+    // included the token would give an attacker a fresh budget per guess, and guessing tokens is the
+    // attack. Five attempts per quarter hour is ample for a person who mistyped a password twice.
+    const limit = await checkRateLimit("resetPassword", await clientIp());
+
+    if (!limit.success) return tooManyRequests(limit);
+
     let body: unknown;
 
     try {
@@ -47,9 +55,10 @@ export async function POST(request: Request) {
     try {
         // Checked before hashing, and consumed after. Rejecting a junk token up front keeps this
         // route from being an amplifier — bcrypt at cost 12 is ~500ms of CPU that an unauthenticated
-        // caller could otherwise spend by posting garbage, on an endpoint with no rate limit.
-        // Consuming *after* the hash then keeps the token alive across the slow part, so a failure
-        // while hashing does not spend a link that was never used.
+        // caller could otherwise spend by posting garbage. The limit above now caps that too, but
+        // this ordering is still the cheaper of the two defences and the one that holds when the
+        // limiter is failing open. Consuming *after* the hash then keeps the token alive across the
+        // slow part, so a failure while hashing does not spend a link that was never used.
         const state = await checkPasswordResetToken(token);
 
         if (state !== "valid") {

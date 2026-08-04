@@ -17,21 +17,35 @@ export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: strin
     const [email, setEmail] = useState(defaultEmail);
     const [isPending, setIsPending] = useState(false);
     const [sent, setSent] = useState(false);
+    // The one outcome this control is allowed to report. A 429 is a fact about how often this
+    // browser has asked for a link for this address, which the person asking already knows, so it
+    // discloses nothing the confirmation below is built to hide — and claiming a link is on its way
+    // when the server refused to send one would strand them waiting on an empty inbox.
+    const [limitError, setLimitError] = useState<string | null>(null);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setIsPending(true);
+        setLimitError(null);
 
         try {
-            await fetch("/api/auth/verify-email", {
+            const response = await fetch("/api/auth/verify-email", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
             });
+
+            if (response.status === 429) {
+                const body = await response.json().catch(() => null);
+
+                setLimitError(body?.error ?? "Too many attempts. Try again later.");
+                setIsPending(false);
+                return;
+            }
         } catch {
-            // Swallowed on purpose. The endpoint reports nothing either way, so a network failure
-            // and a refused address are already indistinguishable here — surfacing one but not the
-            // other would leak exactly the difference the endpoint is built to hide.
+            // Still swallowed. Every other response is a 200 the endpoint gives to all input alike,
+            // so a network failure and a refused address remain indistinguishable here — surfacing
+            // one but not the other would leak exactly the difference the endpoint is built to hide.
         }
 
         setIsPending(false);
@@ -47,22 +61,32 @@ export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: strin
         );
     }
 
+    // The wrapper exists so the message can sit *under* the row: the form itself is `sm:flex-row`,
+    // and a paragraph inside it would become a third column beside the field and the button.
     return (
-        <form onSubmit={handleSubmit} noValidate className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <Input
-                type="email"
-                name="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                aria-label="Email address for a new verification link"
-                required
-                className="sm:flex-1"
-            />
-            <Button type="submit" variant="outline" disabled={isPending || !email}>
-                {isPending ? "Sending…" : "Resend link"}
-            </Button>
-        </form>
+        <div className="mt-3">
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    aria-label="Email address for a new verification link"
+                    required
+                    className="sm:flex-1"
+                />
+                <Button type="submit" variant="outline" disabled={isPending || !email}>
+                    {isPending ? "Sending…" : "Resend link"}
+                </Button>
+            </form>
+
+            {limitError && (
+                <p role="alert" className="mt-2 text-sm text-destructive">
+                    {limitError}
+                </p>
+            )}
+        </div>
     );
 }

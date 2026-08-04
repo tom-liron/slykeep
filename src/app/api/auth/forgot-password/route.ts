@@ -3,6 +3,7 @@ import { after, NextResponse } from "next/server";
 import { forgotPasswordSchema } from "@/lib/auth-schemas";
 import { sendPasswordResetEmail, sendPasswordResetGitHubEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
 import { createPasswordResetToken } from "@/server/verification";
 
 /**
@@ -30,12 +31,20 @@ import { createPasswordResetToken } from "@/server/verification";
  * instance once the response is flushed, and `after` is what keeps the runtime alive for work that
  * was deliberately deferred.
  *
- * Not rate limited, which it should be — this is an email bomb aimed at any address someone cares to
- * name. Tracked in `context/current-feature.md`; it wants the same shared throttle the resend
- * endpoint is waiting on rather than a one-off here.
+ * The 429 is the one answer that is allowed to differ, and it does not reopen the oracle: it depends
+ * on how many times *this caller* has posted here, which they already know, and not on whether any
+ * address they named exists. Keyed by IP alone for the same reason as `register` — a key that
+ * included the email would hand a fresh budget to every address a script cares to type, which is
+ * exactly the email bomb this limit exists to stop.
  */
 export async function POST(request: Request) {
     const ok = NextResponse.json({ ok: true });
+
+    // Ahead of the parse, so the check costs the same for every caller and adds nothing measurable
+    // to one branch over another. The timing care documented above survives it.
+    const limit = await checkRateLimit("forgotPassword", await clientIp());
+
+    if (!limit.success) return tooManyRequests(limit);
 
     let body: unknown;
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { sendVerificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
 import { createVerificationToken, verifyEmailToken } from "@/server/verification";
 
 /**
@@ -61,9 +62,9 @@ const resendSchema = z.object({
  * instance once the response is flushed, and `after` is what keeps the runtime alive for work that
  * was deliberately deferred.
  *
- * Not rate limited, which it should be — this is an email bomb aimed at any address someone cares
- * to name. Tracked in `context/current-feature.md`; it needs a shared throttle rather than a
- * one-off here.
+ * The 429 is the one answer that is allowed to differ, and it does not reopen the oracle: it depends
+ * on how many times *this caller* has posted *this address* here, which they already know, and not
+ * on whether the address exists or has been confirmed.
  */
 export async function POST(request: Request) {
     const ok = NextResponse.json({ ok: true });
@@ -81,6 +82,15 @@ export async function POST(request: Request) {
     if (!parsed.success) return ok;
 
     const { email } = parsed.data;
+
+    // After the parse rather than before it, because the key needs the address — unlike
+    // `forgot-password`, this limit is per (caller, address), which is what makes three resends of
+    // one's own link generous while still capping a script working through a list. A request too
+    // malformed to name an address never reaches here and costs a token to nobody; it also cannot
+    // trigger a send, so there is nothing to spend.
+    const limit = await checkRateLimit("resendVerification", await clientIp(), email);
+
+    if (!limit.success) return tooManyRequests(limit);
 
     // The lookup is deferred along with the send. It is one indexed read and would be hard to time
     // on its own, but keeping the whole branch on one side of the response means there is no
