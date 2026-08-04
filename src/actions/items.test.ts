@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * The property under test is the one this write must not get wrong: an item that is not the
- * signed-in user's is never updated, and is reported exactly as a missing one. Ownership lives in
- * the `where` rather than in a check on a row read first, so a refactor to `where: { id: itemId }`
- * would still type-check, still pass every schema test, and let any signed-in account edit any item
- * by id — this is what would fail instead.
+ * The property under test is the one these writes must not get wrong: an item that is not the
+ * signed-in user's is never updated or deleted, and is reported exactly as a missing one. Ownership
+ * lives in the `where` rather than in a check on a row read first, so a refactor to
+ * `where: { id: itemId }` would still type-check, still pass every schema test, and let any signed-in
+ * account edit or destroy any item by id — this is what would fail instead.
  *
  * It is the write-side twin of the `getItemDetail` test in `server/items.test.ts`, and the same
  * in-memory stand-in: the question is which rows are matched, not how Postgres answers. It is also
@@ -31,30 +31,45 @@ vi.mock("@/server/items", () => ({
 vi.mock("@/lib/prisma", async () => {
     const { Prisma } = await import("@/generated/prisma-client/client");
 
+    type ItemWhere = { id?: string; userId?: string };
+
+    // Filters only on the keys actually present, the way Prisma does. That is what makes the
+    // ownership tests load-bearing: drop `userId` from the query and this fake starts matching on
+    // id alone, hitting the other user's row instead of raising.
+    const match = (where: ItemWhere) =>
+        db.items.find(
+            (candidate) =>
+                (where.id === undefined || candidate.id === where.id) &&
+                (where.userId === undefined || candidate.userId === where.userId),
+        );
+
+    // What Prisma raises when nothing matched — the error both actions turn into "This item no
+    // longer exists."
+    const notFound = () =>
+        Promise.reject(
+            new Prisma.PrismaClientKnownRequestError("No record was found", {
+                code: "P2025",
+                clientVersion: "test",
+            }),
+        );
+
     return {
         prisma: {
             tag: { createMany: () => Promise.resolve({ count: 0 }) },
             item: {
-                // Filters only on the keys actually present, the way Prisma does. That is what
-                // makes the ownership test load-bearing: drop `userId` from the query and this fake
-                // starts matching on id alone, updating the other user's row instead of raising.
-                update: ({ where }: { where: { id?: string; userId?: string } }) => {
-                    const row = db.items.find(
-                        (candidate) =>
-                            (where.id === undefined || candidate.id === where.id) &&
-                            (where.userId === undefined || candidate.userId === where.userId),
-                    );
+                update: ({ where }: { where: ItemWhere }) => {
+                    const row = match(where);
 
-                    if (!row) {
-                        // What Prisma raises when nothing matched — the error the action turns into
-                        // "This item no longer exists."
-                        return Promise.reject(
-                            new Prisma.PrismaClientKnownRequestError("No record was found", {
-                                code: "P2025",
-                                clientVersion: "test",
-                            }),
-                        );
-                    }
+                    return row ? Promise.resolve(row) : notFound();
+                },
+                delete: ({ where }: { where: ItemWhere }) => {
+                    const row = match(where);
+
+                    if (!row) return notFound();
+
+                    // Actually removed, so a test can assert the row the caller does not own is
+                    // still there afterwards.
+                    db.items = db.items.filter((candidate) => candidate !== row);
 
                     return Promise.resolve(row);
                 },
@@ -63,7 +78,7 @@ vi.mock("@/lib/prisma", async () => {
     };
 });
 
-const { updateItem } = await import("./items");
+const { deleteItem, updateItem } = await import("./items");
 
 describe("updateItem", () => {
     beforeEach(() => {
@@ -102,5 +117,35 @@ describe("updateItem", () => {
             error: "Title is required.",
             fields: { title: "Title is required." },
         });
+    });
+});
+
+describe("deleteItem", () => {
+    beforeEach(() => {
+        db.items = [];
+    });
+
+    it("refuses to delete an item owned by another user, and leaves it there", async () => {
+        db.items = [{ id: "item-theirs", userId: "user-other", title: "Their snippet" }];
+
+        await expect(deleteItem("item-theirs")).resolves.toEqual({
+            success: false,
+            error: "This item no longer exists.",
+        });
+        expect(db.items).toHaveLength(1);
+    });
+
+    it("answers a missing item the same way, so the two are indistinguishable", async () => {
+        await expect(deleteItem("item-nonexistent")).resolves.toEqual({
+            success: false,
+            error: "This item no longer exists.",
+        });
+    });
+
+    it("deletes an item the caller owns", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet" }];
+
+        await expect(deleteItem("item-1")).resolves.toEqual({ success: true });
+        expect(db.items).toHaveLength(0);
     });
 });

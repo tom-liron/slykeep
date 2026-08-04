@@ -7,7 +7,7 @@ import { updateItemSchema, type UpdateItemInput } from "@/lib/item-schemas";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/server/current-user";
 import { getItemDetail } from "@/server/items";
-import type { UpdateItemResult } from "@/types/item";
+import type { DeleteItemResult, UpdateItemResult } from "@/types/item";
 
 /** Prisma's "no record matched the `where`" code, raised by `update` when nothing was found. */
 const RECORD_NOT_FOUND = "P2025";
@@ -96,4 +96,38 @@ export async function updateItem(
     }
 
     return { success: true, data: detail };
+}
+
+/**
+ * Deletes an item from the detail drawer.
+ *
+ * A hard delete: there is no `deletedAt` column and no trash view, which is why the dialog in front
+ * of this says so. Soft delete is still an open question (`project-overview.md` §11) and would be a
+ * schema change, not a change here.
+ *
+ * One `delete` covers the whole row. `ItemCollection` declares `onDelete: Cascade` on its item side,
+ * and the implicit `ItemTags` join table cascades the same way, so the join rows go with the item
+ * without a transaction. `Tag` rows themselves survive — they are global and shared across users.
+ */
+export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
+    const userId = await getCurrentUserId();
+
+    try {
+        // Ownership in the `where` for the same reason `updateItem` puts it there: another user's id
+        // is rejected by the same path as one that does not exist, so neither confirms the other.
+        await prisma.item.delete({ where: { id: itemId, userId } });
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === RECORD_NOT_FOUND
+        ) {
+            return { success: false, error: "This item no longer exists." };
+        }
+
+        console.error("Item delete failed:", error);
+
+        return { success: false, error: "Could not delete this item. Try again." };
+    }
+
+    return { success: true };
 }
