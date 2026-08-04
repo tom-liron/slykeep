@@ -70,6 +70,7 @@ export async function getItemTypeCounts(user: UserViewModel): Promise<ItemTypeCo
             color: itemType.color,
             slug: itemType.slug,
             itemCount: countByTypeId.get(itemType.id) ?? 0,
+            isPro: itemType.isPro,
         }));
 }
 

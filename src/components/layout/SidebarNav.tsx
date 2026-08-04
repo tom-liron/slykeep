@@ -7,6 +7,7 @@ import { ArrowRight, ChevronDown, Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { SidebarCollectionViewModel, SidebarViewModel } from "@/types/view-models";
 
@@ -56,6 +57,7 @@ export function SidebarNav({
                                             aria-hidden="true"
                                         />
                                         <span className="flex-1 truncate">{itemType.label}</span>
+                                        {itemType.isPro && <ProBadge />}
                                         <span className="text-xs text-muted-foreground">
                                             {itemType.itemCount}
                                         </span>
@@ -211,6 +213,23 @@ function CollectionLink({
                 {trailing}
             </Link>
         </li>
+    );
+}
+
+/**
+ * Marks a Pro-gated item type. Deliberately quiet — it labels the row rather than competing with
+ * the type's coloured icon, and it does not gate the link: entitlements are still open in
+ * development (`ENFORCE_PRO_LIMITS`), so a badged type stays navigable.
+ */
+function ProBadge() {
+    return (
+        <Badge
+            variant="outline"
+            title="Pro feature"
+            className="h-4 border-border px-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground"
+        >
+            PRO
+        </Badge>
     );
 }
 
