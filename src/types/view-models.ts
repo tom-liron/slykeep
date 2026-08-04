@@ -28,6 +28,28 @@ export interface ItemSummaryViewModel {
 }
 
 /**
+ * A single item with everything the detail drawer renders on top of what its card already showed.
+ *
+ * It extends the summary rather than restating it, because the drawer opens over the card it was
+ * clicked on and shows the same title, tags, and type alongside the body. The body is the reason
+ * this type is separate at all: list queries deliberately never select `content` / `url`, so this is
+ * the only item view model that carries one.
+ *
+ * `content` and `url` are both present because which one holds the body is decided by the item's
+ * content type — `itemType.contentType` says which to read, and the other is an empty string. File
+ * items have neither; uploads are Phase 4, and nothing can create one yet.
+ */
+export interface ItemDetailViewModel extends ItemSummaryViewModel {
+    content: string;
+    url: string;
+    /** Code language for a TEXT item, e.g. "typescript". Empty when the item declares none. */
+    language: string;
+    /** Names of the collections holding this item. Empty when it belongs to none. */
+    collections: string[];
+    createdAt: string;
+}
+
+/**
  * Collection data prepared with all derived display metadata. A collection with no items and no
  * default type has no dominant type, so `dominantItemType` is nullable.
  */

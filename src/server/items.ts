@@ -4,10 +4,18 @@ import { getItemTypeNameBySlug } from "@/config/item-type-catalog";
 import { Prisma } from "@/generated/prisma-client/client";
 import { canAccessItemType } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
-import type { DashboardItemsViewModel, ItemTypePageViewModel } from "@/types/view-models";
+import type {
+    DashboardItemsViewModel,
+    ItemDetailViewModel,
+    ItemTypePageViewModel,
+} from "@/types/view-models";
 import { getCurrentUser, getCurrentUserId } from "./current-user";
 import { getItemTypesById } from "./item-types";
-import { buildItemSummaryViewModel, toItemTypeViewModel } from "./view-models";
+import {
+    buildItemDetailViewModel,
+    buildItemSummaryViewModel,
+    toItemTypeViewModel,
+} from "./view-models";
 
 /**
  * Only the columns a card reads — never an item body (`content` / `url` / `fileUrl`), which keeps
@@ -25,6 +33,19 @@ const ITEM_SUMMARY_SELECT = {
 } as const;
 
 type ItemSummaryRow = Prisma.ItemGetPayload<{ select: typeof ITEM_SUMMARY_SELECT }>;
+
+/**
+ * The summary columns plus the body — the one query in this module that reads `content`, and only
+ * ever for a single item the drawer has been opened on.
+ */
+const ITEM_DETAIL_SELECT = {
+    ...ITEM_SUMMARY_SELECT,
+    content: true,
+    url: true,
+    language: true,
+    createdAt: true,
+    collections: { select: { collection: { select: { name: true } } } },
+} as const;
 
 /** How many recent (non-pinned) items the dashboard lists. */
 const RECENT_ITEMS_LIMIT = 10;
@@ -71,6 +92,37 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
         pinnedItems: pinnedRows.map(toViewModel),
         recentItems: recentRows.map(toViewModel),
     };
+}
+
+/**
+ * One item with its body, for the detail drawer. Returns undefined when no such item belongs to the
+ * signed-in user, which the route handler answers as a 404.
+ *
+ * Ownership is part of the `where` rather than a check on the result: a row that is not the caller's
+ * is never read at all, and an id belonging to someone else is indistinguishable from one that does
+ * not exist — the same answer either way, so the endpoint cannot be used to probe for items.
+ */
+export async function getItemDetail(id: string): Promise<ItemDetailViewModel | undefined> {
+    const userId = await getCurrentUserId();
+
+    const row = await prisma.item.findFirst({
+        where: { id, userId },
+        select: ITEM_DETAIL_SELECT,
+    });
+    if (!row) {
+        return undefined;
+    }
+
+    const itemTypesById = await getItemTypesById(userId);
+
+    return buildItemDetailViewModel(
+        {
+            ...row,
+            tags: row.tags.map((tag) => tag.name),
+            collections: row.collections.map((link) => link.collection.name),
+        },
+        itemTypesById,
+    );
 }
 
 /**

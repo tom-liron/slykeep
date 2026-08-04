@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 
-import { ItemCard } from "@/components/items/ItemCard";
+import { ItemList } from "@/components/items/ItemList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getCollectionPageData } from "@/server/collections";
 
@@ -32,11 +32,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
             </header>
 
             {data.items.length > 0 ? (
-                <div className="space-y-3">
-                    {data.items.map((item) => (
-                        <ItemCard key={item.id} item={item} />
-                    ))}
-                </div>
+                <ItemList items={data.items} className="space-y-3" />
             ) : (
                 <EmptyState message="This collection is empty." />
             )}

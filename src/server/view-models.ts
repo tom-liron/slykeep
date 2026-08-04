@@ -3,6 +3,7 @@ import "server-only";
 import { ITEM_TYPE_CATALOG, isIconName, isItemTypeName } from "@/config/item-type-catalog";
 import type {
     CollectionViewModel,
+    ItemDetailViewModel,
     ItemSummaryViewModel,
     ItemTypeViewModel,
     UserViewModel,
@@ -47,6 +48,15 @@ export interface ItemSummaryRow {
     isFavorite: boolean;
     isPinned: boolean;
     updatedAt: Date;
+}
+
+/** The summary columns plus the body, timestamps, and collection names the drawer adds to them. */
+export interface ItemDetailRow extends ItemSummaryRow {
+    content: string | null;
+    url: string | null;
+    language: string | null;
+    collections: readonly string[];
+    createdAt: Date;
 }
 
 export interface UserRow {
@@ -144,6 +154,24 @@ export function buildItemSummaryViewModel(
         isPinned: item.isPinned,
         updatedAt: item.updatedAt.toISOString(),
         itemType: requireItemType(item.itemTypeId, itemTypesById),
+    };
+}
+
+/**
+ * Builds on the summary rather than repeating it, so the nullable-to-display-safe rules the two
+ * share — description, tags, the ISO timestamp — stay defined once.
+ */
+export function buildItemDetailViewModel(
+    item: ItemDetailRow,
+    itemTypesById: ItemTypeMap,
+): ItemDetailViewModel {
+    return {
+        ...buildItemSummaryViewModel(item, itemTypesById),
+        content: item.content ?? "",
+        url: item.url ?? "",
+        language: item.language ?? "",
+        collections: [...item.collections],
+        createdAt: item.createdAt.toISOString(),
     };
 }
 
