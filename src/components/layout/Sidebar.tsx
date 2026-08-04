@@ -41,7 +41,7 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
                             Browse item types and collections.
                         </Dialog.Description>
                         <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-                            <Brand />
+                            <Brand href="/" onNavigate={() => setMobileOpen(false)} />
                             <Dialog.Close asChild>
                                 <Button variant="ghost" size="icon" aria-label="Close menu">
                                     <X className="size-5" aria-hidden="true" />

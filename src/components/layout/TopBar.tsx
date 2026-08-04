@@ -24,7 +24,7 @@ export function TopBar() {
                 <Menu className="size-5" aria-hidden="true" />
             </Button>
 
-            <Brand />
+            <Brand href="/" />
 
             {/* Desktop: collapse/expand the rail */}
             <Button
