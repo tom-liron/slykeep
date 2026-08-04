@@ -33,17 +33,28 @@ stays last and stays single — everything lands in one push, never a stream of 
 
 ## Browser Verification
 
-Driving the browser (Playwright MCP) is for **end-to-end territory only** — flows a human would
-click through, where the failure mode is invisible to unit tests and the type checker:
+**Default: don't drive the browser. Report what you changed and let me look.** Playwright MCP is
+expensive — every result stays in context for the rest of the session — and I have the app open. A
+five-second glance from me costs nothing and costs you nothing. So the browser is **opt-in**: use it
+when I ask for it, and otherwise finish with tests, lint, and build, and say plainly what is worth
+eyeballing.
+
+The narrow exception is **multi-step end-to-end territory** — a sequence a human clicks through
+where the failure is invisible to unit tests *and* tedious for me to reproduce by hand:
 
 - Auth flows: sign in, register, verification links, password reset
-- CRUD against the real UI: create, update, delete an item or collection
-- Layout, responsive behaviour, dark mode, and anything else genuinely visual
-- Client-side interactivity: drawers, dialogs, toasts
+- A full CRUD round trip against the real UI: create, then edit, then delete
+- A bug I have reported that you cannot reproduce any other way
 
-Skip it when the change is not observable in a browser — schema and migration work, server-only
-query modules, Zod schemas, error paths, pure functions, copy in a file nobody renders yet. A unit
-test and a passing build are the stronger evidence there, and are cheaper.
+Everything else is mine to check. In particular, **"it's visual" is not a reason to open a
+browser** — a badge, a colour, a spacing tweak, a new component rendering at all: if a passing build
+means the markup is there, I will see the rest myself faster than a screenshot round trip. This
+exact case (a `PRO` badge on two sidebar rows) is what rewrote this section: it burned a navigate,
+an evaluate, and a screenshot to confirm something I could see instantly.
+
+Skip it entirely when the change is not observable in a browser — schema and migration work,
+server-only query modules, Zod schemas, error paths, pure functions, copy in a file nobody renders
+yet. A unit test and a passing build are the stronger evidence there, and are cheaper.
 
 Two rules when it *is* warranted:
 
