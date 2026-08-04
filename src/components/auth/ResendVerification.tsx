@@ -12,6 +12,18 @@ import { Input } from "@/components/ui/input";
  * nothing in the UI can issue a new link. `POST /api/auth/verify-email` answers 200 for every input
  * so that this control cannot be used to test which addresses are registered, which is why the
  * confirmation below is phrased as what *would* happen rather than what did.
+ *
+ * Deliberately not a `<form>`, which is what it used to be. Its only caller renders it *inside*
+ * `SignInForm`'s form, and a form cannot contain a form: the parser drops the inner tag, so the
+ * submit handler never ran and clicking the button navigated to `/sign-in?email=…` instead. React
+ * says as much in the console — "In HTML, <form> cannot be a descendant of <form>" — and the control
+ * had never worked. A plain container with a `type="button"` avoids the nesting entirely rather than
+ * relying on the parent to keep its distance.
+ *
+ * That leaves the field a child of the *sign-in* form, which is why it carries no `name`: a second
+ * `email` entry would ride along with the credentials on submit. Nothing here reads `FormData`, so
+ * the field has no need of one. Enter is handled explicitly for the same reason — without it the key
+ * would submit the sign-in form underneath, retrying the password that just failed.
  */
 export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: string }) {
     const [email, setEmail] = useState(defaultEmail);
@@ -23,8 +35,9 @@ export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: strin
     // when the server refused to send one would strand them waiting on an empty inbox.
     const [limitError, setLimitError] = useState<string | null>(null);
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    async function requestLink() {
+        if (isPending || !email) return;
+
         setIsPending(true);
         setLimitError(null);
 
@@ -61,26 +74,39 @@ export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: strin
         );
     }
 
-    // The wrapper exists so the message can sit *under* the row: the form itself is `sm:flex-row`,
-    // and a paragraph inside it would become a third column beside the field and the button.
+    // The outer wrapper exists so the message can sit *under* the row: the row is `sm:flex-row`, and
+    // a paragraph inside it would become a third column beside the field and the button.
     return (
         <div className="mt-3">
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                     type="email"
-                    name="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
+                    // Enter would otherwise reach the sign-in form this field sits inside and
+                    // resubmit the credentials that just failed.
+                    onKeyDown={(event) => {
+                        if (event.key !== "Enter") return;
+
+                        event.preventDefault();
+                        void requestLink();
+                    }}
                     placeholder="you@example.com"
                     autoComplete="email"
                     aria-label="Email address for a new verification link"
-                    required
+                    aria-required
                     className="sm:flex-1"
                 />
-                <Button type="submit" variant="outline" disabled={isPending || !email}>
+                {/* `type="button"`, or it submits the sign-in form rather than calling this. */}
+                <Button
+                    type="button"
+                    onClick={() => void requestLink()}
+                    variant="outline"
+                    disabled={isPending || !email}
+                >
                     {isPending ? "Sending…" : "Resend link"}
                 </Button>
-            </form>
+            </div>
 
             {limitError && (
                 <p role="alert" className="mt-2 text-sm text-destructive">
