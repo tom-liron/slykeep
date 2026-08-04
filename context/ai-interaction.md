@@ -23,6 +23,13 @@ This is the common workflow that we will use for every single feature/fix:
 8. **Delete Branch** - Delete branch after merge
 9. **Review** - Review AI-generated code periodically and on demand.
 10. Mark as completed in @context/current-feature.md and append to `context/feature-history.md`
+11. **Push** - Push `main` to origin, once, after everything above is committed.
+
+Step 11 is part of the workflow, not a decision to raise: **don't ask whether to push — push.** It
+was already step 7 of `.claude/skills/feature/actions/complete.md`, but this list stopped at "Delete
+Branch", and a workflow that ends one step short of the remote is how "shall I push?" became a
+recurring question. The two lists now agree. Pushing is the only outward-facing step here, so it
+stays last and stays single — everything lands in one push, never a stream of them.
 
 ## Browser Verification
 
@@ -45,6 +52,12 @@ Two rules when it *is* warranted:
   Screenshots are for visual questions, not for checking that text rendered.
 - **`/compact` once the answer is in hand.** MCP results persist for the rest of the session, so a
   snapshot that has already done its job keeps being re-sent on every later turn.
+
+  Claude cannot run `/compact` — it is a CLI command you type, not a tool Claude can call. So the
+  rule *for Claude* is to *say so*, in the same reply that reports the browser result: end with an
+  explicit "run `/compact`" line. Phrased as "compact once done" this read like something Claude
+  would handle, which is exactly how a whole session's browser output survived to the end of it.
+  Repeat the reminder after each separate round of browser work, not once per session.
 
 Do NOT commit without permission and until the build passes. If build fails, fix the issues first.
 
