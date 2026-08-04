@@ -31,7 +31,7 @@ export default async function ItemTypePage({ params }: { params: Promise<{ slug:
             </header>
 
             {data.items.length > 0 ? (
-                <div className="space-y-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {data.items.map((item) => (
                         <ItemCard key={item.id} item={item} />
                     ))}
