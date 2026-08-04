@@ -23,21 +23,35 @@ export function ForgotPasswordForm() {
     const [email, setEmail] = useState("");
     const [isPending, setIsPending] = useState(false);
     const [sentTo, setSentTo] = useState<string | null>(null);
+    // The one outcome this form is allowed to report. A 429 is a fact about how often *this browser*
+    // has posted here, not about any address, so showing it discloses nothing the confirmation below
+    // is built to hide — and it has to be shown, because a "link on its way" for a request the
+    // server refused is simply a lie that leaves the user waiting on an email that will never come.
+    const [limitError, setLimitError] = useState<string | null>(null);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setIsPending(true);
+        setLimitError(null);
 
         try {
-            await fetch("/api/auth/forgot-password", {
+            const response = await fetch("/api/auth/forgot-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
             });
+
+            if (response.status === 429) {
+                const body = await response.json().catch(() => null);
+
+                setLimitError(body?.error ?? "Too many attempts. Try again later.");
+                setIsPending(false);
+                return;
+            }
         } catch {
-            // Swallowed on purpose. The endpoint reports nothing either way, so a network failure
-            // and an unknown address are already indistinguishable here — surfacing one but not the
-            // other would leak exactly the difference the endpoint is built to hide.
+            // Still swallowed. Every other response is a 200 the endpoint gives to all input alike,
+            // so a network failure and an unknown address remain indistinguishable here — surfacing
+            // one but not the other would leak exactly the difference the endpoint is built to hide.
         }
 
         setIsPending(false);
@@ -110,6 +124,12 @@ export function ForgotPasswordForm() {
                         required
                     />
                 </div>
+
+                {limitError && (
+                    <p role="alert" className="text-sm text-destructive">
+                        {limitError}
+                    </p>
+                )}
 
                 <Button type="submit" disabled={isPending || !email} className="w-full">
                     {isPending ? "Sending…" : "Send reset link"}

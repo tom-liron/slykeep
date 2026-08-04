@@ -4,7 +4,12 @@ import { AuthError } from "next-auth";
 import { z } from "zod";
 
 import { signIn, signOut } from "@/auth";
-import { EMAIL_UNVERIFIED_CODE, EMAIL_UNVERIFIED_MESSAGE } from "@/lib/auth-errors";
+import {
+    EMAIL_UNVERIFIED_CODE,
+    EMAIL_UNVERIFIED_MESSAGE,
+    RATE_LIMITED_CODE,
+    RATE_LIMITED_MESSAGE,
+} from "@/lib/auth-errors";
 import { resolveCallbackUrl, signInDestination } from "@/lib/auth-redirects";
 import { signInSchema } from "@/lib/auth-schemas";
 import { EMPTY_AUTH_STATE, type AuthActionState } from "@/types/auth";
@@ -73,6 +78,15 @@ export async function signInWithCredentials(
             // credentials are perfectly good. Every other failure stays uniformly vague.
             if ("code" in error && error.code === EMAIL_UNVERIFIED_CODE) {
                 return { error: EMAIL_UNVERIFIED_MESSAGE, unverified: true, email };
+            }
+
+            // The other failure worth naming, and safe for the opposite reason: it says nothing
+            // about the account at all, only that this browser has been trying too often. Left
+            // generic it would read as "your password is wrong" and invite the retries the limit is
+            // there to stop. Thrown by `authorize` in `src/auth.ts`, which is where the counting
+            // happens — see the note there on why not here.
+            if ("code" in error && error.code === RATE_LIMITED_CODE) {
+                return { error: RATE_LIMITED_MESSAGE, email };
             }
 
             return { error: "Invalid email or password.", email };

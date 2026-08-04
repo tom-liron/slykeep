@@ -4,6 +4,7 @@ import { z } from "zod";
 import { registerSchema } from "@/lib/auth-schemas";
 import { sendVerificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
 import { hashPassword } from "@/server/passwords";
 import { createVerificationToken } from "@/server/verification";
 
@@ -19,6 +20,14 @@ import { createVerificationToken } from "@/server/verification";
  * which it must, since the whole point is to be reachable while signed out.
  */
 export async function POST(request: Request) {
+    // Before the body is even read: an account creation costs a row and an outbound email, and this
+    // is the endpoint that turns one anonymous caller into an unbounded number of both. Keyed by IP
+    // alone deliberately — mixing the submitted email into the key would let a script buy a fresh
+    // budget for every address it invents, which is the whole abuse.
+    const limit = await checkRateLimit("register", await clientIp());
+
+    if (!limit.success) return tooManyRequests(limit);
+
     let body: unknown;
 
     try {

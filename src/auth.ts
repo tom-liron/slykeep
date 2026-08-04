@@ -4,9 +4,10 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
-import { EMAIL_UNVERIFIED_CODE } from "@/lib/auth-errors";
+import { EMAIL_UNVERIFIED_CODE, RATE_LIMITED_CODE } from "@/lib/auth-errors";
 import { signInSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 import { ABSENT_USER_HASH } from "@/server/passwords";
 import authConfig from "./auth.config";
 
@@ -22,12 +23,22 @@ class EmailUnverifiedError extends CredentialsSignin {
     code = EMAIL_UNVERIFIED_CODE;
 }
 
+/** Thrown when this address has spent its guesses from this address block. */
+class RateLimitedError extends CredentialsSignin {
+    code = RATE_LIMITED_CODE;
+}
+
 /**
  * The real email/password check, replacing the always-null placeholder in `auth.config.ts`.
  *
  * Every failure returns `null` and none of them say why — not in the response and not in how long
  * it takes to arrive. A wrong password, an unknown email, and an OAuth-only account are one
  * outcome from the outside, so the form cannot be used to enumerate accounts.
+ *
+ * The rate limit lives here rather than in the sign-in Server Action because this is the only place
+ * every sign-in has to pass through. The action guards the form; `POST /api/auth/callback/credentials`
+ * is a public endpoint that a script can drive without ever loading the form, and that script is the
+ * threat. Limiting one layer up would have protected the only caller that was never the problem.
  */
 const credentials = Credentials({
     credentials: {
@@ -38,6 +49,23 @@ const credentials = Credentials({
         const parsed = signInSchema.safeParse(raw);
 
         if (!parsed.success) return null;
+
+        // Ahead of the lookup and the bcrypt compare, which are the costs worth capping: five
+        // guesses per quarter hour is what makes an online password attack pointless, and it is also
+        // ~2.5s of CPU an unauthenticated caller can no longer spend at will.
+        //
+        // Keyed by address *and* address block. Per-IP alone would lock every user behind one office
+        // NAT out because of one of them; per-email alone would let anyone lock an account they know
+        // the address of out of their own account, which is a denial of service handed to the
+        // attacker. Together, each pair gets its own budget.
+        //
+        // Costs a token on success too. That is deliberate and cheap: the budget is per person per
+        // account, so it bounds a legitimate user at five sign-ins a quarter hour — far more than
+        // anyone does — while a scheme that refunded correct guesses would have to reveal, by its
+        // timing, which guesses were correct.
+        const limit = await checkRateLimit("signIn", await clientIp(), parsed.data.email);
+
+        if (!limit.success) throw new RateLimitedError();
 
         const user = await prisma.user.findUnique({
             where: { email: parsed.data.email },
