@@ -22,6 +22,7 @@
     },
     "dependencies": {
         "@auth/prisma-adapter": "^2.11.3",
+        "@monaco-editor/react": "^4.7.0",
         "@prisma/adapter-pg": "^7.8.0",
         "@prisma/client": "^7.8.0",
         "@upstash/ratelimit": "^2.0.8",
@@ -55,6 +56,7 @@
         "babel-plugin-react-compiler": "1.0.0",
         "eslint": "^9",
         "eslint-config-next": "16.2.9",
+        "monaco-editor": "0.56.0",
         "prettier": "^3.4.2",
         "prisma": "^7.8.0",
         "tailwindcss": "^4",

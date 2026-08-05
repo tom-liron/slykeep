@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { createItem } from "@/actions/items";
+import { CodeEditor } from "@/components/items/CodeEditor";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,27 @@ import {
     type CreateItemInput,
 } from "@/lib/item-schemas";
 import { cn } from "@/lib/utils";
+
+const DEFAULT_TYPE: CreatableItemTypeName = "snippet";
+
+/**
+ * Which type the dialog opens on, read from the page behind it: on `/items/prompts` a new item is
+ * almost certainly a prompt, so preselecting it saves the click that would otherwise be made on
+ * every single create from a type page.
+ *
+ * Everywhere else — the dashboard, a collection, the profile — there is nothing to infer from, and
+ * it falls back to the first type. So does `/items/files` and `/items/images`: those pages exist,
+ * but uploads are Phase 4 and nothing can create one yet, which is exactly what the creatable list
+ * says. The choice is only a starting point in any case; the buttons are right there.
+ */
+function typeForPath(pathname: string): CreatableItemTypeName {
+    const slug = pathname.match(/^\/items\/([^/]+)/)?.[1];
+
+    return (
+        CREATABLE_ITEM_TYPE_NAMES.find((name) => ITEM_TYPE_CATALOG[name].slug === slug) ??
+        DEFAULT_TYPE
+    );
+}
 
 /**
  * Two rules, both from the same finding: a placeholder must never restate the label, which is noise
@@ -92,10 +114,13 @@ export function CreateItemDialog() {
  */
 function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     const router = useRouter();
+    const pathname = usePathname();
     const [isPending, startTransition] = useTransition();
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<CreateItemField, string>>>({});
 
-    const [type, setType] = useState<CreatableItemTypeName>("snippet");
+    // Radix unmounts the dialog's content when it closes, so this is re-read on every open rather
+    // than once per session — navigating to another type page and creating again picks up the move.
+    const [type, setType] = useState<CreatableItemTypeName>(() => typeForPath(pathname));
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [tags, setTags] = useState("");
@@ -216,21 +241,8 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     </Field>
                 )}
 
-                {showsContent && (
-                    <Field id="new-item-content" label="Content" error={fieldErrors.content}>
-                        <Textarea
-                            id="new-item-content"
-                            value={content}
-                            onChange={(event) => setContent(event.target.value)}
-                            placeholder={PLACEHOLDERS[type].content}
-                            rows={8}
-                            spellCheck={false}
-                            className="font-mono text-xs"
-                            {...invalid("content")}
-                        />
-                    </Field>
-                )}
-
+                {/* Above the content, as in the edit form: the language is what the editor
+                    highlights by, so it has to be answerable before the code is pasted. */}
                 {showsLanguage && (
                     <Field id="new-item-language" label="Language" error={fieldErrors.language}>
                         <Input
@@ -240,6 +252,35 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                             placeholder="e.g. typescript"
                             {...invalid("language")}
                         />
+                    </Field>
+                )}
+
+                {showsContent && (
+                    <Field id="new-item-content" label="Content" error={fieldErrors.content}>
+                        {/* Code gets the editor, prose keeps the textarea — the same split the edit
+                            form and the drawer make, off the same predicate. */}
+                        {showsLanguage ? (
+                            <CodeEditor
+                                id="new-item-content"
+                                label="Content"
+                                value={content}
+                                language={language}
+                                onChange={setContent}
+                                placeholder={PLACEHOLDERS[type].content}
+                                {...invalid("content")}
+                            />
+                        ) : (
+                            <Textarea
+                                id="new-item-content"
+                                value={content}
+                                onChange={(event) => setContent(event.target.value)}
+                                placeholder={PLACEHOLDERS[type].content}
+                                rows={8}
+                                spellCheck={false}
+                                className="font-mono text-xs"
+                                {...invalid("content")}
+                            />
+                        )}
                     </Field>
                 )}
 

@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatLongDate } from "@/lib/format";
+import { itemTypeOwns } from "@/lib/item-schemas";
 import { withAlpha } from "@/lib/utils";
 import type { ItemDetailViewModel, ItemSummaryViewModel } from "@/types/view-models";
+import { CodeEditor } from "./CodeEditor";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
 import { TypeIcon } from "./TypeIcon";
@@ -69,6 +71,11 @@ export function ItemDrawer({
     const accent = item.itemType.color;
     const body = detail?.url || detail?.content || "";
     const bodyLabel = item.itemType.contentType === "URL" ? "URL" : "Content";
+
+    // "Owns a language" is the same thing as "its content is code" — snippets and commands. Notes
+    // and prompts are prose, and keep the plain `<pre>`; a syntax highlighter over English is only
+    // a distraction.
+    const showsCode = itemTypeOwns(item.itemType.name).language;
 
     // The card's summary is what the drawer opens on, but it stops being the truth the moment an
     // edit is saved: `ItemList` holds the clicked item in state, so a `router.refresh()` updates the
@@ -207,9 +214,18 @@ export function ItemDrawer({
                                         {detail.url}
                                     </a>
                                 ) : detail.content ? (
-                                    <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs">
-                                        {detail.content}
-                                    </pre>
+                                    showsCode ? (
+                                        <CodeEditor
+                                            value={detail.content}
+                                            language={detail.language}
+                                            readOnly
+                                            label={`${view.title} content`}
+                                        />
+                                    ) : (
+                                        <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs">
+                                            {detail.content}
+                                        </pre>
+                                    )
                                 ) : (
                                     <p className="text-sm text-muted-foreground">No content.</p>
                                 )}

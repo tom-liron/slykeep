@@ -6,6 +6,7 @@ import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateItem } from "@/actions/items";
+import { CodeEditor } from "@/components/items/CodeEditor";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
@@ -129,17 +130,45 @@ export function ItemEditForm({
                 />
             </Field>
 
+            {/* Above the content, not below it: the language is what the editor highlights by, so
+                asking for it after the code has been written is asking too late. */}
+            {showsLanguage && (
+                <Field id="item-language" label="Language" error={fieldErrors.language}>
+                    <Input
+                        id="item-language"
+                        value={language}
+                        onChange={(event) => setLanguage(event.target.value)}
+                        placeholder="e.g. typescript"
+                        {...invalid("language")}
+                    />
+                </Field>
+            )}
+
             {showsContent && (
                 <Field id="item-content" label="Content" error={fieldErrors.content}>
-                    <Textarea
-                        id="item-content"
-                        value={content}
-                        onChange={(event) => setContent(event.target.value)}
-                        rows={10}
-                        spellCheck={false}
-                        className="font-mono text-xs"
-                        {...invalid("content")}
-                    />
+                    {/* Code gets the editor, prose keeps the textarea. `showsLanguage` is the same
+                        predicate the drawer reads, so an item is never edited in one and displayed
+                        in the other. The language is live: retyping it re-highlights as you go. */}
+                    {showsLanguage ? (
+                        <CodeEditor
+                            id="item-content"
+                            label="Content"
+                            value={content}
+                            language={language}
+                            onChange={setContent}
+                            {...invalid("content")}
+                        />
+                    ) : (
+                        <Textarea
+                            id="item-content"
+                            value={content}
+                            onChange={(event) => setContent(event.target.value)}
+                            rows={10}
+                            spellCheck={false}
+                            className="font-mono text-xs"
+                            {...invalid("content")}
+                        />
+                    )}
                 </Field>
             )}
 
@@ -151,18 +180,6 @@ export function ItemEditForm({
                         value={url}
                         onChange={(event) => setUrl(event.target.value)}
                         {...invalid("url")}
-                    />
-                </Field>
-            )}
-
-            {showsLanguage && (
-                <Field id="item-language" label="Language" error={fieldErrors.language}>
-                    <Input
-                        id="item-language"
-                        value={language}
-                        onChange={(event) => setLanguage(event.target.value)}
-                        placeholder="e.g. typescript"
-                        {...invalid("language")}
                     />
                 </Field>
             )}
