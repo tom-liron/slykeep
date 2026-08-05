@@ -1,4 +1,4 @@
-import type { UpdateItemField } from "@/lib/item-schemas";
+import type { CreateItemField, UpdateItemField } from "@/lib/item-schemas";
 import type { ItemDetailViewModel } from "./view-models";
 
 /**
@@ -15,6 +15,19 @@ export type UpdateItemResult =
           error: string;
           /** Per-field validation messages, so the drawer can mark the input that was rejected. */
           fields?: Partial<Record<UpdateItemField, string>>;
+      };
+
+/**
+ * What `createItem` hands back. The success arm carries the new item's id and nothing else: the
+ * dialog's next move is to close and refresh the list behind it, and the cards it will re-fetch are
+ * rendered on the server anyway — so a view model assembled here would only be thrown away.
+ */
+export type CreateItemResult =
+    | { success: true; data: { id: string } }
+    | {
+          success: false;
+          error: string;
+          fields?: Partial<Record<CreateItemField, string>>;
       };
 
 /**

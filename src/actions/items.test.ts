@@ -13,9 +13,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * account and an item id belonging to it.
  */
 
-type ItemRow = { id: string; userId: string; title: string };
+type ItemRow = {
+    id: string;
+    userId: string;
+    title: string;
+    contentType?: string;
+    itemTypeId?: string;
+};
 
-const db = vi.hoisted(() => ({ items: [] as ItemRow[] }));
+type ItemTypeRow = { id: string; name: string; userId: string | null };
+
+const db = vi.hoisted(() => ({ items: [] as ItemRow[], itemTypes: [] as ItemTypeRow[] }));
 
 // The signed-in user is fixed: these tests vary who owns the row, not who is asking.
 vi.mock("@/server/current-user", () => ({
@@ -53,10 +61,42 @@ vi.mock("@/lib/prisma", async () => {
             }),
         );
 
+    /** What `createItem` builds: relations connected by id, never ids assigned as columns. */
+    type CreateData = {
+        title: string;
+        contentType: string;
+        user: { connect: { id: string } };
+        itemType: { connect: { id: string } };
+    };
+
     return {
         prisma: {
             tag: { createMany: () => Promise.resolve({ count: 0 }) },
+            itemType: {
+                // Matches on both keys for the same reason the item matcher does: drop `userId` from
+                // the query and a user's custom type of the same name starts winning.
+                findFirst: ({ where }: { where: { name: string; userId: string | null } }) =>
+                    Promise.resolve(
+                        db.itemTypes.find(
+                            (candidate) =>
+                                candidate.name === where.name && candidate.userId === where.userId,
+                        ) ?? null,
+                    ),
+            },
             item: {
+                create: ({ data }: { data: CreateData }) => {
+                    const row = {
+                        id: `item-${db.items.length + 1}`,
+                        userId: data.user.connect.id,
+                        itemTypeId: data.itemType.connect.id,
+                        contentType: data.contentType,
+                        title: data.title,
+                    };
+
+                    db.items.push(row);
+
+                    return Promise.resolve({ id: row.id });
+                },
                 update: ({ where }: { where: ItemWhere }) => {
                     const row = match(where);
 
@@ -78,7 +118,57 @@ vi.mock("@/lib/prisma", async () => {
     };
 });
 
-const { deleteItem, updateItem } = await import("./items");
+const { createItem, deleteItem, updateItem } = await import("./items");
+
+describe("createItem", () => {
+    beforeEach(() => {
+        db.items = [];
+        // The custom type comes first, so a `findFirst` that stopped filtering on `userId` would
+        // return it — which is the bug the `name`-alone lookup in `schema.prisma`'s note describes.
+        db.itemTypes = [
+            { id: "type-custom-snippet", name: "snippet", userId: "user-owner" },
+            { id: "type-snippet", name: "snippet", userId: null },
+            { id: "type-link", name: "link", userId: null },
+        ];
+    });
+
+    it("writes the row for the signed-in user and the system type it names", async () => {
+        const result = await createItem({ type: "snippet", title: "My snippet" });
+
+        expect(result).toEqual({ success: true, data: { id: "item-1" } });
+        expect(db.items[0]).toMatchObject({
+            userId: "user-owner",
+            itemTypeId: "type-snippet",
+            title: "My snippet",
+        });
+    });
+
+    it("derives contentType from the chosen type, not from the payload", async () => {
+        // `contentType` discriminates which content column is populated, so a client that could set
+        // it could describe a link as text — the schema drops the columns, this pins the flag.
+        await createItem({ type: "link", title: "Docs", url: "https://example.com" });
+
+        expect(db.items[0]).toMatchObject({ contentType: "URL", itemTypeId: "type-link" });
+    });
+
+    it("fails cleanly when the system type is not seeded", async () => {
+        db.itemTypes = [];
+
+        await expect(createItem({ type: "snippet", title: "My snippet" })).resolves.toEqual({
+            success: false,
+            error: "That item type is unavailable right now.",
+        });
+        expect(db.items).toHaveLength(0);
+    });
+
+    it("rejects an invalid payload before reaching the database", async () => {
+        await expect(createItem({ type: "link", title: "Docs" })).resolves.toMatchObject({
+            success: false,
+            fields: { url: "URL is required." },
+        });
+        expect(db.items).toHaveLength(0);
+    });
+});
 
 describe("updateItem", () => {
     beforeEach(() => {

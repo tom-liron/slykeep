@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { updateItemSchema, type UpdateItemInput } from "./item-schemas";
+import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
+import {
+    CREATABLE_ITEM_TYPE_NAMES,
+    createItemSchema,
+    updateItemSchema,
+    type CreateItemInput,
+    type UpdateItemInput,
+} from "./item-schemas";
 
 /** The minimum a valid payload needs, so each case can vary one field at a time. */
 const base: UpdateItemInput = { title: "A snippet" };
@@ -117,5 +124,122 @@ describe("updateItemSchema", () => {
                 /at most 50 characters/,
             );
         });
+    });
+});
+
+/** A snippet is the dialog's default, so it is what the create cases vary from. */
+const newItem: CreateItemInput = { type: "snippet", title: "A snippet" };
+
+function parseNew(input: CreateItemInput) {
+    const result = createItemSchema.safeParse(input);
+    if (!result.success) {
+        throw new Error(`Expected the payload to parse: ${result.error.issues[0]?.message}`);
+    }
+
+    return result.data;
+}
+
+/** The message reported against one field, which is how the dialog places it under an input. */
+function errorFor(input: CreateItemInput, field: string): string | undefined {
+    const result = createItemSchema.safeParse(input);
+
+    return result.success
+        ? undefined
+        : result.error.issues.find((issue) => issue.path[0] === field)?.message;
+}
+
+describe("createItemSchema", () => {
+    describe("type", () => {
+        it("offers exactly the catalog types that do not store a file", () => {
+            // The dialog cannot upload anything until Phase 4, so a FILE type could only produce an
+            // item with no file. Derived from the catalog here so adding a type there fails this
+            // rather than quietly leaving it out of the dialog.
+            const expected = SYSTEM_ITEM_TYPE_NAMES.filter(
+                (name) => ITEM_TYPE_CATALOG[name].contentType !== "FILE",
+            );
+
+            expect([...CREATABLE_ITEM_TYPE_NAMES].sort()).toEqual([...expected].sort());
+        });
+
+        it("rejects a type the dialog does not offer", () => {
+            // TypeScript stops the dialog from sending this; nothing stops a hand-made payload.
+            const payload = { type: "image", title: "Sneaky" } as unknown as CreateItemInput;
+
+            expect(errorFor(payload, "type")).toBe("Choose an item type.");
+        });
+    });
+
+    describe("columns the chosen type does not own", () => {
+        it("drops content and language from a link", () => {
+            const data = parseNew({
+                ...newItem,
+                type: "link",
+                url: "https://example.com",
+                content: "console.log('nope')",
+                language: "typescript",
+            });
+
+            // Not merely ignored by the form: `contentType` is URL, so writing either column would
+            // contradict the field that says which one holds this item's content.
+            expect(data.content).toBeUndefined();
+            expect(data.language).toBeUndefined();
+            expect(data.url).toBe("https://example.com");
+        });
+
+        it("drops a URL from a text type", () => {
+            expect(parseNew({ ...newItem, url: "https://example.com" }).url).toBeUndefined();
+        });
+
+        it("drops a language from a type whose content is not code", () => {
+            expect(
+                parseNew({ ...newItem, type: "note", language: "typescript" }).language,
+            ).toBeUndefined();
+        });
+
+        it("keeps the language a snippet or command declares", () => {
+            expect(parseNew({ ...newItem, language: "typescript" }).language).toBe("typescript");
+            expect(parseNew({ ...newItem, type: "command", language: "bash" }).language).toBe(
+                "bash",
+            );
+        });
+    });
+
+    describe("url", () => {
+        it("insists a link has one", () => {
+            expect(errorFor({ ...newItem, type: "link" }, "url")).toBe("URL is required.");
+        });
+
+        it("treats a blank URL as missing rather than as clearing it", () => {
+            // An edit reads "" as "clear this column"; there is nothing to clear on a new row.
+            expect(errorFor({ ...newItem, type: "link", url: "   " }, "url")).toBe(
+                "URL is required.",
+            );
+        });
+
+        it("still checks the shape of one that was given", () => {
+            expect(errorFor({ ...newItem, type: "link", url: "not a url" }, "url")).toBe(
+                "Enter a valid URL.",
+            );
+        });
+
+        it("does not require one from a type that has nowhere to put it", () => {
+            expect(errorFor(newItem, "url")).toBeUndefined();
+        });
+    });
+
+    it("requires a title, as an edit does", () => {
+        expect(errorFor({ ...newItem, title: "   " }, "title")).toBe("Title is required.");
+    });
+
+    it("normalizes tags the same way an edit does", () => {
+        expect(parseNew({ ...newItem, tags: ["react", " ", "React"] }).tags).toEqual(["react"]);
+    });
+
+    it("leaves an omitted optional column undefined, so the row is written without it", () => {
+        const data = parseNew(newItem);
+
+        expect(data.description).toBeUndefined();
+        expect(data.content).toBeUndefined();
+        expect(data.tags).toBeUndefined();
     });
 });

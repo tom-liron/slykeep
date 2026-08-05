@@ -7,13 +7,11 @@ import { toast } from "sonner";
 
 import { updateItem } from "@/actions/items";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { UpdateItemField, UpdateItemInput } from "@/lib/item-schemas";
+import { itemTypeOwns, type UpdateItemField, type UpdateItemInput } from "@/lib/item-schemas";
 import type { ItemDetailViewModel } from "@/types/view-models";
-
-/** The types whose content is code, and so have a language worth declaring. */
-const TYPES_WITH_LANGUAGE = new Set(["snippet", "command"]);
 
 /**
  * Edit mode for the item drawer — the same panel, with its fields swapped for inputs.
@@ -47,10 +45,11 @@ export function ItemEditForm({
     const [url, setUrl] = useState(detail.url);
     const [language, setLanguage] = useState(detail.language);
 
-    const { contentType, name: typeName } = detail.itemType;
-    const showsContent = contentType === "TEXT";
-    const showsUrl = contentType === "URL";
-    const showsLanguage = TYPES_WITH_LANGUAGE.has(typeName);
+    const {
+        content: showsContent,
+        url: showsUrl,
+        language: showsLanguage,
+    } = itemTypeOwns(detail.itemType.name);
 
     /** Points a rejected input at the message `Field` renders for it, as the auth forms do. */
     const invalid = (field: UpdateItemField) =>
@@ -162,7 +161,7 @@ export function ItemEditForm({
                         id="item-language"
                         value={language}
                         onChange={(event) => setLanguage(event.target.value)}
-                        placeholder="typescript"
+                        placeholder="e.g. typescript"
                         {...invalid("language")}
                     />
                 </Field>
@@ -178,40 +177,10 @@ export function ItemEditForm({
                     id="item-tags"
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
-                    placeholder="react, hooks"
+                    placeholder="e.g. react, hooks"
                     {...invalid("tags")}
                 />
             </Field>
         </form>
-    );
-}
-
-function Field({
-    id,
-    label,
-    error,
-    hint,
-    children,
-}: {
-    id: string;
-    label: string;
-    error?: string;
-    hint?: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
-                {label}
-            </label>
-            {children}
-            {error ? (
-                <p id={`${id}-error`} className="text-sm text-destructive">
-                    {error}
-                </p>
-            ) : (
-                hint && <p className="text-xs text-muted-foreground">{hint}</p>
-            )}
-        </div>
     );
 }
