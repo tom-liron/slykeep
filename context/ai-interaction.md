@@ -18,18 +18,25 @@ This is the common workflow that we will use for every single feature/fix:
 4. **Test** - Run focused unit tests, verify in the browser *when the change warrants it* (see
    Browser Verification), then run `npm run lint` and `npm run build`
 5. **Iterate** - Iterate and change things if needed
-6. **Commit** - Format the changed files (see Formatting), then commit — only after build passes and everything works
-7. **Merge** - Merge to main
-8. **Delete Branch** - Delete branch after merge
-9. **Review** - Review AI-generated code periodically and on demand.
-10. Mark as completed in @context/current-feature.md and append to `context/feature-history.md`
+6. **Review** - Review AI-generated code periodically and on demand.
+7. **Record** - Mark as completed in @context/current-feature.md and append to
+   `context/feature-history.md` — *before* the commit, so it lands in it
+8. **Commit** - Format the changed files (see Formatting), then commit — only after build passes and everything works
+9. **Merge** - Merge to main
+10. **Delete Branch** - Delete branch after merge
 11. **Push** - Push `main` to origin, once, after everything above is committed.
 
 Step 11 is part of the workflow, not a decision to raise: **don't ask whether to push — push.** It
-was already step 7 of `.claude/skills/feature/actions/complete.md`, but this list stopped at "Delete
-Branch", and a workflow that ends one step short of the remote is how "shall I push?" became a
-recurring question. The two lists now agree. Pushing is the only outward-facing step here, so it
+was already the last step of `.claude/skills/feature/actions/complete.md`, but this list stopped at
+"Delete Branch", and a workflow that ends one step short of the remote is how "shall I push?" became
+a recurring question. The two lists now agree. Pushing is the only outward-facing step here, so it
 stays last and stays single — everything lands in one push, never a stream of them.
+
+Recording comes **before** committing for the same reason. It used to be step 10, after the merge,
+which left the history entry and the `current-feature.md` reset stranded on main with nothing to
+ride along with — so every single feature ended with a second `chore: reset current-feature.md`
+commit that existed only because of the ordering. The summary describes work that is already
+finished by then, so nothing was gained by waiting.
 
 ## Browser Verification
 
