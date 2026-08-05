@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import type { ItemTypeName } from "@/types/item-type";
+
 /**
  * Input contract for editing an item from the detail drawer.
  *
@@ -68,12 +71,14 @@ const tags = z.preprocess(
         .optional(),
 );
 
+const title = z
+    .string()
+    .trim()
+    .min(1, "Title is required.")
+    .max(TITLE_MAX_LENGTH, `Title must be at most ${TITLE_MAX_LENGTH} characters.`);
+
 export const updateItemSchema = z.object({
-    title: z
-        .string()
-        .trim()
-        .min(1, "Title is required.")
-        .max(TITLE_MAX_LENGTH, `Title must be at most ${TITLE_MAX_LENGTH} characters.`),
+    title,
     description: optionalText,
     content: optionalText,
     language: optionalText,
@@ -100,3 +105,93 @@ export type UpdateItemInput = {
 
 /** The fields an error can be reported against, so the drawer can place a message under one. */
 export type UpdateItemField = keyof UpdateItemInput;
+
+/**
+ * The types the create dialog offers. `file` and `image` are absent rather than Pro-gated: their
+ * content is an R2 object and nothing can upload one until Phase 4, so offering them could only
+ * produce a FILE item with no file. A unit test pins this list against the catalog, so a type added
+ * there is not silently left out here.
+ */
+const creatableItemTypeName = z.enum(["snippet", "prompt", "command", "note", "link"], {
+    error: "Choose an item type.",
+});
+
+export type CreatableItemTypeName = z.infer<typeof creatableItemTypeName>;
+
+export const CREATABLE_ITEM_TYPE_NAMES: readonly CreatableItemTypeName[] =
+    creatableItemTypeName.options;
+
+/** The types whose content is code, and so have a language worth declaring. */
+const TYPES_WITH_LANGUAGE = new Set<ItemTypeName>(["snippet", "command"]);
+
+/**
+ * Which content columns a type owns — one rule, read by everything that has to agree on it: the
+ * create dialog and the edit form decide which inputs to render from it, and `createItemSchema`
+ * strips whatever a type does not own before the payload reaches Prisma. Without that last step the
+ * form's field list would be the only thing keeping a link out of the `content` column, which makes
+ * a hand-made payload enough to contradict `contentType`.
+ */
+export function itemTypeOwns(name: ItemTypeName) {
+    const { contentType } = ITEM_TYPE_CATALOG[name];
+
+    return {
+        content: contentType === "TEXT",
+        url: contentType === "URL",
+        language: TYPES_WITH_LANGUAGE.has(name),
+    };
+}
+
+/**
+ * Input contract for creating an item from the top bar's dialog.
+ *
+ * Unlike the edit contract this one carries the type, because choosing it is the whole point of the
+ * dialog — and it is the only place a type is ever accepted from a client. Everything downstream of
+ * it is derived rather than submitted: the item type's id is resolved by name in the action, and
+ * `contentType` comes from the catalog, so a payload cannot claim a URL item holds text.
+ *
+ * Absent still means absent, exactly as it does for an edit: a note submits no `url` key and the
+ * column stays null.
+ */
+export const createItemSchema = z
+    .object({
+        type: creatableItemTypeName,
+        title,
+        description: optionalText,
+        content: optionalText,
+        language: optionalText,
+        url: optionalUrl,
+        tags,
+    })
+    // A link with no URL is an empty row: `optionalUrl` checks the shape of one that was given, and
+    // this is what insists there is one. Only URL types have anywhere to put it.
+    .refine((data) => !itemTypeOwns(data.type).url || Boolean(data.url), {
+        message: "URL is required.",
+        path: ["url"],
+    })
+    .transform(({ type, title, description, tags, content, url, language }) => {
+        const owns = itemTypeOwns(type);
+
+        return {
+            type,
+            title,
+            description,
+            tags,
+            content: owns.content ? content : undefined,
+            url: owns.url ? url : undefined,
+            language: owns.language ? language : undefined,
+        };
+    });
+
+/** What the dialog submits: raw strings, with the fields the selected type does not own omitted. */
+export type CreateItemInput = {
+    type: CreatableItemTypeName;
+    title: string;
+    description?: string | null;
+    content?: string | null;
+    language?: string | null;
+    url?: string | null;
+    tags?: string[];
+};
+
+/** The fields an error can be reported against, so the dialog can mark the input that was rejected. */
+export type CreateItemField = keyof CreateItemInput;

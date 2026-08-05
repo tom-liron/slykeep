@@ -2,15 +2,111 @@
 
 import { z } from "zod";
 
+import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
 import { Prisma } from "@/generated/prisma-client/client";
-import { updateItemSchema, type UpdateItemInput } from "@/lib/item-schemas";
+import {
+    createItemSchema,
+    updateItemSchema,
+    type CreateItemInput,
+    type UpdateItemInput,
+} from "@/lib/item-schemas";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/server/current-user";
 import { getItemDetail } from "@/server/items";
-import type { DeleteItemResult, UpdateItemResult } from "@/types/item";
+import type { CreateItemResult, DeleteItemResult, UpdateItemResult } from "@/types/item";
 
 /** Prisma's "no record matched the `where`" code, raised by `update` when nothing was found. */
 const RECORD_NOT_FOUND = "P2025";
+
+/**
+ * The first message reported against each field, keyed by field name — the toast needs one sentence
+ * and the inputs need their own messages, and both come from this one parse, so there is no second
+ * set of rules to keep in step. Read off `issues` rather than `z.flattenError`, whose field map is
+ * typed from the schema's input and degrades to `any` once a helper accepts more than one schema.
+ */
+function fieldErrorsOf(error: z.ZodError): Record<string, string> {
+    const fields: Record<string, string> = {};
+
+    for (const issue of error.issues) {
+        const [field] = issue.path;
+
+        if (typeof field === "string" && !(field in fields)) {
+            fields[field] = issue.message;
+        }
+    }
+
+    return fields;
+}
+
+/**
+ * Creates an item from the top bar's dialog.
+ *
+ * Three things the payload is deliberately not trusted with. `userId` comes from the session, so an
+ * item can only ever be created for the signed-in user. The item type's id is looked up from the
+ * submitted *name* — never accepted directly — with `findFirst({ name, userId: null })` rather than
+ * `findUnique`: `name` type-checks as unique because of the partial index, but it is unique only
+ * among system rows, and a user's custom type may one day share it. And `contentType` is read from
+ * the catalog, so it always agrees with the type — the schema has already dropped whichever content
+ * columns that type does not own, which is what keeps the two from contradicting each other.
+ */
+export async function createItem(input: CreateItemInput): Promise<CreateItemResult> {
+    const userId = await getCurrentUserId();
+
+    const parsed = createItemSchema.safeParse(input);
+
+    if (!parsed.success) {
+        const fields = fieldErrorsOf(parsed.error);
+
+        return {
+            success: false,
+            error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
+            fields,
+        };
+    }
+
+    const { type, tags, ...columns } = parsed.data;
+
+    try {
+        const itemType = await prisma.itemType.findFirst({
+            where: { name: type, userId: null },
+            select: { id: true },
+        });
+
+        if (!itemType) {
+            console.error(`Missing system item type: ${type}`);
+
+            return { success: false, error: "That item type is unavailable right now." };
+        }
+
+        if (tags?.length) {
+            // Same "ensure these exist" as `updateItem`: `Tag.name` is globally unique, so a name
+            // another user already coined is a duplicate rather than a fresh row.
+            await prisma.tag.createMany({
+                data: tags.map((name) => ({ name })),
+                skipDuplicates: true,
+            });
+        }
+
+        const item = await prisma.item.create({
+            data: {
+                ...columns,
+                contentType: ITEM_TYPE_CATALOG[type].contentType,
+                user: { connect: { id: userId } },
+                itemType: { connect: { id: itemType.id } },
+                // `connect` rather than the `set` an edit uses: a row that does not exist yet has no
+                // relation to replace.
+                tags: tags?.length ? { connect: tags.map((name) => ({ name })) } : undefined,
+            },
+            select: { id: true },
+        });
+
+        return { success: true, data: { id: item.id } };
+    } catch (error) {
+        console.error("Item create failed:", error);
+
+        return { success: false, error: "Could not create this item. Try again." };
+    }
+}
 
 /**
  * Edits an item from the detail drawer.
@@ -33,13 +129,7 @@ export async function updateItem(
     const parsed = updateItemSchema.safeParse(input);
 
     if (!parsed.success) {
-        const fieldErrors = z.flattenError(parsed.error).fieldErrors;
-
-        // The toast needs one sentence; the inputs need their own messages. Both come from the same
-        // parse, so there is no second set of rules to keep in step.
-        const fields = Object.fromEntries(
-            Object.entries(fieldErrors).map(([field, messages]) => [field, messages?.[0]]),
-        );
+        const fields = fieldErrorsOf(parsed.error);
 
         return {
             success: false,

@@ -295,7 +295,7 @@ devstash/
 │   ├── components/
 │   │   ├── ui/                  # shared UI primitives and presentational components
 │   │   ├── auth/                # sign-in, register, reset, and verification forms
-│   │   ├── items/               # item card; drawer/editor planned
+│   │   ├── items/               # item card, list, detail drawer, edit form, create dialog
 │   │   ├── collections/         # collection card and page composition
 │   │   ├── dashboard/           # stat card
 │   │   ├── profile/             # change-password form, delete-account dialog

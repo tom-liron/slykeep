@@ -1,7 +1,8 @@
 "use client";
 
-import { FolderPlus, Menu, PanelLeft, Plus, Search } from "lucide-react";
+import { FolderPlus, Menu, PanelLeft, Search } from "lucide-react";
 
+import { CreateItemDialog } from "@/components/items/CreateItemDialog";
 import { Brand } from "@/components/layout/Brand";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { Button } from "@/components/ui/button";
@@ -61,10 +62,7 @@ export function TopBar() {
                     <FolderPlus className="size-4" aria-hidden="true" />
                     <span className="hidden lg:inline">New Collection</span>
                 </Button>
-                <Button aria-label="New Item" title="Item creation is coming soon" disabled>
-                    <Plus className="size-4" aria-hidden="true" />
-                    <span className="hidden lg:inline">New Item</span>
-                </Button>
+                <CreateItemDialog />
             </div>
         </header>
     );
