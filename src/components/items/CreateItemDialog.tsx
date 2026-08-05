@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { createItem } from "@/actions/items";
 import { CodeEditor } from "@/components/items/CodeEditor";
+import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -257,8 +258,8 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
 
                 {showsContent && (
                     <Field id="new-item-content" label="Content" error={fieldErrors.content}>
-                        {/* Code gets the editor, prose keeps the textarea — the same split the edit
-                            form and the drawer make, off the same predicate. */}
+                        {/* Code gets the code editor, prose gets the markdown one — the same split
+                            the edit form and the drawer make, off the same predicate. */}
                         {showsLanguage ? (
                             <CodeEditor
                                 id="new-item-content"
@@ -270,14 +271,12 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                                 {...invalid("content")}
                             />
                         ) : (
-                            <Textarea
+                            <MarkdownEditor
                                 id="new-item-content"
+                                label="Content"
                                 value={content}
-                                onChange={(event) => setContent(event.target.value)}
+                                onChange={setContent}
                                 placeholder={PLACEHOLDERS[type].content}
-                                rows={8}
-                                spellCheck={false}
-                                className="font-mono text-xs"
                                 {...invalid("content")}
                             />
                         )}

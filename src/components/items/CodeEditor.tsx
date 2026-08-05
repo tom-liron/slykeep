@@ -58,6 +58,8 @@ const defineTheme: BeforeMount = (monaco) => {
             "editorCursor.foreground": "#fafafa",
             "editorIndentGuide.background1": "#ffffff14",
             "editorIndentGuide.activeBackground1": "#ffffff2e",
+            // Mirrored in CSS by `.editor-scrollbar` in `globals.css`, which is how the markdown
+            // editor's native scrollbar is made to match this one. Change these three, change those.
             "scrollbarSlider.background": "#ffffff1a",
             "scrollbarSlider.hoverBackground": "#ffffff2e",
             "scrollbarSlider.activeBackground": "#ffffff40",

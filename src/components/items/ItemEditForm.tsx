@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { updateItem } from "@/actions/items";
 import { CodeEditor } from "@/components/items/CodeEditor";
+import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
@@ -146,9 +147,10 @@ export function ItemEditForm({
 
             {showsContent && (
                 <Field id="item-content" label="Content" error={fieldErrors.content}>
-                    {/* Code gets the editor, prose keeps the textarea. `showsLanguage` is the same
-                        predicate the drawer reads, so an item is never edited in one and displayed
-                        in the other. The language is live: retyping it re-highlights as you go. */}
+                    {/* Code gets the code editor, prose gets the markdown one. `showsLanguage` is
+                        the same predicate the drawer reads, so an item is never edited in one and
+                        displayed in the other. The language is live: retyping it re-highlights as
+                        you go. */}
                     {showsLanguage ? (
                         <CodeEditor
                             id="item-content"
@@ -159,13 +161,11 @@ export function ItemEditForm({
                             {...invalid("content")}
                         />
                     ) : (
-                        <Textarea
+                        <MarkdownEditor
                             id="item-content"
+                            label="Content"
                             value={content}
-                            onChange={(event) => setContent(event.target.value)}
-                            rows={10}
-                            spellCheck={false}
-                            className="font-mono text-xs"
+                            onChange={setContent}
                             {...invalid("content")}
                         />
                     )}
