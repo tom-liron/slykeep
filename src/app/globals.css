@@ -127,3 +127,269 @@
         @apply font-sans;
     }
 }
+
+/**
+ * Native scrollbars repainted as monaco's, for the editors that are not monaco.
+ *
+ * `CodeEditor` draws its own scrollbar from the theme it registers, so the markdown panel beside it
+ * was the only thing in the drawer showing the platform's — a bright macOS slider against monaco's
+ * translucent one, on two panels that are otherwise a matched pair.
+ *
+ * The three values are copied from `scrollbarSlider.{background,hoverBackground,activeBackground}`
+ * in `CodeEditor.tsx`, and the 10px from its `verticalScrollbarSize`. That is a duplicated literal,
+ * and the honest reason it is duplicated is that monaco wants a JS theme object while a native
+ * scrollbar wants CSS — there is no single place both can read. Change one, change the other.
+ *
+ * Square, not rounded: monaco's slider is a plain rectangle, and matching means matching.
+ *
+ * The descendant selector covers what scrolls *inside* a panel — a wide code fence, a wide table —
+ * which would otherwise fall back to the platform bar the moment either overflowed.
+ */
+@layer components {
+    .editor-scrollbar,
+    .editor-scrollbar * {
+        /* Firefox, which has no pseudo-elements for this and no hover state either. */
+        scrollbar-width: thin;
+        scrollbar-color: #ffffff1a transparent;
+    }
+
+    .editor-scrollbar::-webkit-scrollbar,
+    .editor-scrollbar *::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    .editor-scrollbar::-webkit-scrollbar-track,
+    .editor-scrollbar *::-webkit-scrollbar-track,
+    .editor-scrollbar::-webkit-scrollbar-corner,
+    .editor-scrollbar *::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+    .editor-scrollbar::-webkit-scrollbar-thumb,
+    .editor-scrollbar *::-webkit-scrollbar-thumb {
+        background: #ffffff1a;
+    }
+    .editor-scrollbar::-webkit-scrollbar-thumb:hover,
+    .editor-scrollbar *::-webkit-scrollbar-thumb:hover {
+        background: #ffffff2e;
+    }
+    .editor-scrollbar::-webkit-scrollbar-thumb:active,
+    .editor-scrollbar *::-webkit-scrollbar-thumb:active {
+        background: #ffffff40;
+    }
+}
+
+/**
+ * Rendered markdown — the Preview half of `MarkdownEditor`.
+ *
+ * Written by hand rather than with `@tailwindcss/typography`. The plugin was tried and reverted: it
+ * is calibrated for an article at its own 65ch measure, and every size in it is an `em` multiple of
+ * that context, so even `prose-sm` renders an h1 at 2.14em — and because heading margins are
+ * relative to the heading's own size, an oversized heading also opens an oversized gap under it.
+ * Inside a 480px drawer panel that reads as a blog post crammed into a box. The scale below is set
+ * for the panel instead: a short 20/16/14/13 ramp, fixed `rem` margins so a level's size and the
+ * space around it are independent, and brightness carrying what is left of the hierarchy.
+ *
+ * One class rather than per-element Tailwind because the elements come from `react-markdown` out of
+ * user text — there is no JSX to hang classes on. Everything is a theme variable except the link
+ * blue, since the app's own `--primary` is greyscale and would make a link indistinguishable from
+ * body text.
+ *
+ * In `components` rather than unlayered so a utility class on the wrapper still wins over it.
+ */
+@layer components {
+    /* Body text sits a shade under `--foreground`, which headings then take in full. Pure white
+       running text on a dark panel is the single most common reason a dark UI reads as unfinished:
+       it glares, and it leaves headings with no brightness left to be distinguished by. */
+    .markdown-preview {
+        color: color-mix(in oklab, var(--foreground) 85%, var(--muted-foreground));
+        font-size: 0.875rem;
+        line-height: 1.65;
+        word-break: break-word;
+    }
+
+    /* The panel supplies the padding, so the first and last blocks must not add to it. */
+    .markdown-preview > :first-child {
+        margin-top: 0;
+    }
+    .markdown-preview > :last-child {
+        margin-bottom: 0;
+    }
+
+    /* Margins in `rem`, not `em`. That is the whole lesson from the typography plugin: an `em`
+       margin scales with the heading's own size, so a big heading also tears a big hole above
+       itself. A fixed 1.25rem above and 0.4rem below gives every level the same rhythm — bound to
+       the text it introduces, separated from the text it follows. */
+    .markdown-preview h1,
+    .markdown-preview h2,
+    .markdown-preview h3,
+    .markdown-preview h4,
+    .markdown-preview h5,
+    .markdown-preview h6 {
+        margin: 1.25rem 0 0.4rem;
+        font-weight: 600;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+    }
+
+    /* 20 / 16 / 14 / 13, against 14px body text. The steps are wide because they are the only
+       signal — an earlier pass put a hairline under h1 and h2, which is a README convention that
+       means nothing in a panel this size and read as arbitrary furniture when two headings ran
+       together. Levels 4 and below drop to muted instead of shrinking further; below 13px a
+       heading is just small text, and there is nowhere left to go. */
+    .markdown-preview h1,
+    .markdown-preview h2,
+    .markdown-preview h3 {
+        color: var(--foreground);
+    }
+    .markdown-preview h1 {
+        font-size: 1.25rem;
+        letter-spacing: -0.018em;
+    }
+    .markdown-preview h2 {
+        font-size: 1rem;
+    }
+    .markdown-preview h3 {
+        font-size: 0.875rem;
+    }
+    .markdown-preview h4,
+    .markdown-preview h5,
+    .markdown-preview h6 {
+        font-size: 0.8125rem;
+        color: var(--muted-foreground);
+    }
+
+    .markdown-preview p {
+        margin: 0.7em 0;
+    }
+
+    .markdown-preview a {
+        color: #60a5fa;
+        text-decoration: none;
+    }
+    .markdown-preview a:hover {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .markdown-preview strong {
+        font-weight: 600;
+    }
+    .markdown-preview em {
+        font-style: italic;
+    }
+    .markdown-preview del {
+        text-decoration: line-through;
+        color: var(--muted-foreground);
+    }
+
+    .markdown-preview ul,
+    .markdown-preview ol {
+        margin: 0.7em 0;
+        padding-left: 1.35rem;
+    }
+    .markdown-preview ul {
+        list-style: disc;
+    }
+    .markdown-preview ul ul {
+        list-style: circle;
+    }
+    .markdown-preview ul ul ul {
+        list-style: square;
+    }
+    .markdown-preview ol {
+        list-style: decimal;
+    }
+    .markdown-preview li {
+        margin: 0.2em 0;
+    }
+    .markdown-preview li > ul,
+    .markdown-preview li > ol {
+        margin: 0.2em 0;
+    }
+    /* Bullets and numbers are structure, not content: at full foreground they compete with the
+       words beside them, which is most of what makes a dense list look noisy. */
+    .markdown-preview li::marker {
+        color: var(--muted-foreground);
+    }
+
+    /* GFM task lists: the checkbox replaces the bullet rather than sitting after it. */
+    .markdown-preview li:has(> input[type="checkbox"]) {
+        list-style: none;
+        margin-left: -1.35rem;
+    }
+    .markdown-preview input[type="checkbox"] {
+        margin-right: 0.4em;
+        accent-color: #60a5fa;
+        vertical-align: middle;
+    }
+
+    .markdown-preview code {
+        padding: 0.15em 0.35em;
+        border-radius: var(--radius-sm);
+        background: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+    }
+
+    .markdown-preview pre {
+        margin: 0.7em 0;
+        padding: 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--muted);
+        overflow-x: auto;
+    }
+    /* Inside a block the chrome belongs to the `pre`, so the `code` keeps only the typeface.
+       Monochrome, deliberately: `rehype-highlight` was tried and reverted, because registering
+       lowlight's 37 languages put 352K of highlight.js into the chunk every item drawer loads, to
+       colour the occasional command in a note. If it is ever wanted, `monaco.editor.colorize()` is
+       the option that costs no dependency at all — monaco is already here for `CodeEditor`, and it
+       would match that editor's theme exactly instead of approximating it. The catch is that a note
+       never mounts an editor today, so colouring its fences would pull monaco's CDN payload onto a
+       path that currently needs no editor, asynchronously and per block. */
+    .markdown-preview pre code {
+        padding: 0;
+        border-radius: 0;
+        background: none;
+        font-size: 0.8125rem;
+    }
+
+    .markdown-preview blockquote {
+        margin: 0.7em 0;
+        padding-left: 0.8rem;
+        border-left: 3px solid var(--border);
+        color: var(--muted-foreground);
+    }
+
+    .markdown-preview hr {
+        margin: 1.25em 0;
+        border: 0;
+        border-top: 1px solid var(--border);
+    }
+
+    /* `display: block` is what lets a wide table scroll inside the panel instead of stretching it. */
+    .markdown-preview table {
+        display: block;
+        width: max-content;
+        max-width: 100%;
+        margin: 0.7em 0;
+        border-collapse: collapse;
+        overflow-x: auto;
+        font-size: 0.8125rem;
+    }
+    .markdown-preview th,
+    .markdown-preview td {
+        padding: 0.35rem 0.6rem;
+        border: 1px solid var(--border);
+        text-align: left;
+    }
+    .markdown-preview th {
+        background: var(--muted);
+        font-weight: 600;
+    }
+
+    .markdown-preview img {
+        max-width: 100%;
+        border-radius: var(--radius-md);
+    }
+}

@@ -14,6 +14,7 @@ import type { ItemDetailViewModel, ItemSummaryViewModel } from "@/types/view-mod
 import { CodeEditor } from "./CodeEditor";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
+import { MarkdownEditor } from "./MarkdownEditor";
 import { TypeIcon } from "./TypeIcon";
 
 /**
@@ -73,8 +74,8 @@ export function ItemDrawer({
     const bodyLabel = item.itemType.contentType === "URL" ? "URL" : "Content";
 
     // "Owns a language" is the same thing as "its content is code" — snippets and commands. Notes
-    // and prompts are prose, and keep the plain `<pre>`; a syntax highlighter over English is only
-    // a distraction.
+    // and prompts are prose, and get the markdown editor's rendered preview instead; a syntax
+    // highlighter over English is only a distraction, and English is what people write markdown in.
     const showsCode = itemTypeOwns(item.itemType.name).language;
 
     // The card's summary is what the drawer opens on, but it stops being the truth the moment an
@@ -222,9 +223,11 @@ export function ItemDrawer({
                                             label={`${view.title} content`}
                                         />
                                     ) : (
-                                        <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 font-mono text-xs">
-                                            {detail.content}
-                                        </pre>
+                                        <MarkdownEditor
+                                            value={detail.content}
+                                            readOnly
+                                            label={`${view.title} content`}
+                                        />
                                     )
                                 ) : (
                                     <p className="text-sm text-muted-foreground">No content.</p>
