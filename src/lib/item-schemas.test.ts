@@ -83,6 +83,27 @@ describe("updateItemSchema", () => {
         it("clears rather than rejects when the field is emptied", () => {
             expect(parse({ ...base, url: "" }).url).toBeNull();
         });
+
+        /**
+         * `z.url()` on its own accepts every one of these — it checks shape, and the WHATWG parser
+         * behind it is happy with any scheme. `ItemDrawer` renders the stored value as `href`, so a
+         * saved `javascript:` URL runs on this origin when the link is clicked. These pin the
+         * `protocol` bound so a Zod upgrade or a rewrite of `optionalUrl` cannot drop it quietly.
+         */
+        it.each([
+            "javascript:alert(document.cookie)",
+            "JaVaScRiPt:alert(1)",
+            "data:text/html,<script>alert(1)</script>",
+            "vbscript:msgbox(1)",
+            "file:///etc/passwd",
+        ])("refuses %s", (url) => {
+            expect(firstError({ ...base, url })).toBe("Enter a valid URL.");
+        });
+
+        it("still accepts both schemes a link may use, in any case", () => {
+            expect(parse({ ...base, url: "http://example.com" }).url).toBe("http://example.com");
+            expect(parse({ ...base, url: "HTTPS://Example.com" }).url).toBe("HTTPS://Example.com");
+        });
     });
 
     describe("tags", () => {
@@ -268,6 +289,14 @@ describe("createItemSchema", () => {
 
         it("still checks the shape of one that was given", () => {
             expect(errorFor({ ...newItem, type: "link", url: "not a url" }, "url")).toBe(
+                "Enter a valid URL.",
+            );
+        });
+
+        it("refuses a scheme a link may not use", () => {
+            // The same `optionalUrl` the edit path uses, asserted here too because this is the path
+            // that puts a URL in the column in the first place.
+            expect(errorFor({ ...newItem, type: "link", url: "javascript:alert(1)" }, "url")).toBe(
                 "Enter a valid URL.",
             );
         });

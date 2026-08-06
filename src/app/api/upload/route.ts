@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { isFileItemTypeName, validateUpload } from "@/lib/file-constraints";
 import { canAccessItemType } from "@/lib/limits";
 import { buildObjectKey, putObject } from "@/lib/r2";
+import { checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/server/current-user";
 
 /**
@@ -24,6 +25,12 @@ import { getCurrentUser } from "@/server/current-user";
  */
 export async function POST(request: Request) {
     const user = await getCurrentUser();
+
+    // Before the body is read, so a refused caller does not get to stream 10 MB in first. Keyed on
+    // the account rather than the IP because this route is behind the session — see `LIMITS`.
+    const limit = await checkRateLimit("upload", user.id);
+
+    if (!limit.success) return tooManyRequests(limit);
 
     const form = await request.formData().catch(() => null);
 

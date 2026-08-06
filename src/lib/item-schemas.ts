@@ -31,7 +31,26 @@ const blankToNull = (value: unknown) => (typeof value === "string" ? value.trim(
 
 const optionalText = z.preprocess(blankToNull, z.string().nullable().optional());
 
-const optionalUrl = z.preprocess(blankToNull, z.url("Enter a valid URL.").nullable().optional());
+/**
+ * A link item's URL, restricted to the two schemes a link is allowed to be.
+ *
+ * `z.url()` alone validates *shape*, not scheme: it accepts `javascript:`, `data:`, `vbscript:` and
+ * `file:` as readily as `https:`, because the WHATWG parser it defers to does. `ItemDrawer` renders
+ * the stored value as `href`, so without the `protocol` bound a saved `javascript:` URL executes on
+ * this origin the moment the link is clicked — stored XSS, reachable through both the create and the
+ * edit path, since both use this field.
+ *
+ * Only the owner can open their own item's drawer, so today this is self-inflicted. It is bounded
+ * anyway because it costs one regular expression, and because it stops being self-inflicted the
+ * moment an item is shared or exported into any other surface.
+ */
+const optionalUrl = z.preprocess(
+    blankToNull,
+    z
+        .url({ protocol: /^https?$/, error: "Enter a valid URL." })
+        .nullable()
+        .optional(),
+);
 
 /**
  * Tags arrive as an array the drawer split out of a comma-separated input, so blanks ("a,,b") and
