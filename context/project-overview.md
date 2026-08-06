@@ -284,6 +284,7 @@ devstash/
 │   │   │   ├── auth/verify-email/   # confirm a link, or resend one
 │   │   │   ├── auth/forgot-password/# request a reset link
 │   │   │   ├── auth/reset-password/ # spend a reset token
+│   │   │   ├── auth/stale-session/  # clear a cookie whose account no longer exists
 │   │   │   ├── items/[id]/      # item detail the drawer fetches (404 vs retryable)
 │   │   │   ├── collections/     # (planned)
 │   │   │   ├── upload/          # stores one file/image object in R2, returns its key
@@ -313,8 +314,13 @@ devstash/
 │   │   ├── auth-schemas.ts      # Zod contracts for sign-in and registration
 │   │   ├── auth-errors.ts       # client-safe messages for Auth.js `error` codes
 │   │   ├── auth-redirects.ts    # signed-out route sets + callback-URL validation
+│   │   ├── rate-limit.ts        # sliding windows on the auth entry points; `server-only`
 │   │   ├── email.ts             # Resend client, link building, transactional templates
+│   │   ├── item-schemas.ts      # Zod contracts for item writes, and what each type owns
 │   │   ├── limits.ts            # item-type entitlement policy
+│   │   ├── format.ts            # dates and file sizes, formatted for display
+│   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
+│   │   ├── code-language.ts     # free-text `Item.language` → a Monaco language id
 │   │   ├── utils.ts             # `cn` class merging
 │   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
@@ -323,7 +329,8 @@ devstash/
 │   │   └── stripe.ts            # (planned) Stripe client
 │   ├── actions/                 # Server Actions for mutations
 │   │   ├── auth.ts              # sign-in / sign-out
-│   │   └── account.ts           # change password, delete account
+│   │   ├── account.ts           # change password, delete account
+│   │   └── items.ts             # create, update, and delete an item
 │   ├── server/                  # server-only queries, repositories, and view-model preparation
 │   │   ├── items.ts             # item reads + item-type pages
 │   │   ├── collections.ts       # collection reads
