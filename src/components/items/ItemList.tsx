@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
+import { CopyItemButton } from "./CopyItemButton";
 import { FileRow } from "./FileRow";
 import { ImageCard } from "./ImageCard";
 import { ItemCard } from "./ItemCard";
@@ -74,6 +75,24 @@ export function ItemList({
                         >
                             <span className="sr-only">Open {item.title}</span>
                         </button>
+                        {/* After the trigger, not inside the card: the trigger is `inset-0`, so
+                            anything under it in the stack can never be clicked, and two positioned
+                            siblings paint in document order — which is all the layering this needs.
+
+                            It sits where the card's timestamp is, and the timestamp fades out as
+                            this fades in, so hovering a card swaps the date for what you can do to
+                            it. `group-focus-within` is what gives the same swap to the keyboard,
+                            where focusing the trigger is the equivalent of pointing at the card.
+
+                            Cards only. A file row and a gallery tile are different shapes with no
+                            corner spare, and the request was for the item card; the button itself
+                            already declines any item with nothing to copy. */}
+                        {variant === "card" && (
+                            <CopyItemButton
+                                item={item}
+                                className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                            />
+                        )}
                     </div>
                 ))}
             </div>
