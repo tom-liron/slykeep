@@ -6,8 +6,7 @@ import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateItem } from "@/actions/items";
-import { CodeEditor } from "@/components/items/CodeEditor";
-import { MarkdownEditor } from "@/components/items/MarkdownEditor";
+import { ContentField, LanguageField, TagsField } from "@/components/items/ItemFormFields";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
@@ -133,45 +132,24 @@ export function ItemEditForm({
                 />
             </Field>
 
-            {/* Above the content, not below it: the language is what the editor highlights by, so
-                asking for it after the code has been written is asking too late. */}
             {showsLanguage && (
-                <Field id="item-language" label="Language" error={fieldErrors.language}>
-                    <Input
-                        id="item-language"
-                        value={language}
-                        onChange={(event) => setLanguage(event.target.value)}
-                        placeholder="e.g. typescript"
-                        {...invalid("language")}
-                    />
-                </Field>
+                <LanguageField
+                    id="item-language"
+                    value={language}
+                    onChange={setLanguage}
+                    error={fieldErrors.language}
+                />
             )}
 
             {showsContent && (
-                <Field id="item-content" label="Content" error={fieldErrors.content}>
-                    {/* Code gets the code editor, prose gets the markdown one. `showsLanguage` is
-                        the same predicate the drawer reads, so an item is never edited in one and
-                        displayed in the other. The language is live: retyping it re-highlights as
-                        you go. */}
-                    {showsLanguage ? (
-                        <CodeEditor
-                            id="item-content"
-                            label="Content"
-                            value={content}
-                            language={language}
-                            onChange={setContent}
-                            {...invalid("content")}
-                        />
-                    ) : (
-                        <MarkdownEditor
-                            id="item-content"
-                            label="Content"
-                            value={content}
-                            onChange={setContent}
-                            {...invalid("content")}
-                        />
-                    )}
-                </Field>
+                <ContentField
+                    id="item-content"
+                    value={content}
+                    onChange={setContent}
+                    language={language}
+                    isCode={showsLanguage}
+                    error={fieldErrors.content}
+                />
             )}
 
             {showsUrl && (
@@ -202,20 +180,7 @@ export function ItemEditForm({
                 </div>
             )}
 
-            <Field
-                id="item-tags"
-                label="Tags"
-                error={fieldErrors.tags}
-                hint="Separate tags with commas."
-            >
-                <Input
-                    id="item-tags"
-                    value={tags}
-                    onChange={(event) => setTags(event.target.value)}
-                    placeholder="e.g. react, hooks"
-                    {...invalid("tags")}
-                />
-            </Field>
+            <TagsField id="item-tags" value={tags} onChange={setTags} error={fieldErrors.tags} />
         </form>
     );
 }
