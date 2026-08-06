@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { FILE_CONSTRAINTS } from "./file-constraints";
-import { filePreviewFor, isInlineDisposition, TEXT_PREVIEW_MAX_BYTES } from "./file-preview";
+import {
+    filePreviewFor,
+    isInlineDisposition,
+    isRenderableImage,
+    TEXT_PREVIEW_MAX_BYTES,
+} from "./file-preview";
 
 /** Small enough to be rendered, so each case varies only the name. */
 const small = 1024;
@@ -86,6 +91,28 @@ describe("filePreviewFor", () => {
 
     it("has nothing to show for a format it does not know", () => {
         expect(filePreviewFor({ name: "archive.zip", size: small }).kind).toBe("none");
+    });
+});
+
+describe("isRenderableImage", () => {
+    it("accepts every uploadable image format except SVG", () => {
+        // The gallery puts these in an `<img>`, so this list has to track the upload rules: a newly
+        // permitted format that is missing here would show as an icon tile instead of a picture.
+        for (const extension of FILE_CONSTRAINTS.image.extensions) {
+            expect(isRenderableImage(`photo${extension}`)).toBe(extension !== ".svg");
+        }
+    });
+
+    it("never renders an SVG, whatever its case", () => {
+        expect(isRenderableImage("LOGO.SVG")).toBe(false);
+    });
+
+    it("agrees with the drawer, which renders exactly what this accepts", () => {
+        for (const name of ["a.png", "a.svg", "a.pdf", "a.md", "archive.zip"]) {
+            expect(isRenderableImage(name)).toBe(
+                filePreviewFor({ name, size: small }).kind === "image",
+            );
+        }
     });
 });
 

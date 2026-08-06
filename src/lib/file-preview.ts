@@ -49,6 +49,18 @@ const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
 
+/**
+ * Whether this object may be put in an `<img>`.
+ *
+ * Every uploadable image extension except `.svg`, which the gallery and the drawer both have to
+ * exclude for the reason `isInlineDisposition` gives — and which is why this is a name-only check
+ * rather than `filePreviewFor(...).kind === "image"`. That answer also depends on the file's *size*,
+ * and a thumbnail must not disappear because a picture grew.
+ */
+export function isRenderableImage(fileName: string): boolean {
+    return IMAGE_EXTENSIONS.includes(extensionOf(fileName));
+}
+
 export type FilePreview = { kind: FilePreviewKind; language: string };
 
 /** What the drawer should render for this object. */
@@ -59,7 +71,7 @@ export function filePreviewFor(file: { name: string; size: number }): FilePrevie
         return { kind: "pdf", language: "" };
     }
 
-    if (IMAGE_EXTENSIONS.includes(extension)) {
+    if (isRenderableImage(file.name)) {
         return { kind: "image", language: "" };
     }
 
@@ -99,7 +111,7 @@ export function isInlineDisposition(fileName: string): boolean {
 
     return (
         extension === ".pdf" ||
-        IMAGE_EXTENSIONS.includes(extension) ||
+        isRenderableImage(fileName) ||
         extension === ".md" ||
         extension in CODE_LANGUAGE_BY_EXTENSION
     );
