@@ -15,7 +15,15 @@ export interface ItemTypeViewModel {
     isPro: boolean;
 }
 
-/** Item data prepared for cards and lists, independent of the persistence layer. */
+/**
+ * Item data prepared for cards and lists, independent of the persistence layer.
+ *
+ * The file pair and `createdAt` live here rather than only on the detail model because the file list
+ * describes an item by its object — name, size, and the date it was uploaded — before anything has
+ * been opened. They are three small scalars, not a body: the rule that list queries never read
+ * `content` / `url` / `fileKey` is unchanged. Every non-FILE item carries the empty values, the same
+ * way the detail model has always described an item whose content lives in a different column.
+ */
 export interface ItemSummaryViewModel {
     id: string;
     title: string;
@@ -24,6 +32,11 @@ export interface ItemSummaryViewModel {
     isFavorite: boolean;
     isPinned: boolean;
     updatedAt: string;
+    createdAt: string;
+    /** Original filename of a FILE item's object. Empty when the item has no file. */
+    fileName: string;
+    /** Size of that object in bytes. Zero when the item has no file. */
+    fileSize: number;
     itemType: ItemTypeViewModel;
 }
 
@@ -35,25 +48,20 @@ export interface ItemSummaryViewModel {
  * this type is separate at all: list queries deliberately never select `content` / `url`, so this is
  * the only item view model that carries one.
  *
- * `content`, `url`, and the file pair are all present because which one holds the body is decided by
- * the item's content type — `itemType.contentType` says which to read, and the others are empty.
- *
- * A FILE item is described by its object's name and size and nothing else. The R2 key is deliberately
- * absent: the drawer reads the object from `/api/files/<item id>`, which resolves the key itself from
- * a row it has already authorized, so sending one to the browser would only invite it back as input.
+ * `content` and `url` are both present because which one holds the body is decided by the item's
+ * content type — `itemType.contentType` says which to read, and the other is empty. A FILE item's
+ * object is already described by the summary's `fileName` / `fileSize`; the R2 key is deliberately
+ * absent everywhere: the drawer reads the object from `/api/files/<item id>`, which resolves the key
+ * itself from a row it has already authorized, so sending one to the browser would only invite it
+ * back as input.
  */
 export interface ItemDetailViewModel extends ItemSummaryViewModel {
     content: string;
     url: string;
-    /** Original filename of a FILE item's object. Empty when the item has no file. */
-    fileName: string;
-    /** Size of that object in bytes. Zero when the item has no file. */
-    fileSize: number;
     /** Code language for a TEXT item, e.g. "typescript". Empty when the item declares none. */
     language: string;
     /** Names of the collections holding this item. Empty when it belongs to none. */
     collections: string[];
-    createdAt: string;
 }
 
 /**

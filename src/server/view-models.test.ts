@@ -52,6 +52,9 @@ function makeItem(id: string, itemTypeId: string, updatedAt: string): ItemSummar
         isFavorite: false,
         isPinned: false,
         updatedAt: new Date(`${updatedAt}T00:00:00Z`),
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+        fileName: null,
+        fileSize: null,
     };
 }
 
@@ -100,7 +103,6 @@ describe("item detail view models", () => {
             url: null,
             language: null,
             collections: [],
-            createdAt: new Date("2026-01-01T00:00:00Z"),
             ...overrides,
         };
     }
@@ -211,6 +213,33 @@ describe("collection view models", () => {
         );
 
         expect(summary.updatedAt).toBe("2026-01-01T00:00:00.000Z");
+        expect(summary.createdAt).toBe("2026-01-01T00:00:00.000Z");
+    });
+
+    it("normalizes the file pair for an item that has no object", () => {
+        // Every non-FILE item takes this path, and the file row reads both fields unconditionally,
+        // so null must never reach it.
+        const summary = buildItemSummaryViewModel(
+            makeItem("item", typeId("snippet"), "2026-01-01"),
+            itemTypesById,
+        );
+
+        expect(summary.fileName).toBe("");
+        expect(summary.fileSize).toBe(0);
+    });
+
+    it("carries a file item's name and size onto the summary", () => {
+        const summary = buildItemSummaryViewModel(
+            {
+                ...makeItem("item", typeId("file"), "2026-01-01"),
+                fileName: "docker-compose.yml",
+                fileSize: 2048,
+            },
+            itemTypesById,
+        );
+
+        expect(summary.fileName).toBe("docker-compose.yml");
+        expect(summary.fileSize).toBe(2048);
     });
 
     it("sorts records by updatedAt without mutating the input", () => {

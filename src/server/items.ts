@@ -18,10 +18,16 @@ import {
 } from "./view-models";
 
 /**
- * Only the columns a card reads — never an item body (`content` / `url` / `fileKey`), which keeps
- * list queries off the large content columns. `tags` is joined as names, flattened below.
+ * Only the columns a card or file row reads — never an item body (`content` / `url` / `fileKey`),
+ * which keeps list queries off the large content columns. `tags` is joined as names, flattened below.
+ *
+ * `fileName`, `fileSize`, and `createdAt` are read here rather than only for the drawer because the
+ * file list describes each object by its name, size, and upload date without opening anything. They
+ * are three narrow scalars on a row already being read — and still never the object's key, which no
+ * client has a use for: a file is addressed as `/api/files/[id]`, so the key stays server-side and
+ * cannot be handed back to us as if it had been checked.
  */
-const ITEM_SUMMARY_SELECT = {
+export const ITEM_SUMMARY_SELECT = {
     id: true,
     title: true,
     description: true,
@@ -29,6 +35,9 @@ const ITEM_SUMMARY_SELECT = {
     isFavorite: true,
     isPinned: true,
     updatedAt: true,
+    createdAt: true,
+    fileName: true,
+    fileSize: true,
     tags: { select: { name: true } },
 } as const;
 
@@ -43,12 +52,6 @@ const ITEM_DETAIL_SELECT = {
     content: true,
     url: true,
     language: true,
-    // The object's name and size, but never its key: the drawer addresses a file as `/api/files/[id]`
-    // and has no use for one, so the key stays server-side and cannot be handed back to us as if it
-    // had been checked.
-    fileName: true,
-    fileSize: true,
-    createdAt: true,
     collections: { select: { collection: { select: { name: true } } } },
 } as const;
 
