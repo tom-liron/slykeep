@@ -5,26 +5,22 @@ import { Tabs as TabsPrimitive } from "radix-ui";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_SURFACE } from "@/config/editor";
 import { cn } from "@/lib/utils";
 
-/**
- * The panel both halves sit on. A literal, and the same one `CodeEditor` declares: the two editors
- * are the app's two content surfaces and have to look like a matched pair, which they only do if
- * they agree on the colour. `#171717` is what `--card` resolves to in dark mode.
- */
-const SURFACE = "#171717";
+// The panel both halves sit on, shared with `CodeEditor` through `config/editor.ts`.
+const SURFACE = EDITOR_SURFACE;
+
+/** Shared by both tabs, so a note reads the same however it is being looked at. */
+const PANEL = "editor-scrollbar overflow-y-auto";
 
 /**
- * Shared by both tabs, so a note reads the same however it is being looked at.
- *
  * The floor and ceiling are `CodeEditor`'s, so switching an item's type does not change how much of
- * the drawer its content takes: below the floor a one-line note would be a mostly-empty box, above
- * the ceiling the panel scrolls itself rather than pushing the rest of the drawer off screen. Past
- * that ceiling is exactly when `editor-scrollbar` matters — see `globals.css`, which repaints the
- * native scrollbar in monaco's colours so the two editors do not sit side by side in a drawer with
- * different furniture.
+ * the drawer its content takes. Inline rather than Tailwind's `min-h-[76px]`, because the value now
+ * comes from a module and Tailwind cannot generate a class from one — the documented exception in
+ * `coding-standards.md`, and the same reason it stops being a number written twice.
  */
-const PANEL = "editor-scrollbar min-h-[76px] max-h-[400px] overflow-y-auto";
+const PANEL_BOUNDS = { minHeight: EDITOR_MIN_HEIGHT, maxHeight: EDITOR_MAX_HEIGHT };
 
 /**
  * A markdown editor for the item types whose content is prose — notes and prompts.
@@ -107,6 +103,7 @@ export function MarkdownEditor({
                         placeholder={placeholder}
                         aria-label={label}
                         spellCheck={false}
+                        style={PANEL_BOUNDS}
                         className={cn(
                             PANEL,
                             "block w-full resize-none bg-transparent px-3 py-3 font-mono text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground",
@@ -118,7 +115,11 @@ export function MarkdownEditor({
                 </TabsPrimitive.Content>
             )}
 
-            <TabsPrimitive.Content value="preview" className={cn(PANEL, "px-3 py-3")}>
+            <TabsPrimitive.Content
+                value="preview"
+                style={PANEL_BOUNDS}
+                className={cn(PANEL, "px-3 py-3")}
+            >
                 {value.trim() ? (
                     <div className="markdown-preview">
                         {/* Fenced code is not syntax highlighted, deliberately. `rehype-highlight`
