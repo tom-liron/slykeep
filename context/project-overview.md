@@ -342,7 +342,8 @@ devstash/
 │   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
 │   │   ├── view-models.ts       # persistence-independent view-model builders
 │   │   └── search.ts            # (planned)
-│   ├── hooks/                   # (planned)
+│   ├── hooks/
+│   │   └── use-file-upload.ts   # the XHR upload behind the file field, and its progress
 │   ├── types/
 │   │   ├── item-type.ts         # item-type contracts
 │   │   ├── view-models.ts       # persistence-independent UI models
@@ -352,6 +353,7 @@ devstash/
 │   └── config/
 │       ├── access.ts            # temporary feature-entitlement configuration
 │       ├── dashboard.ts         # dashboard presentation values
+│       ├── editor.ts            # the surface and height bounds both content editors share
 │       └── item-type-catalog.ts # built-in item types: colors, icons, routes
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed

@@ -6,9 +6,8 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { createItem } from "@/actions/items";
-import { CodeEditor } from "@/components/items/CodeEditor";
-import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
-import { MarkdownEditor } from "@/components/items/MarkdownEditor";
+import { FileUpload } from "@/components/items/FileUpload";
+import { ContentField, LanguageField, TagsField } from "@/components/items/ItemFormFields";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +24,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import type { UploadedFile } from "@/hooks/use-file-upload";
 import { isFileItemTypeName } from "@/lib/file-constraints";
 import {
     CREATABLE_ITEM_TYPE_NAMES,
@@ -280,45 +280,25 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     </Field>
                 )}
 
-                {/* Above the content, as in the edit form: the language is what the editor
-                    highlights by, so it has to be answerable before the code is pasted. */}
                 {showsLanguage && (
-                    <Field id="new-item-language" label="Language" error={fieldErrors.language}>
-                        <Input
-                            id="new-item-language"
-                            value={language}
-                            onChange={(event) => setLanguage(event.target.value)}
-                            placeholder="e.g. typescript"
-                            {...invalid("language")}
-                        />
-                    </Field>
+                    <LanguageField
+                        id="new-item-language"
+                        value={language}
+                        onChange={setLanguage}
+                        error={fieldErrors.language}
+                    />
                 )}
 
                 {showsContent && (
-                    <Field id="new-item-content" label="Content" error={fieldErrors.content}>
-                        {/* Code gets the code editor, prose gets the markdown one — the same split
-                            the edit form and the drawer make, off the same predicate. */}
-                        {showsLanguage ? (
-                            <CodeEditor
-                                id="new-item-content"
-                                label="Content"
-                                value={content}
-                                language={language}
-                                onChange={setContent}
-                                placeholder={PLACEHOLDERS[type].content}
-                                {...invalid("content")}
-                            />
-                        ) : (
-                            <MarkdownEditor
-                                id="new-item-content"
-                                label="Content"
-                                value={content}
-                                onChange={setContent}
-                                placeholder={PLACEHOLDERS[type].content}
-                                {...invalid("content")}
-                            />
-                        )}
-                    </Field>
+                    <ContentField
+                        id="new-item-content"
+                        value={content}
+                        onChange={setContent}
+                        language={language}
+                        isCode={showsLanguage}
+                        error={fieldErrors.content}
+                        placeholder={PLACEHOLDERS[type].content}
+                    />
                 )}
 
                 <Field
@@ -336,20 +316,12 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     />
                 </Field>
 
-                <Field
+                <TagsField
                     id="new-item-tags"
-                    label="Tags"
+                    value={tags}
+                    onChange={setTags}
                     error={fieldErrors.tags}
-                    hint="Separate tags with commas."
-                >
-                    <Input
-                        id="new-item-tags"
-                        value={tags}
-                        onChange={(event) => setTags(event.target.value)}
-                        placeholder="e.g. react, hooks"
-                        {...invalid("tags")}
-                    />
-                </Field>
+                />
             </div>
 
             <DialogFooter className="mt-4">
