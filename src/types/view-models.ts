@@ -35,13 +35,20 @@ export interface ItemSummaryViewModel {
  * this type is separate at all: list queries deliberately never select `content` / `url`, so this is
  * the only item view model that carries one.
  *
- * `content` and `url` are both present because which one holds the body is decided by the item's
- * content type — `itemType.contentType` says which to read, and the other is an empty string. File
- * items have neither; uploads are Phase 4, and nothing can create one yet.
+ * `content`, `url`, and the file pair are all present because which one holds the body is decided by
+ * the item's content type — `itemType.contentType` says which to read, and the others are empty.
+ *
+ * A FILE item is described by its object's name and size and nothing else. The R2 key is deliberately
+ * absent: the drawer reads the object from `/api/files/<item id>`, which resolves the key itself from
+ * a row it has already authorized, so sending one to the browser would only invite it back as input.
  */
 export interface ItemDetailViewModel extends ItemSummaryViewModel {
     content: string;
     url: string;
+    /** Original filename of a FILE item's object. Empty when the item has no file. */
+    fileName: string;
+    /** Size of that object in bytes. Zero when the item has no file. */
+    fileSize: number;
     /** Code language for a TEXT item, e.g. "typescript". Empty when the item declares none. */
     language: string;
     /** Names of the collections holding this item. Empty when it belongs to none. */

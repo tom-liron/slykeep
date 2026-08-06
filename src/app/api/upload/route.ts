@@ -1,0 +1,77 @@
+import { NextResponse } from "next/server";
+
+import { isFileItemTypeName, validateUpload } from "@/lib/file-constraints";
+import { canAccessItemType } from "@/lib/limits";
+import { buildObjectKey, putObject } from "@/lib/r2";
+import { getCurrentUser } from "@/server/current-user";
+
+/**
+ * Takes one file for a `file` or `image` item and puts it in R2.
+ *
+ * A route handler rather than a Server Action, by the standards' rule: this is a file upload with
+ * progress tracking, and progress is only observable on an `XMLHttpRequest`, which needs a URL. The
+ * item row itself is still written by `createItem` — this route stores the object and hands back the
+ * key, and the dialog submits that key with the rest of the form.
+ *
+ * Which means the key is client input by the time it comes back. `createItem` re-checks it against
+ * the signed-in user (`isOwnedKey`) rather than trusting the round trip; nothing here can prevent
+ * that, because nothing here is what writes the row.
+ *
+ * The upload deliberately happens before the item exists. The alternative — create the row, then
+ * upload — leaves a file item with no file on screen whenever the upload fails, which is worse than
+ * this one's failure mode: an object in R2 that no row points at. Those orphans are accepted (see
+ * `context/current-feature.md`); a sweep is a later chore.
+ */
+export async function POST(request: Request) {
+    const user = await getCurrentUser();
+
+    const form = await request.formData().catch(() => null);
+
+    if (!form) {
+        return NextResponse.json({ error: "Send the file as form data." }, { status: 400 });
+    }
+
+    const file = form.get("file");
+    const itemType = form.get("itemType");
+
+    if (!(file instanceof File)) {
+        return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
+    }
+
+    if (typeof itemType !== "string" || !isFileItemTypeName(itemType)) {
+        return NextResponse.json({ error: "Unknown item type." }, { status: 400 });
+    }
+
+    // The same gate the item-type pages read, so an upload cannot be the one way past a limit the
+    // rest of the app enforces. `ENFORCE_PRO_LIMITS` is false during development, which is what
+    // keeps file and image usable without a Pro account for now.
+    if (!canAccessItemType(user.isPro, true)) {
+        return NextResponse.json(
+            { error: "File uploads require a Pro subscription." },
+            { status: 403 },
+        );
+    }
+
+    // Size, extension, and — when the browser supplied one — media type. This is the authority; the
+    // component runs the same check first only to fail fast on an obviously wrong file.
+    const validation = validateUpload(file, itemType);
+
+    if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const key = buildObjectKey(user.id, file.name);
+
+    try {
+        await putObject(key, Buffer.from(await file.arrayBuffer()), validation.contentType);
+    } catch (error) {
+        console.error("R2 upload failed:", error);
+
+        return NextResponse.json(
+            { error: "Could not upload that file. Try again." },
+            { status: 502 },
+        );
+    }
+
+    return NextResponse.json({ key, fileName: file.name, fileSize: file.size });
+}

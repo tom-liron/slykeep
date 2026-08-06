@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { formatFileSize } from "@/lib/format";
 import { itemTypeOwns, type UpdateItemField, type UpdateItemInput } from "@/lib/item-schemas";
 import type { ItemDetailViewModel } from "@/types/view-models";
 
@@ -50,6 +51,7 @@ export function ItemEditForm({
     const {
         content: showsContent,
         url: showsUrl,
+        file: showsFile,
         language: showsLanguage,
     } = itemTypeOwns(detail.itemType.name);
 
@@ -182,6 +184,22 @@ export function ItemEditForm({
                         {...invalid("url")}
                     />
                 </Field>
+            )}
+
+            {/* Shown, but not editable: replacing an item's object is its own change, for the
+                ordering reason `updateItemSchema` states. Rendering nothing at all would read as a
+                file item having lost its file. */}
+            {showsFile && detail.fileName && (
+                <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">File</p>
+                    <div className="rounded-lg border border-border bg-muted/40 p-3">
+                        <p className="truncate text-sm font-medium">{detail.fileName}</p>
+                        <p className="text-xs text-muted-foreground">
+                            {formatFileSize(detail.fileSize)} · replacing a file is not supported
+                            yet
+                        </p>
+                    </div>
+                </div>
             )}
 
             <Field

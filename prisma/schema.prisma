@@ -102,7 +102,7 @@ model Item {
   contentType ContentType // discriminates the three fields below
   content     String? // TEXT items
   url         String? // URL items
-  fileUrl     String? // FILE items — Cloudflare R2 object
+  fileKey     String? // FILE items — Cloudflare R2 object key, never a URL
   fileName    String? // FILE items — original filename
   fileSize    Int? // FILE items — bytes
   description String?

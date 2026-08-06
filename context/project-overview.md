@@ -284,9 +284,10 @@ devstash/
 │   │   │   ├── auth/verify-email/   # confirm a link, or resend one
 │   │   │   ├── auth/forgot-password/# request a reset link
 │   │   │   ├── auth/reset-password/ # spend a reset token
-│   │   │   ├── items/           # (planned)
+│   │   │   ├── items/[id]/      # item detail the drawer fetches (404 vs retryable)
 │   │   │   ├── collections/     # (planned)
-│   │   │   ├── upload/          # (planned) R2 presigned URLs / uploads
+│   │   │   ├── upload/          # stores one file/image object in R2, returns its key
+│   │   │   ├── files/[id]/      # streams an item's object back, authorized per request
 │   │   │   ├── ai/              # (planned) tag, summarize, explain, optimize
 │   │   │   ├── export/          # (planned) JSON / ZIP
 │   │   │   └── stripe/          # (planned) checkout + webhook
@@ -295,7 +296,7 @@ devstash/
 │   ├── components/
 │   │   ├── ui/                  # shared UI primitives and presentational components
 │   │   ├── auth/                # sign-in, register, reset, and verification forms
-│   │   ├── items/               # item card, list, detail drawer, edit form, create dialog
+│   │   ├── items/               # item card, list, detail drawer, edit form, create dialog, upload
 │   │   ├── collections/         # collection card and page composition
 │   │   ├── dashboard/           # stat card
 │   │   ├── profile/             # change-password form, delete-account dialog
@@ -315,7 +316,9 @@ devstash/
 │   │   ├── email.ts             # Resend client, link building, transactional templates
 │   │   ├── limits.ts            # item-type entitlement policy
 │   │   ├── utils.ts             # `cn` class merging
-│   │   ├── r2.ts                # (planned) Cloudflare R2 client
+│   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
+│   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
+│   │   ├── file-preview.ts      # which viewer a file opens in, and what may be served inline
 │   │   ├── openai.ts            # (planned) AI client + prompt helpers
 │   │   └── stripe.ts            # (planned) Stripe client
 │   ├── actions/                 # Server Actions for mutations

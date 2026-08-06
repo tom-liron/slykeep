@@ -18,7 +18,7 @@ import {
 } from "./view-models";
 
 /**
- * Only the columns a card reads — never an item body (`content` / `url` / `fileUrl`), which keeps
+ * Only the columns a card reads — never an item body (`content` / `url` / `fileKey`), which keeps
  * list queries off the large content columns. `tags` is joined as names, flattened below.
  */
 const ITEM_SUMMARY_SELECT = {
@@ -43,6 +43,11 @@ const ITEM_DETAIL_SELECT = {
     content: true,
     url: true,
     language: true,
+    // The object's name and size, but never its key: the drawer addresses a file as `/api/files/[id]`
+    // and has no use for one, so the key stays server-side and cannot be handed back to us as if it
+    // had been checked.
+    fileName: true,
+    fileSize: true,
     createdAt: true,
     collections: { select: { collection: { select: { name: true } } } },
 } as const;
@@ -123,6 +128,29 @@ export async function getItemDetail(id: string): Promise<ItemDetailViewModel | u
         },
         itemTypesById,
     );
+}
+
+/**
+ * The R2 object behind one item, for `GET /api/files/[id]`.
+ *
+ * The whole authorization story for a file lives in this `where`: the key is read from a row that
+ * belongs to the signed-in user, so a caller can only ever name an *item*, never an object. An item
+ * that is someone else's, does not exist, or has no file are all the same `undefined` — the same
+ * rule `getItemDetail` follows.
+ */
+export async function getItemFile(id: string): Promise<{ key: string; name: string } | undefined> {
+    const userId = await getCurrentUserId();
+
+    const row = await prisma.item.findFirst({
+        where: { id, userId },
+        select: { fileKey: true, fileName: true },
+    });
+
+    if (!row?.fileKey) {
+        return undefined;
+    }
+
+    return { key: row.fileKey, name: row.fileName ?? "download" };
 }
 
 /**

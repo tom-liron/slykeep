@@ -77,6 +77,13 @@ const title = z
     .min(1, "Title is required.")
     .max(TITLE_MAX_LENGTH, `Title must be at most ${TITLE_MAX_LENGTH} characters.`);
 
+/**
+ * There are no file fields here, deliberately: an uploaded object cannot be replaced from the
+ * drawer. Doing so is the one item mutation with an ordering hazard — the old object may only be
+ * deleted once the row has committed, or a failed write leaves the item pointing at nothing — and it
+ * is not what the spec asked for, so it gets its own change rather than riding along with this one.
+ * The edit form shows a file item's object read-only; everything else about the item still edits.
+ */
 export const updateItemSchema = z.object({
     title,
     description: optionalText,
@@ -107,14 +114,14 @@ export type UpdateItemInput = {
 export type UpdateItemField = keyof UpdateItemInput;
 
 /**
- * The types the create dialog offers. `file` and `image` are absent rather than Pro-gated: their
- * content is an R2 object and nothing can upload one until Phase 4, so offering them could only
- * produce a FILE item with no file. A unit test pins this list against the catalog, so a type added
- * there is not silently left out here.
+ * The types the create dialog offers — now every system type. `file` and `image` were held back
+ * until there was something to upload with; `FileUpload` and `POST /api/upload` are that. A unit
+ * test pins this list against the catalog, so a type added there is not silently left out here.
  */
-const creatableItemTypeName = z.enum(["snippet", "prompt", "command", "note", "link"], {
-    error: "Choose an item type.",
-});
+const creatableItemTypeName = z.enum(
+    ["snippet", "prompt", "command", "note", "link", "file", "image"],
+    { error: "Choose an item type." },
+);
 
 export type CreatableItemTypeName = z.infer<typeof creatableItemTypeName>;
 
@@ -137,6 +144,9 @@ export function itemTypeOwns(name: ItemTypeName) {
     return {
         content: contentType === "TEXT",
         url: contentType === "URL",
+        // The `file` columns travel together — a key with no name would download as a UUID — so one
+        // flag covers `fileKey`, `fileName`, and `fileSize`.
+        file: contentType === "FILE",
         language: TYPES_WITH_LANGUAGE.has(name),
     };
 }
@@ -160,6 +170,9 @@ export const createItemSchema = z
         content: optionalText,
         language: optionalText,
         url: optionalUrl,
+        fileKey: optionalText,
+        fileName: optionalText,
+        fileSize: z.number().int().positive().nullable().optional(),
         tags,
     })
     // A link with no URL is an empty row: `optionalUrl` checks the shape of one that was given, and
@@ -168,19 +181,42 @@ export const createItemSchema = z
         message: "URL is required.",
         path: ["url"],
     })
-    .transform(({ type, title, description, tags, content, url, language }) => {
-        const owns = itemTypeOwns(type);
-
-        return {
+    // The same rule for a file: an image with no object is a card that renders nothing. What the key
+    // may *be* is not decided here — `createItem` checks it against the signed-in user, because only
+    // the server knows who that is.
+    .refine((data) => !itemTypeOwns(data.type).file || Boolean(data.fileKey), {
+        message: "Upload a file first.",
+        path: ["fileKey"],
+    })
+    .transform(
+        ({
             type,
             title,
             description,
             tags,
-            content: owns.content ? content : undefined,
-            url: owns.url ? url : undefined,
-            language: owns.language ? language : undefined,
-        };
-    });
+            content,
+            url,
+            language,
+            fileKey,
+            fileName,
+            fileSize,
+        }) => {
+            const owns = itemTypeOwns(type);
+
+            return {
+                type,
+                title,
+                description,
+                tags,
+                content: owns.content ? content : undefined,
+                url: owns.url ? url : undefined,
+                language: owns.language ? language : undefined,
+                fileKey: owns.file ? fileKey : undefined,
+                fileName: owns.file ? fileName : undefined,
+                fileSize: owns.file ? fileSize : undefined,
+            };
+        },
+    );
 
 /** What the dialog submits: raw strings, with the fields the selected type does not own omitted. */
 export type CreateItemInput = {
@@ -190,6 +226,10 @@ export type CreateItemInput = {
     content?: string | null;
     language?: string | null;
     url?: string | null;
+    /** The three file columns, as `POST /api/upload` returned them. FILE types only. */
+    fileKey?: string | null;
+    fileName?: string | null;
+    fileSize?: number | null;
     tags?: string[];
 };
 
