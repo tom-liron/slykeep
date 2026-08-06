@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
-import { CopyItemButton } from "./CopyItemButton";
+import { CopyItemButton, copyableSourceFor } from "./CopyItemButton";
 import { FileRow } from "./FileRow";
 import { ImageCard } from "./ImageCard";
 import { ItemCard } from "./ItemCard";
@@ -52,49 +52,59 @@ export function ItemList({
     return (
         <>
             <div className={className}>
-                {items.map((item) => (
-                    // `group` so an entry can react to the pointer at all: the trigger below covers
-                    // it and is its sibling, not its parent, so the entry itself never matches
-                    // `:hover` — the thumbnail's zoom is `group-hover`.
-                    <div key={item.id} className="group relative">
-                        {variant === "file" && <FileRow item={item} />}
-                        {variant === "image" && <ImageCard item={item} />}
-                        {variant === "card" && <ItemCard item={item} />}
-                        <button
-                            type="button"
-                            onClick={() => openItem(item)}
-                            className={cn(
-                                "absolute inset-0 cursor-pointer transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                                // Matched to the entry underneath, so the hover tint stops exactly
-                                // where its border curves.
-                                variant === "file" ? "rounded-lg" : "rounded-xl",
-                                // A thumbnail is already lit by its zoom, and a tint over a picture
-                                // reads as the image changing rather than the card responding.
-                                variant === "image" && "hover:bg-transparent",
+                {items.map((item) => {
+                    // Asked here as well as inside `CopyItemButton`, because the card has to know
+                    // too: its timestamp shares the corner the button appears in, and fades out for
+                    // it. A pure lookup over data already in hand, so asking twice costs nothing,
+                    // and the button still decides for itself — it stays usable on its own.
+                    const showsCopy = variant === "card" && copyableSourceFor(item) !== null;
+
+                    return (
+                        // `group` so an entry can react to the pointer at all: the trigger below
+                        // covers it and is its sibling, not its parent, so the entry itself never
+                        // matches `:hover` — the thumbnail's zoom is `group-hover`.
+                        <div key={item.id} className="group relative">
+                            {variant === "file" && <FileRow item={item} />}
+                            {variant === "image" && <ImageCard item={item} />}
+                            {variant === "card" && <ItemCard item={item} showsCopy={showsCopy} />}
+                            <button
+                                type="button"
+                                onClick={() => openItem(item)}
+                                className={cn(
+                                    "absolute inset-0 cursor-pointer transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                                    // Matched to the entry underneath, so the hover tint stops
+                                    // exactly where its border curves.
+                                    variant === "file" ? "rounded-lg" : "rounded-xl",
+                                    // A thumbnail is already lit by its zoom, and a tint over a
+                                    // picture reads as the image changing rather than the card
+                                    // responding.
+                                    variant === "image" && "hover:bg-transparent",
+                                )}
+                            >
+                                <span className="sr-only">Open {item.title}</span>
+                            </button>
+                            {/* After the trigger, not inside the card: the trigger is `inset-0`, so
+                                anything under it in the stack can never be clicked, and two
+                                positioned siblings paint in document order — which is all the
+                                layering this needs.
+
+                                It sits where the card's timestamp is, and the timestamp fades out
+                                as this fades in, so hovering a card swaps the date for what you can
+                                do to it. `group-focus-within` is what gives the same swap to the
+                                keyboard, where focusing the trigger is the equivalent of pointing
+                                at the card.
+
+                                Cards only. A file row and a gallery tile are different shapes with
+                                no corner spare, and the request was for the item card. */}
+                            {showsCopy && (
+                                <CopyItemButton
+                                    item={item}
+                                    className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                                />
                             )}
-                        >
-                            <span className="sr-only">Open {item.title}</span>
-                        </button>
-                        {/* After the trigger, not inside the card: the trigger is `inset-0`, so
-                            anything under it in the stack can never be clicked, and two positioned
-                            siblings paint in document order — which is all the layering this needs.
-
-                            It sits where the card's timestamp is, and the timestamp fades out as
-                            this fades in, so hovering a card swaps the date for what you can do to
-                            it. `group-focus-within` is what gives the same swap to the keyboard,
-                            where focusing the trigger is the equivalent of pointing at the card.
-
-                            Cards only. A file row and a gallery tile are different shapes with no
-                            corner spare, and the request was for the item card; the button itself
-                            already declines any item with nothing to copy. */}
-                        {variant === "card" && (
-                            <CopyItemButton
-                                item={item}
-                                className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-                            />
-                        )}
-                    </div>
-                ))}
+                        </div>
+                    );
+                })}
             </div>
 
             {selected && (
