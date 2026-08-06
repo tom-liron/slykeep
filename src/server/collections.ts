@@ -9,6 +9,7 @@ import type {
     SidebarCollectionsViewModel,
 } from "@/types/view-models";
 import { getCurrentUserId } from "./current-user";
+import { ITEM_SUMMARY_SELECT } from "./items";
 import { getItemTypesById } from "./item-types";
 import {
     buildCollectionViewModel,
@@ -151,22 +152,10 @@ export async function getCollectionPageData(
         where: { id: collectionId, userId },
         select: {
             ...COLLECTION_SELECT,
-            items: {
-                select: {
-                    item: {
-                        select: {
-                            id: true,
-                            title: true,
-                            description: true,
-                            itemTypeId: true,
-                            isFavorite: true,
-                            isPinned: true,
-                            updatedAt: true,
-                            tags: { select: { name: true } },
-                        },
-                    },
-                },
-            },
+            // The same select the item lists use, imported rather than restated: this page builds
+            // the same summary view model, so a copy of the column list here is a copy that silently
+            // falls behind the builder it feeds.
+            items: { select: { item: { select: ITEM_SUMMARY_SELECT } } },
         },
     });
 
