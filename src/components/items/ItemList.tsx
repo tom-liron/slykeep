@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
 import { FileRow } from "./FileRow";
+import { ImageCard } from "./ImageCard";
 import { ItemCard } from "./ItemCard";
 import { ItemDrawer } from "./ItemDrawer";
 
@@ -24,7 +25,8 @@ import { ItemDrawer } from "./ItemDrawer";
  *
  * `variant` picks what an entry looks like, never how the list is arranged — the container classes
  * still arrive as `className`. A file is described by its object rather than summarised by a body, so
- * the files page renders rows; everything else is a card.
+ * the files page renders rows; an image *is* its object, so the images page renders thumbnails;
+ * everything else is a card.
  */
 export function ItemList({
     items,
@@ -33,7 +35,7 @@ export function ItemList({
 }: {
     items: ItemSummaryViewModel[];
     className?: string;
-    variant?: "card" | "file";
+    variant?: "card" | "file" | "image";
 }) {
     // Two pieces of state rather than one, so the drawer can animate out: `open` goes false on
     // close while `selected` keeps rendering the item until the transition finishes. Keying the
@@ -50,8 +52,13 @@ export function ItemList({
         <>
             <div className={className}>
                 {items.map((item) => (
-                    <div key={item.id} className="relative">
-                        {variant === "file" ? <FileRow item={item} /> : <ItemCard item={item} />}
+                    // `group` so an entry can react to the pointer at all: the trigger below covers
+                    // it and is its sibling, not its parent, so the entry itself never matches
+                    // `:hover` — the thumbnail's zoom is `group-hover`.
+                    <div key={item.id} className="group relative">
+                        {variant === "file" && <FileRow item={item} />}
+                        {variant === "image" && <ImageCard item={item} />}
+                        {variant === "card" && <ItemCard item={item} />}
                         <button
                             type="button"
                             onClick={() => openItem(item)}
@@ -60,6 +67,9 @@ export function ItemList({
                                 // Matched to the entry underneath, so the hover tint stops exactly
                                 // where its border curves.
                                 variant === "file" ? "rounded-lg" : "rounded-xl",
+                                // A thumbnail is already lit by its zoom, and a tint over a picture
+                                // reads as the image changing rather than the card responding.
+                                variant === "image" && "hover:bg-transparent",
                             )}
                         >
                             <span className="sr-only">Open {item.title}</span>
