@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatLongDate, getFirstName, getInitials } from "./format";
+import { formatDate, formatFileSize, formatLongDate, getFirstName, getInitials } from "./format";
 
 describe("format helpers", () => {
     it("formats date-only strings consistently in UTC", () => {
@@ -41,5 +41,29 @@ describe("format helpers", () => {
 
     it("handles empty names", () => {
         expect(getFirstName("   ")).toBe("");
+    });
+});
+
+describe("formatFileSize", () => {
+    it("reports bytes below a kilobyte", () => {
+        expect(formatFileSize(0)).toBe("0 B");
+        expect(formatFileSize(1023)).toBe("1023 B");
+    });
+
+    it("keeps one decimal, and drops it when the number is whole", () => {
+        expect(formatFileSize(1024)).toBe("1 KB");
+        expect(formatFileSize(1536)).toBe("1.5 KB");
+        expect(formatFileSize(1_468_006)).toBe("1.4 MB");
+    });
+
+    it("uses binary units, so the upload limits read as the round numbers they are", () => {
+        // The constraints are written as 5 * 1024 * 1024, and the drop zone renders this — "5.2 MB"
+        // next to a rule that says 5 MB would read as a contradiction.
+        expect(formatFileSize(5 * 1024 * 1024)).toBe("5 MB");
+        expect(formatFileSize(10 * 1024 * 1024)).toBe("10 MB");
+    });
+
+    it("stops at gigabytes", () => {
+        expect(formatFileSize(3 * 1024 ** 3)).toBe("3 GB");
     });
 });

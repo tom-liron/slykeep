@@ -54,6 +54,8 @@ export interface ItemSummaryRow {
 export interface ItemDetailRow extends ItemSummaryRow {
     content: string | null;
     url: string | null;
+    fileName: string | null;
+    fileSize: number | null;
     language: string | null;
     collections: readonly string[];
     createdAt: Date;
@@ -169,6 +171,8 @@ export function buildItemDetailViewModel(
         ...buildItemSummaryViewModel(item, itemTypesById),
         content: item.content ?? "",
         url: item.url ?? "",
+        fileName: item.fileName ?? "",
+        fileSize: item.fileSize ?? 0,
         language: item.language ?? "",
         collections: [...item.collections],
         createdAt: item.createdAt.toISOString(),

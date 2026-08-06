@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
+import { SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
 import {
     CREATABLE_ITEM_TYPE_NAMES,
     createItemSchema,
@@ -150,22 +150,72 @@ function errorFor(input: CreateItemInput, field: string): string | undefined {
 
 describe("createItemSchema", () => {
     describe("type", () => {
-        it("offers exactly the catalog types that do not store a file", () => {
-            // The dialog cannot upload anything until Phase 4, so a FILE type could only produce an
-            // item with no file. Derived from the catalog here so adding a type there fails this
-            // rather than quietly leaving it out of the dialog.
-            const expected = SYSTEM_ITEM_TYPE_NAMES.filter(
-                (name) => ITEM_TYPE_CATALOG[name].contentType !== "FILE",
+        it("offers every system type, file and image included", () => {
+            // The FILE types were held back only until there was something to upload with. Derived
+            // from the catalog so a type added there is not quietly left out of the dialog.
+            expect([...CREATABLE_ITEM_TYPE_NAMES].sort()).toEqual(
+                [...SYSTEM_ITEM_TYPE_NAMES].sort(),
             );
-
-            expect([...CREATABLE_ITEM_TYPE_NAMES].sort()).toEqual([...expected].sort());
         });
 
-        it("rejects a type the dialog does not offer", () => {
+        it("rejects a type that is not in the catalog", () => {
             // TypeScript stops the dialog from sending this; nothing stops a hand-made payload.
-            const payload = { type: "image", title: "Sneaky" } as unknown as CreateItemInput;
+            const payload = { type: "webhook", title: "Sneaky" } as unknown as CreateItemInput;
 
             expect(errorFor(payload, "type")).toBe("Choose an item type.");
+        });
+    });
+
+    describe("file columns", () => {
+        /** What the dialog submits once `POST /api/upload` has answered. */
+        const upload = {
+            fileKey: "users/user_1/3f0c9c1e-0000-4000-8000-00000000abcd.png",
+            fileName: "diagram.png",
+            fileSize: 2048,
+        };
+
+        it("insists a file item has an upload", () => {
+            // Whether the key is *this user's* is not decided here — only the server knows who that
+            // is, so `createItem` re-checks it with `isOwnedKey`.
+            expect(errorFor({ ...newItem, type: "image" }, "fileKey")).toBe("Upload a file first.");
+        });
+
+        it("keeps all three file columns together for a file item", () => {
+            const data = parseNew({ ...newItem, type: "file", ...upload });
+
+            expect(data.fileKey).toBe(upload.fileKey);
+            expect(data.fileName).toBe(upload.fileName);
+            expect(data.fileSize).toBe(upload.fileSize);
+        });
+
+        it("drops a file from a type that has nowhere to put it", () => {
+            // The mirror of dropping a URL from a snippet: `contentType` is TEXT, so a `fileKey`
+            // column would contradict the field that says where this item's content lives.
+            const data = parseNew({ ...newItem, ...upload });
+
+            expect(data.fileKey).toBeUndefined();
+            expect(data.fileName).toBeUndefined();
+            expect(data.fileSize).toBeUndefined();
+        });
+
+        it("drops the content and URL columns from a file item", () => {
+            const data = parseNew({
+                ...newItem,
+                type: "image",
+                ...upload,
+                content: "not a file",
+                url: "https://example.com",
+            });
+
+            expect(data.content).toBeUndefined();
+            expect(data.url).toBeUndefined();
+        });
+
+        it("rejects a size that is not a positive whole number of bytes", () => {
+            // Zod's own wording, so this asserts only that it was rejected and against which field.
+            expect(
+                errorFor({ ...newItem, type: "file", ...upload, fileSize: 0 }, "fileSize"),
+            ).toBeDefined();
         });
     });
 

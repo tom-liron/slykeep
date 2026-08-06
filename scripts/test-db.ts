@@ -296,7 +296,9 @@ async function printDemoData(prisma: PrismaClient, userId: string) {
 
         for (const { item } of collection.items) {
             const marks = [item.isFavorite ? "★" : " ", item.isPinned ? "📌" : "  "].join("");
-            const body = item.content ?? item.url ?? item.fileUrl ?? "";
+            // A FILE item's body is an R2 object, so the column holds a key nobody can read at a
+            // glance — its filename is the useful thing to print.
+            const body = item.content ?? item.url ?? item.fileName ?? "";
             const tags = item.tags.map((t) => t.name).join(", ");
 
             console.log(

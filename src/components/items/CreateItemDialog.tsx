@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { createItem } from "@/actions/items";
 import { CodeEditor } from "@/components/items/CodeEditor";
+import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
 import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import { isFileItemTypeName } from "@/lib/file-constraints";
 import {
     CREATABLE_ITEM_TYPE_NAMES,
     itemTypeOwns,
@@ -41,9 +43,8 @@ const DEFAULT_TYPE: CreatableItemTypeName = "snippet";
  * every single create from a type page.
  *
  * Everywhere else — the dashboard, a collection, the profile — there is nothing to infer from, and
- * it falls back to the first type. So does `/items/files` and `/items/images`: those pages exist,
- * but uploads are Phase 4 and nothing can create one yet, which is exactly what the creatable list
- * says. The choice is only a starting point in any case; the buttons are right there.
+ * it falls back to the first type. The choice is only a starting point in any case; the buttons are
+ * right there.
  */
 function typeForPath(pathname: string): CreatableItemTypeName {
     const slug = pathname.match(/^\/items\/([^/]+)/)?.[1];
@@ -70,6 +71,9 @@ const PLACEHOLDERS: Record<CreatableItemTypeName, { title: string; content: stri
     command: { title: "e.g. Reset a branch to origin", content: "Paste your command" },
     note: { title: "e.g. Postgres connection pooling", content: "Write your note" },
     link: { title: "e.g. Prisma migrate reference", content: "" },
+    // The file types render an upload rather than a content field, so only the title is used.
+    file: { title: "e.g. Deployment runbook", content: "" },
+    image: { title: "e.g. Architecture diagram", content: "" },
 };
 
 /**
@@ -128,8 +132,17 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     const [content, setContent] = useState("");
     const [url, setUrl] = useState("");
     const [language, setLanguage] = useState("");
+    // Held here rather than inside `FileUpload`, because it is what the payload and the submit gate
+    // both read. It survives a type switch, exactly as the typed fields do — an upload made, then
+    // reconsidered, then chosen again is not asked for twice.
+    const [file, setFile] = useState<UploadedFile | null>(null);
 
-    const { content: showsContent, url: showsUrl, language: showsLanguage } = itemTypeOwns(type);
+    const {
+        content: showsContent,
+        url: showsUrl,
+        file: showsFile,
+        language: showsLanguage,
+    } = itemTypeOwns(type);
 
     /** Points a rejected input at the message `Field` renders for it, as the edit form does. */
     const invalid = (field: CreateItemField) =>
@@ -149,6 +162,12 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
             ...(showsContent && { content }),
             ...(showsUrl && { url }),
             ...(showsLanguage && { language }),
+            ...(showsFile &&
+                file && {
+                    fileKey: file.key,
+                    fileName: file.fileName,
+                    fileSize: file.fileSize,
+                }),
         };
 
         startTransition(async () => {
@@ -242,6 +261,25 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     </Field>
                 )}
 
+                {showsFile && (
+                    <Field
+                        id="new-item-file"
+                        label={type === "image" ? "Image" : "File"}
+                        error={fieldErrors.fileKey}
+                    >
+                        <FileUpload
+                            inputId="new-item-file"
+                            // Narrowed by `showsFile`, which is `contentType === "FILE"` — the same
+                            // predicate, read from the catalog rather than a second list of names.
+                            itemType={isFileItemTypeName(type) ? type : "file"}
+                            value={file}
+                            onUploaded={setFile}
+                            onError={toast.error}
+                            disabled={isPending}
+                        />
+                    </Field>
+                )}
+
                 {/* Above the content, as in the edit form: the language is what the editor
                     highlights by, so it has to be answerable before the code is pasted. */}
                 {showsLanguage && (
@@ -322,7 +360,10 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                 </DialogClose>
                 {/* Submit stays a plain button, not a `DialogClose`: the action can fail, and a
                     dialog that has already dismissed has nowhere to report it. */}
-                <Button type="submit" disabled={!title.trim() || isPending}>
+                {/* A file item with no upload is the one incomplete payload worth stopping here:
+                    the schema rejects it anyway, but the reason is a step above the form — there is
+                    nothing to fix in a field, only a file to choose. */}
+                <Button type="submit" disabled={!title.trim() || (showsFile && !file) || isPending}>
                     {isPending ? "Creating…" : "Create item"}
                 </Button>
             </DialogFooter>
