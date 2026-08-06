@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Calendar, Copy, Download, Folder, Pencil, Pin, Star, Tag } from "lucide-react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { copyToClipboard } from "@/lib/clipboard";
 // Aliased because the component below already owns the name `FilePreview`.
 import { filePreviewFor, type FilePreview as FilePreviewInfo } from "@/lib/file-preview";
 import { formatFileSize, formatLongDate } from "@/lib/format";
@@ -131,14 +131,9 @@ export function ItemDrawer({
     // it is the newer of the two, so everything the summary also carries is read from it.
     const view: ItemSummaryViewModel = detail ?? item;
 
-    const copyBody = async () => {
-        try {
-            await navigator.clipboard.writeText(body);
-            toast.success("Copied to clipboard");
-        } catch {
-            toast.error("Could not copy to clipboard");
-        }
-    };
+    // The write and both toasts moved to `copyToClipboard`, shared with the cards' copy icon: the
+    // same action reached two ways should not be able to start reporting itself two ways.
+    const copyBody = () => copyToClipboard(body);
 
     return (
         <Sheet

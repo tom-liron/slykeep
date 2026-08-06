@@ -43,9 +43,14 @@ export function ItemCard({ item }: { item: ItemSummaryViewModel }) {
                             </>
                         )}
                     </div>
+                    {/* Gives way to the copy button, which `ItemList` puts in this corner on hover
+                        and on focus. `group-*` rather than `hover:` because the pointer is never
+                        over this card — a sibling covers it — and because nothing here should
+                        depend on that button existing: without a `group` ancestor these simply
+                        never match, and the date stays put. */}
                     <time
                         dateTime={item.updatedAt}
-                        className="shrink-0 text-xs text-muted-foreground"
+                        className="shrink-0 text-xs text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0"
                     >
                         {formatDate(item.updatedAt)}
                     </time>
