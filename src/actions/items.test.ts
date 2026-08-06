@@ -19,15 +19,25 @@ type ItemRow = {
     title: string;
     contentType?: string;
     itemTypeId?: string;
+    /** The type `updateItem` reads to decide which content columns this row owns. */
+    itemTypeName?: string;
 };
 
 type ItemTypeRow = { id: string; name: string; userId: string | null };
 
-const db = vi.hoisted(() => ({ items: [] as ItemRow[], itemTypes: [] as ItemTypeRow[] }));
+const db = vi.hoisted(() => ({
+    items: [] as ItemRow[],
+    itemTypes: [] as ItemTypeRow[],
+    // What the last `item.update` was asked to write, so a test can assert on the columns that were
+    // left out as well as the ones that were sent.
+    lastUpdateData: null as Record<string, unknown> | null,
+}));
 
 // The signed-in user is fixed: these tests vary who owns the row, not who is asking.
 vi.mock("@/server/current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
+    // Pro, so the file-item tests below are about the upload check rather than the entitlement one.
+    getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true }),
 }));
 
 // The action re-reads through this after a successful write. What it returns does not matter here —
@@ -97,10 +107,25 @@ vi.mock("@/lib/prisma", async () => {
 
                     return Promise.resolve({ id: row.id });
                 },
-                update: ({ where }: { where: ItemWhere }) => {
+                // Reads the same way `update` writes, so the ownership tests cover this call too:
+                // drop `userId` from the query and it starts finding the other user's row.
+                findFirst: ({ where }: { where: ItemWhere }) => {
                     const row = match(where);
 
-                    return row ? Promise.resolve(row) : notFound();
+                    return Promise.resolve(
+                        // `snippet` by default, so the tests that are about ownership rather than
+                        // about columns can keep declaring a row with nothing but an id and a title.
+                        row ? { itemType: { name: row.itemTypeName ?? "snippet" } } : null,
+                    );
+                },
+                update: ({ where, data }: { where: ItemWhere; data: Record<string, unknown> }) => {
+                    const row = match(where);
+
+                    if (!row) return notFound();
+
+                    db.lastUpdateData = data;
+
+                    return Promise.resolve(row);
                 },
                 delete: ({ where }: { where: ItemWhere }) => {
                     const row = match(where);
@@ -129,6 +154,7 @@ describe("createItem", () => {
             { id: "type-custom-snippet", name: "snippet", userId: "user-owner" },
             { id: "type-snippet", name: "snippet", userId: null },
             { id: "type-link", name: "link", userId: null },
+            { id: "type-image", name: "image", userId: null },
         ];
     });
 
@@ -161,6 +187,42 @@ describe("createItem", () => {
         expect(db.items).toHaveLength(0);
     });
 
+    /**
+     * `Item.fileName` is not decoration: `isInlineDisposition` reads it to decide whether
+     * `GET /api/files/[id]` answers `inline`, while the media type comes from the stored object. An
+     * allowed `.svg` upload renamed to `.png` in the payload would therefore be served as
+     * `image/svg+xml` inline on this origin — script included, and `nosniff` no help, because the
+     * declared type is the truth about those bytes. The key carries the real extension, so these
+     * pin the name to the object it claims to be.
+     */
+    const SVG_KEY = "users/user-owner/11111111-2222-3333-4444-555555555555.svg";
+
+    it("refuses a filename whose extension is not the uploaded object's", async () => {
+        await expect(
+            createItem({
+                type: "image",
+                title: "Shot",
+                fileKey: SVG_KEY,
+                fileName: "shot.png",
+                fileSize: 100,
+            }),
+        ).resolves.toMatchObject({ success: false });
+
+        expect(db.items).toHaveLength(0);
+    });
+
+    it("accepts a filename that agrees with the uploaded object", async () => {
+        const result = await createItem({
+            type: "image",
+            title: "Shot",
+            fileKey: SVG_KEY,
+            fileName: "shot.svg",
+            fileSize: 100,
+        });
+
+        expect(result.success).toBe(true);
+    });
+
     it("rejects an invalid payload before reaching the database", async () => {
         await expect(createItem({ type: "link", title: "Docs" })).resolves.toMatchObject({
             success: false,
@@ -173,6 +235,7 @@ describe("createItem", () => {
 describe("updateItem", () => {
     beforeEach(() => {
         db.items = [];
+        db.lastUpdateData = null;
     });
 
     it("refuses to update an item owned by another user", async () => {
@@ -206,6 +269,69 @@ describe("updateItem", () => {
             success: false,
             error: "Title is required.",
             fields: { title: "Title is required." },
+        });
+    });
+
+    /**
+     * The edit form renders only the fields a type owns, so these payloads are ones only a
+     * hand-made request produces. That is the point: without the strip, the form's field list is the
+     * only thing keeping a URL out of a snippet's `url` column — and an item whose `contentType` says
+     * TEXT while `url` is populated renders as a link in the drawer, with no field in the UI to
+     * clear it again. `createItem` has always stripped; this is the path that did not.
+     */
+    it("drops a content column the item's type does not own", async () => {
+        db.items = [
+            { id: "item-1", userId: "user-owner", title: "My snippet", itemTypeName: "snippet" },
+        ];
+
+        const result = await updateItem("item-1", {
+            title: "Renamed",
+            url: "https://evil.example",
+        });
+
+        expect(result.success).toBe(true);
+        expect(db.lastUpdateData).toMatchObject({ title: "Renamed", url: undefined });
+    });
+
+    it("drops a language on a type whose content is not code", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My note", itemTypeName: "note" }];
+
+        const result = await updateItem("item-1", { title: "Renamed", language: "typescript" });
+
+        expect(result.success).toBe(true);
+        expect(db.lastUpdateData).toMatchObject({ content: undefined, language: undefined });
+    });
+
+    it("writes the columns the type does own", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My link", itemTypeName: "link" }];
+
+        const result = await updateItem("item-1", {
+            title: "Renamed",
+            url: "https://example.com",
+        });
+
+        expect(result.success).toBe(true);
+        expect(db.lastUpdateData).toMatchObject({
+            title: "Renamed",
+            url: "https://example.com",
+        });
+    });
+
+    it("still writes code fields for a type that owns them", async () => {
+        db.items = [
+            { id: "item-1", userId: "user-owner", title: "My snippet", itemTypeName: "snippet" },
+        ];
+
+        const result = await updateItem("item-1", {
+            title: "Renamed",
+            content: "const a = 1;",
+            language: "typescript",
+        });
+
+        expect(result.success).toBe(true);
+        expect(db.lastUpdateData).toMatchObject({
+            content: "const a = 1;",
+            language: "typescript",
         });
     });
 });

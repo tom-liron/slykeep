@@ -1,11 +1,23 @@
 import { Pin, Star } from "lucide-react";
 
 import { formatDate } from "@/lib/format";
-import { withAlpha } from "@/lib/utils";
+import { cn, withAlpha } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
 import { TypeIcon } from "./TypeIcon";
 
-export function ItemCard({ item }: { item: ItemSummaryViewModel }) {
+/**
+ * `showsCopy` says whether a copy button will be laid over this card's top-right corner, which is
+ * where the timestamp is — the date gives way to it on hover, and must not give way to nothing. Not
+ * every card gets one: `ItemList` renders items of every type through this component on the
+ * dashboard and on a collection page, and an image or a PDF has nothing to copy.
+ */
+export function ItemCard({
+    item,
+    showsCopy = false,
+}: {
+    item: ItemSummaryViewModel;
+    showsCopy?: boolean;
+}) {
     const accent = item.itemType.color;
 
     return (
@@ -44,13 +56,17 @@ export function ItemCard({ item }: { item: ItemSummaryViewModel }) {
                         )}
                     </div>
                     {/* Gives way to the copy button, which `ItemList` puts in this corner on hover
-                        and on focus. `group-*` rather than `hover:` because the pointer is never
-                        over this card — a sibling covers it — and because nothing here should
-                        depend on that button existing: without a `group` ancestor these simply
-                        never match, and the date stays put. */}
+                        and on focus — but only when there is one, or hovering a card whose item has
+                        nothing to copy would fade the date out and leave an empty corner.
+                        `group-*` rather than `hover:` because the pointer is never over this card:
+                        a sibling covers it. */}
                     <time
                         dateTime={item.updatedAt}
-                        className="shrink-0 text-xs text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0"
+                        className={cn(
+                            "shrink-0 text-xs text-muted-foreground",
+                            showsCopy &&
+                                "transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
+                        )}
                     >
                         {formatDate(item.updatedAt)}
                     </time>

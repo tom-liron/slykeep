@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
 
+import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_SURFACE } from "@/config/editor";
 import { toMonacoLanguage } from "@/lib/code-language";
 
 /**
@@ -16,23 +17,12 @@ loader.config({
     paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.56.0/min/vs" },
 });
 
-/**
- * The editor's surface. Monaco's theme wants a literal hex — it paints into its own DOM and cannot
- * read a CSS variable — so the value is declared once here and used for the wrapper too, rather than
- * written as a Tailwind class that would silently drift from the theme's copy of it.
- *
- * `#171717` is what `--card` resolves to in dark mode, so the editor sits on the same surface as
- * every other panel in the app.
- */
-const SURFACE = "#171717";
-
-/**
- * The editor grows with its content between these two. The floor is about two lines, so a one-line
- * command is not a mostly-empty box; the ceiling is where the editor starts scrolling itself rather
- * than pushing the rest of the drawer off screen.
- */
-const MIN_HEIGHT = 76;
-const MAX_HEIGHT = 400;
+// Shared with `MarkdownEditor` through `config/editor.ts`, so the two content surfaces cannot drift
+// apart on colour or on how much of the drawer they take. Aliased to the short names this file
+// already reads by.
+const SURFACE = EDITOR_SURFACE;
+const MIN_HEIGHT = EDITOR_MIN_HEIGHT;
+const MAX_HEIGHT = EDITOR_MAX_HEIGHT;
 
 /**
  * Chrome from the app's palette, syntax colours inherited from `vs-dark`.

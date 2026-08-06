@@ -2,10 +2,12 @@
 
 import { z } from "zod";
 
-import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import { ITEM_TYPE_CATALOG, isItemTypeName } from "@/config/item-type-catalog";
 import { Prisma } from "@/generated/prisma-client/client";
+import { FILE_CONSTRAINTS, extensionOf, isFileItemTypeName } from "@/lib/file-constraints";
 import {
     createItemSchema,
+    itemTypeOwns,
     updateItemSchema,
     type CreateItemInput,
     type UpdateItemInput,
@@ -89,6 +91,31 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
                 fields: { fileKey: "That upload could not be verified." },
             };
         }
+
+        // The name travels back from the browser beside the key, so it is client input in the same
+        // way — and it is not decoration. `Item.fileName` is what `isInlineDisposition` reads to
+        // decide whether `GET /api/files/[id]` answers `inline`, while the media type comes from the
+        // stored object. Upload a real `.svg` (an allowed image format) and then claim
+        // `fileName: "x.png"`, and the route serves `image/svg+xml` inline on this origin — which is
+        // precisely the case the `.svg` exception exists to prevent, and one `nosniff` cannot help
+        // with, because the declared type is the truth about those bytes.
+        //
+        // `buildObjectKey` already put the uploaded file's real extension on the end of the key, so
+        // the two only have to be made to agree. The upload route validated the extension it was
+        // given; this pins the name to that same object.
+        const claimed = extensionOf(columns.fileName ?? "");
+
+        if (
+            claimed !== extensionOf(columns.fileKey) ||
+            !isFileItemTypeName(type) ||
+            !(FILE_CONSTRAINTS[type].extensions as readonly string[]).includes(claimed)
+        ) {
+            return {
+                success: false,
+                error: "That upload could not be verified. Try uploading the file again.",
+                fields: { fileKey: "That upload could not be verified." },
+            };
+        }
     }
 
     try {
@@ -144,6 +171,10 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
  * The write lives here rather than in `server/items.ts`, which stays read-only — `server/` owns
  * reads and `actions/` owns writes (`project-overview.md` §9), which is why `account.ts` also calls
  * `prisma` directly.
+ *
+ * Like `createItem`, this refuses to write a content column the item's type does not own, so
+ * `contentType` and the populated column cannot be made to contradict each other. It costs a read of
+ * the item's type, because an edit payload does not carry one — see below.
  */
 export async function updateItem(
     itemId: string,
@@ -163,9 +194,35 @@ export async function updateItem(
         };
     }
 
-    const { tags, ...columns } = parsed.data;
+    const { tags, title, description, content, url, language } = parsed.data;
 
     try {
+        // The item's type is what says which content columns it has, and an edit payload never
+        // carries one — the type is not editable, deliberately. So it is read here rather than
+        // inferred from which fields arrived. `createItemSchema` does the same stripping in a
+        // `.transform()`, which it can only do because the create dialog submits the type; this read
+        // is the equivalent step for the one path that does not.
+        //
+        // Scoped to the signed-in user for the same reason the `update` below is: a row that is not
+        // theirs must be indistinguishable from one that does not exist.
+        const existing = await prisma.item.findFirst({
+            where: { id: itemId, userId },
+            select: { itemType: { select: { name: true } } },
+        });
+
+        if (!existing) {
+            return { success: false, error: "This item no longer exists." };
+        }
+
+        if (!isItemTypeName(existing.itemType.name)) {
+            // Unreachable while every type is a seeded system row. Refusing rather than writing what
+            // it can is deliberate: nothing here knows what a custom type owns, and the alternative
+            // is silently dropping the edit to a column that may well exist.
+            return { success: false, error: "This item's type cannot be edited yet." };
+        }
+
+        const owns = itemTypeOwns(existing.itemType.name);
+
         // Tag rows have to exist before the relation can point at them, and `Tag.name` is globally
         // unique, so a name another user already coined is a duplicate rather than a fresh row —
         // `skipDuplicates` is what makes this an "ensure these exist" rather than an insert.
@@ -179,10 +236,20 @@ export async function updateItem(
         await prisma.item.update({
             // Ownership sits in the `where`, not in a check on the result, so another user's item is
             // never loaded and their id is indistinguishable from one that does not exist — the same
-            // rule `getItemDetail` follows, for the same reason.
+            // rule `getItemDetail` follows, for the same reason. Kept here as well as on the read
+            // above, so the authorization does not depend on that read having happened.
             where: { id: itemId, userId },
             data: {
-                ...columns,
+                title,
+                description,
+                // A column the type does not own is `undefined`, which Prisma skips — the same
+                // absent-versus-empty split the create path makes, and the reason a hand-made
+                // payload cannot put a URL on a snippet and make `contentType` a lie. Every field
+                // is named rather than spread, so a column added to the schema has to be considered
+                // here instead of flowing straight through.
+                content: owns.content ? content : undefined,
+                url: owns.url ? url : undefined,
+                language: owns.language ? language : undefined,
                 // `set` replaces the whole relation in one operation: everything currently attached
                 // is disconnected and exactly this list is connected. An empty array is meaningful
                 // (clear every tag); `undefined` leaves the relation alone.

@@ -45,7 +45,12 @@ export const getItemTypesById = cache(
 export async function getItemTypeCounts(user: UserViewModel): Promise<ItemTypeCountViewModel[]> {
     const [typeRows, counts] = await Promise.all([
         prisma.itemType.findMany({
-            where: { OR: [{ userId: null }, { userId: user.id }] },
+            // System rows only, which is what the doc comment above already promises. Reading the
+            // user's custom types too and then keying them by `name` below would let a custom type
+            // sharing a system name overwrite it in the map — the same hazard as a `findUnique` on
+            // `name` alone, which `CLAUDE.md` and the partial index in `schema.prisma` both warn
+            // about: `name` is unique only among system rows.
+            where: { userId: null },
             select: { id: true, name: true, icon: true, color: true },
         }),
         prisma.item.groupBy({
