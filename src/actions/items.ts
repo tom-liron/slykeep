@@ -1,9 +1,8 @@
 "use server";
 
-import { z } from "zod";
-
 import { ITEM_TYPE_CATALOG, isItemTypeName } from "@/config/item-type-catalog";
 import { Prisma } from "@/generated/prisma-client/client";
+import { fieldErrorsOf } from "@/lib/field-errors";
 import { FILE_CONSTRAINTS, extensionOf, isFileItemTypeName } from "@/lib/file-constraints";
 import {
     createItemSchema,
@@ -21,26 +20,6 @@ import type { CreateItemResult, DeleteItemResult, UpdateItemResult } from "@/typ
 
 /** Prisma's "no record matched the `where`" code, raised by `update` when nothing was found. */
 const RECORD_NOT_FOUND = "P2025";
-
-/**
- * The first message reported against each field, keyed by field name — the toast needs one sentence
- * and the inputs need their own messages, and both come from this one parse, so there is no second
- * set of rules to keep in step. Read off `issues` rather than `z.flattenError`, whose field map is
- * typed from the schema's input and degrades to `any` once a helper accepts more than one schema.
- */
-function fieldErrorsOf(error: z.ZodError): Record<string, string> {
-    const fields: Record<string, string> = {};
-
-    for (const issue of error.issues) {
-        const [field] = issue.path;
-
-        if (typeof field === "string" && !(field in fields)) {
-            fields[field] = issue.message;
-        }
-    }
-
-    return fields;
-}
 
 /**
  * Creates an item from the top bar's dialog.

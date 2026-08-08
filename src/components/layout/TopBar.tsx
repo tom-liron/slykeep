@@ -1,7 +1,8 @@
 "use client";
 
-import { FolderPlus, Menu, PanelLeft, Search } from "lucide-react";
+import { Menu, PanelLeft, Search } from "lucide-react";
 
+import { CreateCollectionDialog } from "@/components/collections/CreateCollectionDialog";
 import { CreateItemDialog } from "@/components/items/CreateItemDialog";
 import { Brand } from "@/components/layout/Brand";
 import { useSidebar } from "@/components/layout/SidebarContext";
@@ -53,15 +54,7 @@ export function TopBar() {
             </div>
 
             <div className="ml-auto flex shrink-0 items-center gap-2">
-                <Button
-                    variant="outline"
-                    aria-label="New Collection"
-                    title="Collection creation is coming soon"
-                    disabled
-                >
-                    <FolderPlus className="size-4" aria-hidden="true" />
-                    <span className="hidden lg:inline">New Collection</span>
-                </Button>
+                <CreateCollectionDialog />
                 <CreateItemDialog />
             </div>
         </header>

@@ -26,9 +26,15 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
                 )}
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">{collection.itemCount} items</p>
-            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                {collection.description}
-            </p>
+            {/* Guarded rather than always rendered: the view model normalizes a null description to
+                "", and until collections could be created there was no way to have one — every
+                seeded collection carries a description. The create dialog makes the field optional,
+                so an empty paragraph (and its margin) is now reachable. */}
+            {collection.description && (
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {collection.description}
+                </p>
+            )}
             <div className="mt-4 flex items-center gap-2">
                 {collection.itemTypes.map((itemType) => (
                     <TypeIcon
