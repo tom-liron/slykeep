@@ -3,15 +3,25 @@ import { notFound } from "next/navigation";
 import { ItemList } from "@/components/items/ItemList";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
+import { parsePageParam } from "@/lib/pagination";
 import { getItemTypePageData } from "@/server/items";
 
-export default async function ItemTypePage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
-    const data = await getItemTypePageData(slug);
+export default async function ItemTypePage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ slug: string }>;
+    searchParams: Promise<{ page?: string | string[] }>;
+}) {
+    const [{ slug }, { page }] = await Promise.all([params, searchParams]);
+    const data = await getItemTypePageData(slug, parsePageParam(page));
 
     if (!data) {
         notFound();
     }
+
+    const { totalCount } = data.pagination;
 
     // Files read as a list, not a grid: they are compared by name, size, and date down a column, the
     // way every file manager shows them. Images go the other way — the content is the picture, so
@@ -31,22 +41,29 @@ export default async function ItemTypePage({ params }: { params: Promise<{ slug:
                 </span>
                 <div>
                     <h1 className="text-2xl font-bold">{data.itemType.label}</h1>
+                    {/* The whole type's count, not the page's — `data.items` is now one page of it. */}
                     <p className="text-muted-foreground">
-                        {data.items.length} {data.items.length === 1 ? "item" : "items"}
+                        {totalCount} {totalCount === 1 ? "item" : "items"}
                     </p>
                 </div>
             </header>
 
             {data.items.length > 0 ? (
-                <ItemList
-                    items={data.items}
-                    variant={variant}
-                    className={
-                        variant === "file"
-                            ? "flex flex-col gap-2"
-                            : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                    }
-                />
+                <>
+                    <ItemList
+                        items={data.items}
+                        variant={variant}
+                        className={
+                            variant === "file"
+                                ? "flex flex-col gap-2"
+                                : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                        }
+                    />
+                    <Pagination
+                        pagination={data.pagination}
+                        basePath={`/items/${data.itemType.slug}`}
+                    />
+                </>
             ) : (
                 <EmptyState message={`No ${data.itemType.label.toLowerCase()} yet.`} />
             )}

@@ -1,8 +1,11 @@
 import "server-only";
 
+import { DASHBOARD_RECENT_ITEMS_LIMIT } from "@/config/dashboard";
 import { getItemTypeNameBySlug } from "@/config/item-type-catalog";
+import { ITEMS_PER_PAGE } from "@/config/pagination";
 import { Prisma } from "@/generated/prisma-client/client";
 import { canAccessItemType } from "@/lib/limits";
+import { buildPagination, paginationSkip } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import type {
     DashboardItemsViewModel,
@@ -57,17 +60,6 @@ const ITEM_DETAIL_SELECT = {
     collections: { select: { collection: { select: { id: true, name: true } } } },
 } as const;
 
-/** How many recent (non-pinned) items the dashboard lists. */
-const RECENT_ITEMS_LIMIT = 10;
-
-/**
- * Defensive upper bound on the item-type page list. The page renders every row as a card, so an
- * unbounded read would pull a Pro user's entire type into one DOM list. Set well above the free
- * tier's 50-item cap, so it is a safety valve rather than a visible limit until real pagination
- * lands.
- */
-const ITEM_TYPE_PAGE_LIMIT = 200;
-
 /**
  * The dashboard's pinned + recent item lists and the two item stat cards. Totals come from
  * `count()` rather than the length of a full item load, and the lists carry no item bodies — the
@@ -85,7 +77,7 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
         prisma.item.findMany({
             where: { userId, isPinned: false },
             orderBy: { updatedAt: "desc" },
-            take: RECENT_ITEMS_LIMIT,
+            take: DASHBOARD_RECENT_ITEMS_LIMIT,
             select: ITEM_SUMMARY_SELECT,
         }),
         prisma.item.count({ where: { userId } }),
@@ -159,13 +151,14 @@ export async function getItemFile(id: string): Promise<{ key: string; name: stri
 }
 
 /**
- * An item-type page (`/items/snippets`, ...): the type and all of the user's items of that type,
- * most recently updated first. The slug resolves to a system type only, so it is looked up with
- * `userId: null` — a user's custom type could share the name (see `project-overview.md` §5).
+ * An item-type page (`/items/snippets`, ...): the type and one page of the user's items of that
+ * type, most recently updated first. The slug resolves to a system type only, so it is looked up
+ * with `userId: null` — a user's custom type could share the name (see `project-overview.md` §5).
  * Returns undefined for an unknown slug or a type the user cannot access, so the page can 404.
  */
 export async function getItemTypePageData(
     slug: string,
+    requestedPage: number,
 ): Promise<ItemTypePageViewModel | undefined> {
     const name = getItemTypeNameBySlug(slug);
     if (!name) {
@@ -187,10 +180,25 @@ export async function getItemTypePageData(
         return undefined;
     }
 
+    const where = { userId: user.id, itemTypeId: itemType.id };
+
+    // Counted before the rows are read rather than alongside them: the requested page has to be
+    // clamped against the total before it can become a `skip`, and a page past the end would
+    // otherwise be answered with an empty list under controls claiming there was something there.
+    const pagination = buildPagination(
+        await prisma.item.count({ where }),
+        requestedPage,
+        ITEMS_PER_PAGE,
+    );
+
     const rows = await prisma.item.findMany({
-        where: { userId: user.id, itemTypeId: itemType.id },
-        orderBy: { updatedAt: "desc" },
-        take: ITEM_TYPE_PAGE_LIMIT,
+        where,
+        // `id` breaks ties on purpose: `skip`/`take` only mean anything over a total order, and two
+        // items saved in the same write carry the same `updatedAt` — without a tiebreaker Postgres
+        // is free to return them in either order, which is how a row appears on two pages at once.
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        skip: paginationSkip(pagination),
+        take: pagination.perPage,
         select: ITEM_SUMMARY_SELECT,
     });
 
@@ -198,6 +206,7 @@ export async function getItemTypePageData(
 
     return {
         itemType,
+        pagination,
         items: rows.map((row) =>
             buildItemSummaryViewModel(
                 { ...row, tags: row.tags.map((tag) => tag.name) },

@@ -1,10 +1,14 @@
 import "server-only";
 
+import { DASHBOARD_COLLECTIONS_LIMIT } from "@/config/dashboard";
+import { COLLECTIONS_PER_PAGE, ITEMS_PER_PAGE } from "@/config/pagination";
 import { Prisma } from "@/generated/prisma-client/client";
+import { buildPagination, paginationSkip } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import type {
     CollectionOptionViewModel,
     CollectionPageViewModel,
+    CollectionsPageViewModel,
     CollectionViewModel,
     DashboardCollectionsViewModel,
     SidebarCollectionsViewModel,
@@ -17,7 +21,6 @@ import {
     buildItemSummaryViewModel,
     buildItemTypeBreakdown,
     resolveDominantTypeId,
-    sortByUpdatedAtDesc,
 } from "./view-models";
 
 /**
@@ -67,17 +70,28 @@ async function toCollectionViewModels(
     );
 }
 
-/** All of the user's collections, most recently updated first. */
-export async function getCollections(): Promise<CollectionViewModel[]> {
+/** One page of the user's collections, most recently updated first. */
+export async function getCollections(requestedPage: number): Promise<CollectionsPageViewModel> {
     const userId = await getCurrentUserId();
+
+    // Counted first so the requested page can be clamped before it becomes a `skip` — the same
+    // ordering `getItemTypePageData` follows, and for the same reason.
+    const pagination = buildPagination(
+        await prisma.collection.count({ where: { userId } }),
+        requestedPage,
+        COLLECTIONS_PER_PAGE,
+    );
 
     const rows = await prisma.collection.findMany({
         where: { userId },
-        orderBy: { updatedAt: "desc" },
+        // Tie-broken by id, so the page boundary is stable — see the note in `getItemTypePageData`.
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        skip: paginationSkip(pagination),
+        take: pagination.perPage,
         select: COLLECTION_SELECT,
     });
 
-    return toCollectionViewModels(rows, userId);
+    return { collections: await toCollectionViewModels(rows, userId), pagination };
 }
 
 /**
@@ -108,7 +122,7 @@ export async function getDashboardCollections(): Promise<DashboardCollectionsVie
         prisma.collection.findMany({
             where: { userId },
             orderBy: { updatedAt: "desc" },
-            take: 6,
+            take: DASHBOARD_COLLECTIONS_LIMIT,
             select: COLLECTION_SELECT,
         }),
         prisma.collection.count({ where: { userId } }),
@@ -162,44 +176,63 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
 }
 
 /**
- * A single collection and the items in it. Scoped by owner as well as id: an id alone would let
- * one user read another's collection.
+ * A single collection and one page of the items in it. Scoped by owner as well as id: an id alone
+ * would let one user read another's collection.
+ *
+ * Two reads rather than one nested read, because the page asks two different questions of the same
+ * collection. The header describes the *whole* collection — its item count, its dominant type, and
+ * how those items divide by type — while the grid below shows one page of them. So the collection
+ * row keeps the plain `COLLECTION_SELECT` join, which carries two scalars per item and no bodies,
+ * and the items are read separately with a `skip`/`take` over the summary columns. The join it used
+ * to have instead — `ITEM_SUMMARY_SELECT` on every row — was the same query doing both jobs, and it
+ * is the one that could not be paginated: narrowing it to a page would have quietly turned the
+ * header's counts into counts of the visible page.
  */
 export async function getCollectionPageData(
     collectionId: string,
+    requestedPage: number,
 ): Promise<CollectionPageViewModel | undefined> {
     const userId = await getCurrentUserId();
 
     const row = await prisma.collection.findFirst({
         where: { id: collectionId, userId },
-        select: {
-            ...COLLECTION_SELECT,
-            // The same select the item lists use, imported rather than restated: this page builds
-            // the same summary view model, so a copy of the column list here is a copy that silently
-            // falls behind the builder it feeds.
-            items: { select: { item: { select: ITEM_SUMMARY_SELECT } } },
-        },
+        select: COLLECTION_SELECT,
     });
 
     if (!row) {
         return undefined;
     }
 
-    const itemTypesById = await getItemTypesById(userId);
-    const items = row.items.map(({ item }) => item);
+    const collectionItems = row.items.map(({ item }) => item);
+
+    // No `count` query: the join above already has one row per item, so the total is its length.
+    const pagination = buildPagination(collectionItems.length, requestedPage, ITEMS_PER_PAGE);
+
+    const [itemRows, itemTypesById] = await Promise.all([
+        prisma.item.findMany({
+            // `userId` as well as the membership filter, so this cannot widen what the collection
+            // read already authorized.
+            where: { userId, collections: { some: { collectionId } } },
+            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+            skip: paginationSkip(pagination),
+            take: pagination.perPage,
+            select: ITEM_SUMMARY_SELECT,
+        }),
+        getItemTypesById(userId),
+    ]);
 
     return {
-        collection: buildCollectionViewModel(row, items, itemTypesById),
-        // Counted from the items already in hand rather than by a `groupBy` of its own: this query
-        // has read every row in the collection, so a second trip to the database would only ask
-        // Postgres to re-derive what is sitting in memory.
-        itemTypeCounts: buildItemTypeBreakdown(items, itemTypesById),
-        items: sortByUpdatedAtDesc(
-            items.map((item) =>
-                buildItemSummaryViewModel(
-                    { ...item, tags: item.tags.map((tag) => tag.name) },
-                    itemTypesById,
-                ),
+        collection: buildCollectionViewModel(row, collectionItems, itemTypesById),
+        pagination,
+        // Still counted from the rows in hand rather than by a `groupBy`: the breakdown is over the
+        // whole collection, which is exactly what the join above holds.
+        itemTypeCounts: buildItemTypeBreakdown(collectionItems, itemTypesById),
+        // Ordered by the query now, not in memory — a page of rows sorted after the fact would only
+        // be sorted within itself.
+        items: itemRows.map((item) =>
+            buildItemSummaryViewModel(
+                { ...item, tags: item.tags.map((tag) => tag.name) },
+                itemTypesById,
             ),
         ),
     };

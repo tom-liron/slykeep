@@ -5,11 +5,19 @@ import { CollectionActions } from "@/components/collections/CollectionActions";
 import { ItemList } from "@/components/items/ItemList";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
+import { parsePageParam } from "@/lib/pagination";
 import { getCollectionPageData } from "@/server/collections";
 
-export default async function CollectionPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    const data = await getCollectionPageData(id);
+export default async function CollectionPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ page?: string | string[] }>;
+}) {
+    const [{ id }, { page }] = await Promise.all([params, searchParams]);
+    const data = await getCollectionPageData(id, parsePageParam(page));
 
     if (!data) {
         notFound();
@@ -69,7 +77,13 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
             </header>
 
             {data.items.length > 0 ? (
-                <ItemList items={data.items} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" />
+                <>
+                    <ItemList
+                        items={data.items}
+                        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    />
+                    <Pagination pagination={data.pagination} basePath={`/collections/${id}`} />
+                </>
             ) : (
                 <EmptyState message="This collection is empty." />
             )}
