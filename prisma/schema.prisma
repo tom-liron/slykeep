@@ -33,6 +33,16 @@ model User {
   stripeCustomerId     String? @unique
   stripeSubscriptionId String? @unique
 
+  // How the content editors are rendered for this account: font size, tab size, word wrap, minimap,
+  // theme. One JSON column rather than five scalar ones — none of it is ever queried, filtered, or
+  // joined on, and every future preference would otherwise be another migration.
+  //
+  // Null until the user changes something, which is what keeps the defaults in one place: the app's,
+  // in `src/lib/editor-preferences.ts`, rather than half here as column defaults. Nothing trusts the
+  // stored shape — it is validated on the way out, since a JSON column can hold anything an older
+  // release wrote into it.
+  editorPreferences Json?
+
   // Relations
   items       Item[]
   collections Collection[]

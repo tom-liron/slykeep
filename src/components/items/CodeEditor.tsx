@@ -3,8 +3,15 @@
 import { useState } from "react";
 import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
 
-import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_SURFACE } from "@/config/editor";
+import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
+import {
+    EDITOR_MAX_HEIGHT,
+    EDITOR_MIN_HEIGHT,
+    EDITOR_SURFACE,
+    EDITOR_THEME_CATALOG,
+} from "@/config/editor";
 import { toMonacoLanguage } from "@/lib/code-language";
+import type { EditorThemeId } from "@/types/editor";
 
 /**
  * The wrapper ships its own default CDN build, which is a *different* monaco version from the
@@ -18,29 +25,56 @@ loader.config({
 });
 
 // Shared with `MarkdownEditor` through `config/editor.ts`, so the two content surfaces cannot drift
-// apart on colour or on how much of the drawer they take. Aliased to the short names this file
-// already reads by.
-const SURFACE = EDITOR_SURFACE;
+// apart on how much of the drawer they take — the colour they share now comes from the theme
+// catalog in the same file. Aliased to the short names this file already reads by.
 const MIN_HEIGHT = EDITOR_MIN_HEIGHT;
 const MAX_HEIGHT = EDITOR_MAX_HEIGHT;
 
 /**
- * Chrome from the app's palette, syntax colours inherited from `vs-dark`.
+ * The one theme this app owns: chrome from its palette, syntax colours inherited from `vs-dark`.
  *
- * Deliberately not a full theme: picking our own token colours would mean maintaining a second
- * syntax palette for every language monaco supports, to no benefit. What is overridden is only what
- * would otherwise look foreign inside the app — the surface, the gutter, and the scrollbar.
+ * Deliberately not a full theme, and its colours stay pinned to `EDITOR_SURFACE` rather than the
+ * selected theme's — this *is* the app's theme, not a copy of whatever is switched on.
  */
-const THEME_NAME = "devstash-dark";
+const THEME_NAME: EditorThemeId = "devstash-dark";
 
+/**
+ * The scrollbar, shared by every theme registered here.
+ *
+ * White alphas rather than per-theme colours, so one set works on all three surfaces — and because
+ * `.editor-scrollbar` in `globals.css` mirrors exactly these three to paint the *markdown* editor's
+ * native scrollbar, which is plain CSS and cannot follow a monaco theme. Change these, change those.
+ */
+const SLIDER_COLORS = {
+    "scrollbarSlider.background": "#ffffff1a",
+    "scrollbarSlider.hoverBackground": "#ffffff2e",
+    "scrollbarSlider.activeBackground": "#ffffff40",
+};
+
+/**
+ * Registers the three themes that are not monaco's own, on every mount.
+ *
+ * All three are `vs-dark` with `inherit: true`, which is what makes them small: monaco falls back to
+ * `vs-dark` for every token type and UI colour not named below, so a theme is the handful of colours
+ * that actually distinguish it rather than a table covering every language. They are all registered
+ * regardless of which one is selected — defining a theme is assigning an object, and the alternative
+ * is registering on demand and having nothing to switch *to* when the preference changes.
+ *
+ * `beforeMount` and not `onMount`: monaco resolves the `theme` prop as it creates the editor, so a
+ * theme registered afterwards is unknown at exactly the moment it is first needed.
+ *
+ * The token colours are the two themes' own published palettes, trimmed to the scopes monaco's
+ * tokenizers actually emit. Backgrounds are duplicated in `EDITOR_THEME_CATALOG` as `surface`,
+ * which is what the frame around the editor is painted with — the two must agree.
+ */
 const defineTheme: BeforeMount = (monaco) => {
     monaco.editor.defineTheme(THEME_NAME, {
         base: "vs-dark",
         inherit: true,
         rules: [],
         colors: {
-            "editor.background": SURFACE,
-            "editorGutter.background": SURFACE,
+            "editor.background": EDITOR_SURFACE,
+            "editorGutter.background": EDITOR_SURFACE,
             "editorLineNumber.foreground": "#525252",
             "editorLineNumber.activeForeground": "#a3a3a3",
             "editor.lineHighlightBackground": "#ffffff0a",
@@ -48,11 +82,69 @@ const defineTheme: BeforeMount = (monaco) => {
             "editorCursor.foreground": "#fafafa",
             "editorIndentGuide.background1": "#ffffff14",
             "editorIndentGuide.activeBackground1": "#ffffff2e",
-            // Mirrored in CSS by `.editor-scrollbar` in `globals.css`, which is how the markdown
-            // editor's native scrollbar is made to match this one. Change these three, change those.
-            "scrollbarSlider.background": "#ffffff1a",
-            "scrollbarSlider.hoverBackground": "#ffffff2e",
-            "scrollbarSlider.activeBackground": "#ffffff40",
+            ...SLIDER_COLORS,
+        },
+    });
+
+    monaco.editor.defineTheme("monokai", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+            { token: "comment", foreground: "75715e", fontStyle: "italic" },
+            { token: "string", foreground: "e6db74" },
+            { token: "number", foreground: "ae81ff" },
+            { token: "keyword", foreground: "f92672" },
+            { token: "operator", foreground: "f92672" },
+            { token: "delimiter", foreground: "f8f8f2" },
+            { token: "type", foreground: "66d9ef", fontStyle: "italic" },
+            { token: "function", foreground: "a6e22e" },
+            { token: "variable", foreground: "f8f8f2" },
+            { token: "tag", foreground: "f92672" },
+            { token: "attribute.name", foreground: "a6e22e" },
+            { token: "attribute.value", foreground: "e6db74" },
+        ],
+        colors: {
+            "editor.background": "#272822",
+            "editorGutter.background": "#272822",
+            "editor.foreground": "#f8f8f2",
+            "editorLineNumber.foreground": "#75715e",
+            "editorLineNumber.activeForeground": "#f8f8f2",
+            "editor.lineHighlightBackground": "#3e3d32",
+            "editor.lineHighlightBorder": "#00000000",
+            "editorCursor.foreground": "#f8f8f0",
+            "editor.selectionBackground": "#49483e",
+            ...SLIDER_COLORS,
+        },
+    });
+
+    monaco.editor.defineTheme("github-dark", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+            { token: "comment", foreground: "8b949e" },
+            { token: "string", foreground: "a5d6ff" },
+            { token: "number", foreground: "79c0ff" },
+            { token: "keyword", foreground: "ff7b72" },
+            { token: "operator", foreground: "ff7b72" },
+            { token: "delimiter", foreground: "c9d1d9" },
+            { token: "type", foreground: "ffa657" },
+            { token: "function", foreground: "d2a8ff" },
+            { token: "variable", foreground: "ffa657" },
+            { token: "tag", foreground: "7ee787" },
+            { token: "attribute.name", foreground: "79c0ff" },
+            { token: "attribute.value", foreground: "a5d6ff" },
+        ],
+        colors: {
+            "editor.background": "#0d1117",
+            "editorGutter.background": "#0d1117",
+            "editor.foreground": "#c9d1d9",
+            "editorLineNumber.foreground": "#6e7681",
+            "editorLineNumber.activeForeground": "#c9d1d9",
+            "editor.lineHighlightBackground": "#161b22",
+            "editor.lineHighlightBorder": "#00000000",
+            "editorCursor.foreground": "#c9d1d9",
+            "editor.selectionBackground": "#264f78",
+            ...SLIDER_COLORS,
         },
     });
 };
@@ -95,7 +187,17 @@ export function CodeEditor({
 }) {
     const [height, setHeight] = useState(MIN_HEIGHT);
 
+    // Font size, tab size, wrapping, the minimap, and the theme are the account's, not this
+    // component's — see `settings/EditorPreferencesContext`. Outside the dashboard layout there is
+    // no provider, and the hook falls back to the same values this file used to hardcode.
+    const preferences = useEditorPreferences();
+
     const monacoLanguage = toMonacoLanguage(language);
+
+    // The frame is painted here, outside monaco, so it has to be told what the chosen theme is about
+    // to paint its body — otherwise the header band and border stay one colour while the editor
+    // changes underneath them.
+    const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
 
     // Fluid up to a ceiling: monaco reports how tall its content actually is — wrapped lines
     // included — and the wrapper follows it until 400px, past which the editor scrolls itself.
@@ -116,7 +218,7 @@ export function CodeEditor({
     return (
         <div
             className="overflow-hidden rounded-lg border border-border aria-invalid:border-destructive"
-            style={{ backgroundColor: SURFACE }}
+            style={{ backgroundColor: surface }}
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
         >
@@ -141,7 +243,9 @@ export function CodeEditor({
                 height={height}
                 language={monacoLanguage}
                 value={value}
-                theme={THEME_NAME}
+                // The preference *is* the monaco theme name: `devstash-dark` is the one registered
+                // above, and the rest are built in.
+                theme={preferences.theme}
                 beforeMount={defineTheme}
                 onMount={handleMount}
                 onChange={(next) => onChange?.(next ?? "")}
@@ -169,7 +273,7 @@ export function CodeEditor({
                     hover: { enabled: "off" },
                     occurrencesHighlight: "off",
                     renderLineHighlight: readOnly ? "none" : "line",
-                    minimap: { enabled: false },
+                    minimap: { enabled: preferences.minimap },
                     overviewRulerLanes: 0,
                     overviewRulerBorder: false,
                     hideCursorInOverviewRuler: true,
@@ -177,12 +281,15 @@ export function CodeEditor({
                     glyphMargin: false,
                     lineNumbersMinChars: 3,
                     lineDecorationsWidth: 8,
-                    // Wrapping rather than a horizontal scrollbar: the drawer is narrow, and a long
-                    // line that has to be scrolled sideways to be read is worse than a wrapped one.
-                    wordWrap: "on",
+                    // Wrapping rather than a horizontal scrollbar is the default, because the drawer
+                    // is narrow and a long line scrolled sideways is worse than a wrapped one — but
+                    // it is a preference now, since that trade is the user's to make for their own
+                    // content. Turning it off also shortens the measured content height, which is
+                    // the height of the box: the editor gets smaller, not just narrower in reach.
+                    wordWrap: preferences.wordWrap ? "on" : "off",
                     fontFamily: "var(--font-mono)",
-                    fontSize: 13,
-                    tabSize: 2,
+                    fontSize: preferences.fontSize,
+                    tabSize: preferences.tabSize,
                     padding: { top: 12, bottom: 12 },
                     contextmenu: !readOnly,
                     stickyScroll: { enabled: false },

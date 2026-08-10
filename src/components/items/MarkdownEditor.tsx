@@ -5,11 +5,9 @@ import { Tabs as TabsPrimitive } from "radix-ui";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_SURFACE } from "@/config/editor";
+import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
+import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_THEME_CATALOG } from "@/config/editor";
 import { cn } from "@/lib/utils";
-
-// The panel both halves sit on, shared with `CodeEditor` through `config/editor.ts`.
-const SURFACE = EDITOR_SURFACE;
 
 /** Shared by both tabs, so a note reads the same however it is being looked at. */
 const PANEL = "editor-scrollbar overflow-y-auto";
@@ -65,12 +63,19 @@ export function MarkdownEditor({
     // and is later made read-only cannot be left showing a textarea it will not accept input into.
     const active = readOnly ? "preview" : tab;
 
+    // The three preferences that mean something for prose. The minimap and the theme's token colours
+    // are monaco's alone — there is no syntax to colour here and nothing to overview — but the
+    // theme's *surface* still applies, or a note would sit on a different panel from a snippet the
+    // moment the theme changed. Same fallback as `CodeEditor` when no provider is mounted.
+    const preferences = useEditorPreferences();
+    const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
+
     return (
         <TabsPrimitive.Root
             value={active}
             onValueChange={setTab}
             className="overflow-hidden rounded-lg border border-border aria-invalid:border-destructive"
-            style={{ backgroundColor: SURFACE }}
+            style={{ backgroundColor: surface }}
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
         >
@@ -103,10 +108,20 @@ export function MarkdownEditor({
                         placeholder={placeholder}
                         aria-label={label}
                         spellCheck={false}
-                        style={PANEL_BOUNDS}
+                        // The native way to stop soft wrapping; monaco's `wordWrap: "off"` reaches
+                        // the same place from the other side. Both then scroll sideways instead.
+                        wrap={preferences.wordWrap ? "soft" : "off"}
+                        // `fontSize` replaces the `text-[13px]` this used to carry, and `tabSize` is
+                        // what a literal tab in a note is rendered as — the same two numbers monaco
+                        // is given, so a snippet and a note are set in the same type.
+                        style={{
+                            ...PANEL_BOUNDS,
+                            fontSize: preferences.fontSize,
+                            tabSize: preferences.tabSize,
+                        }}
                         className={cn(
                             PANEL,
-                            "block w-full resize-none bg-transparent px-3 py-3 font-mono text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground",
+                            "block w-full resize-none bg-transparent px-3 py-3 font-mono leading-relaxed outline-none placeholder:text-muted-foreground",
                             // Grows with what is typed, the same way the code editor follows its
                             // content height. `Textarea` in `ui/` already relies on this.
                             "field-sizing-content",
@@ -115,6 +130,11 @@ export function MarkdownEditor({
                 </TabsPrimitive.Content>
             )}
 
+            {/* Preview keeps `.markdown-preview`'s own type ramp rather than following the font-size
+                preference. That ramp is 20/16/14/13 in `rem` against a 14px body, deliberately — see
+                `globals.css` — so scaling it would mean converting the whole thing to `em` and
+                re-tuning the margins that were fixed in `rem` for exactly that reason. The
+                preference is about the source you write; this half is rendered prose. */}
             <TabsPrimitive.Content
                 value="preview"
                 style={PANEL_BOUNDS}
