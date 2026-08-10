@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ChangePasswordDialog } from "@/components/settings/ChangePasswordDialog";
 import { DeleteAccountDialog } from "@/components/settings/DeleteAccountDialog";
+import { EditorPreferencesRows } from "@/components/settings/EditorPreferencesRows";
 import { Panel, PanelRow } from "@/components/ui/Panel";
 import { getAccountSettings } from "@/server/profile";
 
@@ -64,6 +65,19 @@ export default async function SettingsPage() {
                         collectionCount={totalCollections}
                     />
                 </PanelRow>
+            </Panel>
+
+            {/* No values are read for this panel: the preferences are already in the tree, supplied
+                by the provider in the dashboard layout, because every editor in the app renders from
+                them. The rows below are the only client component here, and they both read and
+                write through that provider — there is no save button, each change is stored as it
+                is made. */}
+            <Panel
+                id="editor"
+                title="Editor"
+                description="How snippets, commands, notes, and prompts are shown while you read and write them. Changes save as you make them."
+            >
+                <EditorPreferencesRows />
             </Panel>
         </div>
     );

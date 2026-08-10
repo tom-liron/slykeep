@@ -1,8 +1,10 @@
 import "server-only";
 
+import { parseEditorPreferences } from "@/lib/editor-preferences";
 import { prisma } from "@/lib/prisma";
+import type { EditorPreferences } from "@/types/editor";
 import type { AccountSettingsViewModel, ProfileViewModel } from "@/types/view-models";
-import { getCurrentUser } from "./current-user";
+import { getCurrentUser, getCurrentUserId } from "./current-user";
 import { getItemTypeCounts } from "./item-types";
 
 /**
@@ -76,4 +78,28 @@ export async function getAccountSettings(): Promise<AccountSettingsViewModel> {
         totalItems,
         totalCollections,
     };
+}
+
+/**
+ * How this account's content editors should render.
+ *
+ * Read in the dashboard layout rather than on the settings page, because the settings panel is not
+ * the only consumer: every editor in the app — the drawer, the create dialog, the edit form — needs
+ * the same values, and they mount all over the tree. One read per page view feeds the provider, and
+ * the panel that changes them is inside it, which is why `getAccountSettings` above deliberately
+ * does not also select the column.
+ *
+ * A missing row returns the defaults instead of throwing. Every other read in the layout resolves
+ * through `getCurrentUser`, which already redirects a session whose account is gone; failing here as
+ * well would only turn that redirect into a 500.
+ */
+export async function getEditorPreferences(): Promise<EditorPreferences> {
+    const userId = await getCurrentUserId();
+
+    const account = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { editorPreferences: true },
+    });
+
+    return parseEditorPreferences(account?.editorPreferences);
 }
