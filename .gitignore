@@ -22,6 +22,7 @@
 
 # misc
 .DS_Store
+DEVSTASH_SYSTEM_INSPECTION.md
 *.pem
 
 # debug
