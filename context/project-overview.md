@@ -301,7 +301,7 @@ devstash/
 │   │   ├── collections/         # collection card and page composition
 │   │   ├── dashboard/           # stat card
 │   │   ├── profile/             # change-password form, delete-account dialog
-│   │   └── layout/              # sidebar, topbar, mobile drawer, account menu
+│   │   └── layout/              # sidebar, topbar, command palette, mobile drawer, account menu
 │   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
 │   │                            # Build output: gitignored, never edited, rewritten by
 │   │                            # `prisma generate` (runs on every `npm install`).
@@ -321,6 +321,7 @@ devstash/
 │   │   ├── format.ts            # dates and file sizes, formatted for display
 │   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
 │   │   ├── code-language.ts     # free-text `Item.language` → a Monaco language id
+│   │   ├── fuzzy-search.ts      # the command palette's match and ranking rule
 │   │   ├── utils.ts             # `cn` class merging
 │   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
@@ -341,7 +342,7 @@ devstash/
 │   │   ├── verification.ts      # issue, look up, and spend verification/reset tokens
 │   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
 │   │   ├── view-models.ts       # persistence-independent view-model builders
-│   │   └── search.ts            # (planned)
+│   │   └── search.ts            # the command palette's prefetch: items + collections
 │   ├── hooks/
 │   │   └── use-file-upload.ts   # the XHR upload behind the file field, and its progress
 │   ├── types/
@@ -389,7 +390,9 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 - Favorites, pinning, recently used
 
 **Phase 3 — Search & Polish**
-- Search across content, tags, titles, types
+- ~~Search across tags, titles, types~~ — the ⌘K command palette, matching client-side over
+  prefetched summaries. Item **content** is deliberately not searched: list queries never read the
+  body (§5), so full-content search needs a server-side query rather than a wider prefetch
 - Toasts, loading skeletons, hover states, transitions
 - Mobile responsiveness (sidebar → drawer)
 

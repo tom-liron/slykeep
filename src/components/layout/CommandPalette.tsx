@@ -1,0 +1,220 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Folder, Search } from "lucide-react";
+
+import { ItemDrawer } from "@/components/items/ItemDrawer";
+import { TypeIcon } from "@/components/items/TypeIcon";
+import {
+    Command,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import { rankBySearch, type SearchField } from "@/lib/fuzzy-search";
+import type {
+    ItemSummaryViewModel,
+    SearchCollectionViewModel,
+    SearchDataViewModel,
+} from "@/types/view-models";
+
+/** How many of each kind a result list shows, and how many an empty query falls back to. */
+const MAX_ITEM_RESULTS = 8;
+const MAX_COLLECTION_RESULTS = 5;
+
+/**
+ * What an item can be found by, and how much each way of finding it counts. A title is what someone
+ * is most likely to be typing; the type label is last because "snippet" would otherwise return every
+ * snippet ahead of the one actually named that.
+ *
+ * Only the title and the tags accept a scattered match. A description is prose, and prose contains
+ * the letters of a short query in order whether or not it is about it.
+ */
+function itemFields(item: ItemSummaryViewModel): SearchField[] {
+    return [
+        { text: item.title, weight: 1, scattered: true },
+        ...item.tags.map((tag) => ({ text: tag, weight: 0.85, scattered: true })),
+        { text: item.description, weight: 0.7 },
+        { text: item.itemType.label, weight: 0.5 },
+    ];
+}
+
+function collectionFields(collection: SearchCollectionViewModel): SearchField[] {
+    return [{ text: collection.name, weight: 1, scattered: true }];
+}
+
+/**
+ * The ⌘K palette: everything the user has stashed, matched in the browser against data the dashboard
+ * layout already fetched.
+ *
+ * Selecting a collection navigates to its page. Selecting an item opens `ItemDrawer` — the same
+ * drawer the item lists open, rendered here for the same reason it is rendered there: there is no
+ * item route, so the drawer is state rather than a destination. The search data carries whole item
+ * summaries precisely so this can happen without a second round trip.
+ *
+ * cmdk's own filtering is off. The ranking lives in `lib/fuzzy-search.ts`, which can weigh a title
+ * hit above a description hit — something a single flattened `value` string per item cannot express.
+ *
+ * It owns its trigger as well as its dialog, the way `CreateItemDialog` and `CreateCollectionDialog`
+ * do — the top bar places it and nothing else. That is also what keeps the query reset out of an
+ * effect: every path that opens the palette is an event handler here, so the field is cleared on the
+ * way in rather than by watching `open` change.
+ */
+export function CommandPalette({ data }: { data: SearchDataViewModel }) {
+    const router = useRouter();
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+
+    // Two pieces of state rather than one, so the drawer can animate out after the palette has gone:
+    // `drawerOpen` goes false on close while `selectedItem` keeps rendering until the transition
+    // finishes. The same pairing `ItemList` uses.
+    const [selectedItem, setSelectedItem] = useState<ItemSummaryViewModel | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+
+    // A palette that reopens on last week's query is one you have to clear before using.
+    const openPalette = () => {
+        setQuery("");
+        setOpen(true);
+    };
+
+    // The shortcut is registered here because the top bar is mounted on every dashboard route, which
+    // is the scope a global shortcut needs. `metaKey` for macOS, `ctrlKey` elsewhere; the default is
+    // prevented because ⌘K focuses the address bar in some browsers.
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) {
+                return;
+            }
+            event.preventDefault();
+            // Cleared either way: on the way in it is the reset, and on the way out the dialog is
+            // unmounting, so there is nothing left to clear it for.
+            setQuery("");
+            setOpen((isOpen) => !isOpen);
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
+
+    const items = useMemo(
+        () =>
+            query.trim()
+                ? rankBySearch(query, data.items, itemFields, MAX_ITEM_RESULTS)
+                : data.items.slice(0, MAX_ITEM_RESULTS),
+        [query, data.items],
+    );
+
+    const collections = useMemo(
+        () =>
+            query.trim()
+                ? rankBySearch(query, data.collections, collectionFields, MAX_COLLECTION_RESULTS)
+                : data.collections.slice(0, MAX_COLLECTION_RESULTS),
+        [query, data.collections],
+    );
+
+    const openItem = (item: ItemSummaryViewModel) => {
+        setOpen(false);
+        setSelectedItem(item);
+        setDrawerOpen(true);
+    };
+
+    const openCollection = (collection: SearchCollectionViewModel) => {
+        setOpen(false);
+        router.push(`/collections/${collection.id}`);
+    };
+
+    return (
+        <>
+            {/* A button dressed as the input it replaces, not an input. It opens a dialog rather
+                than accepting text — the palette owns the field you actually type in — and a
+                `readOnly` input that swallows its own focus is a control that lies about what it
+                does to anyone reaching it by keyboard or screen reader. */}
+            <button
+                type="button"
+                onClick={openPalette}
+                className="relative flex h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent pr-2 pl-9 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-md"
+            >
+                <Search
+                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                    aria-hidden="true"
+                />
+                <span className="truncate">Search items and collections...</span>
+                <kbd className="ml-auto hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-sans text-xs sm:inline-block">
+                    ⌘K
+                </kbd>
+            </button>
+
+            <CommandDialog open={open} onOpenChange={setOpen}>
+                {/* Off, because the ranking is ours. Left on, cmdk would filter our already-filtered
+                    list a second time by a different rule. */}
+                <Command shouldFilter={false}>
+                    <CommandInput
+                        placeholder="Search items and collections..."
+                        value={query}
+                        onValueChange={setQuery}
+                    />
+                    <CommandList>
+                        <CommandEmpty>No results found.</CommandEmpty>
+
+                        {items.length > 0 && (
+                            <CommandGroup heading="Items">
+                                {items.map((item) => (
+                                    <CommandItem
+                                        key={item.id}
+                                        value={`item-${item.id}`}
+                                        onSelect={() => openItem(item)}
+                                    >
+                                        <TypeIcon
+                                            name={item.itemType.icon}
+                                            className="size-4 shrink-0"
+                                            style={{ color: item.itemType.color }}
+                                            aria-hidden="true"
+                                        />
+                                        <span className="truncate">{item.title}</span>
+                                        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                                            {item.itemType.label}
+                                        </span>
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        )}
+
+                        {collections.length > 0 && (
+                            <CommandGroup heading="Collections">
+                                {collections.map((collection) => (
+                                    <CommandItem
+                                        key={collection.id}
+                                        value={`collection-${collection.id}`}
+                                        onSelect={() => openCollection(collection)}
+                                    >
+                                        <Folder
+                                            className="size-4 shrink-0 text-muted-foreground"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="truncate">{collection.name}</span>
+                                        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                                            {collection.itemCount}
+                                        </span>
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        )}
+                    </CommandList>
+                </Command>
+            </CommandDialog>
+
+            {selectedItem && (
+                <ItemDrawer
+                    key={selectedItem.id}
+                    item={selectedItem}
+                    open={drawerOpen}
+                    onClose={() => setDrawerOpen(false)}
+                />
+            )}
+        </>
+    );
+}
