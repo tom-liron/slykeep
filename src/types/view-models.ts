@@ -178,6 +178,33 @@ export interface ProfileViewModel {
     itemTypeCounts: ItemTypeCountViewModel[];
 }
 
+/**
+ * A collection as the command palette lists one: its name, and how many items are in it.
+ *
+ * Deliberately not `CollectionViewModel`. That model derives a dominant type and a contained-type
+ * strip, which costs a join over every item in every collection — work the palette renders none of,
+ * on a query that runs for every dashboard page view. The count here comes from `_count`.
+ */
+export interface SearchCollectionViewModel {
+    id: string;
+    name: string;
+    itemCount: number;
+}
+
+/**
+ * Everything the command palette searches, fetched once per dashboard render and matched entirely in
+ * the browser.
+ *
+ * Items are full summaries rather than a reduced search shape because selecting one opens
+ * `ItemDrawer`, which takes an `ItemSummaryViewModel` — a narrower row would have to be re-fetched
+ * before the drawer could open on it. No item bodies: matching is on titles, descriptions, and tags
+ * (`project-overview.md` §5).
+ */
+export interface SearchDataViewModel {
+    items: ItemSummaryViewModel[];
+    collections: SearchCollectionViewModel[];
+}
+
 export interface ItemTypePageViewModel {
     itemType: ItemTypeViewModel;
     items: ItemSummaryViewModel[];
