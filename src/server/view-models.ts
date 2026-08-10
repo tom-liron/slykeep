@@ -6,6 +6,7 @@ import type {
     CollectionViewModel,
     ItemDetailViewModel,
     ItemSummaryViewModel,
+    ItemTypeCountViewModel,
     ItemTypeViewModel,
     UserViewModel,
 } from "@/types/view-models";
@@ -204,6 +205,42 @@ export function buildCollectionViewModel(
         ),
         dominantItemType: dominantTypeId ? requireItemType(dominantTypeId, itemTypesById) : null,
     };
+}
+
+/**
+ * How a set of items divides by type, most numerous first with ties broken by label.
+ *
+ * Only types that are actually present appear — a breakdown of what is in one collection, not a
+ * checklist of every type the user could file there, which is the opposite of what the sidebar and
+ * profile lists want from their counts.
+ *
+ * The sort is what makes the output deterministic: `itemTypesById` comes from an unordered
+ * `findMany`, so an order inherited from its iteration would differ between requests and reshuffle
+ * the row under the title for no reason. `buildCollectionViewModel`'s `itemTypes` has the same
+ * exposure and is left alone — the card renders it as an unlabelled icon strip, where the cost of a
+ * reshuffle is nil.
+ */
+export function buildItemTypeBreakdown(
+    collectionItems: readonly Pick<CollectionItemRow, "itemTypeId">[],
+    itemTypesById: ItemTypeMap,
+): ItemTypeCountViewModel[] {
+    const countsByTypeId = new Map<string, number>();
+    for (const item of collectionItems) {
+        countsByTypeId.set(item.itemTypeId, (countsByTypeId.get(item.itemTypeId) ?? 0) + 1);
+    }
+
+    return [...countsByTypeId]
+        .map(([itemTypeId, itemCount]) => {
+            const { id, label, icon, color, slug, isPro } = requireItemType(
+                itemTypeId,
+                itemTypesById,
+            );
+            return { id, label, icon, color, slug, itemCount, isPro };
+        })
+        .sort(
+            (left, right) =>
+                right.itemCount - left.itemCount || left.label.localeCompare(right.label),
+        );
 }
 
 export function buildUserViewModel(user: UserRow): UserViewModel {

@@ -6,6 +6,7 @@ import {
     buildCollectionViewModel,
     buildItemDetailViewModel,
     buildItemSummaryViewModel,
+    buildItemTypeBreakdown,
     buildUserViewModel,
     resolveDominantTypeId,
     sortByUpdatedAtDesc,
@@ -188,6 +189,54 @@ describe("collection view models", () => {
 
         expect(viewModel.itemCount).toBe(2);
         expect(viewModel.itemTypes.map((itemType) => itemType.name)).toEqual(["snippet", "prompt"]);
+    });
+
+    it("counts the collection's items per type, most numerous first", () => {
+        const breakdown = buildItemTypeBreakdown(
+            [
+                makeItem("snippet-1", typeId("snippet"), "2026-01-01"),
+                makeItem("command", typeId("command"), "2026-01-02"),
+                makeItem("snippet-2", typeId("snippet"), "2026-01-03"),
+                makeItem("prompt-1", typeId("prompt"), "2026-01-04"),
+                makeItem("prompt-2", typeId("prompt"), "2026-01-05"),
+                makeItem("prompt-3", typeId("prompt"), "2026-01-06"),
+            ],
+            itemTypesById,
+        );
+
+        expect(breakdown.map(({ label, itemCount }) => [label, itemCount])).toEqual([
+            ["Prompts", 3],
+            ["Snippets", 2],
+            ["Commands", 1],
+        ]);
+    });
+
+    it("breaks count ties by label, so the order does not depend on the item type map", () => {
+        // The map is built from an unordered `findMany`; without the tiebreak these two could swap
+        // places between requests.
+        const breakdown = buildItemTypeBreakdown(
+            [
+                makeItem("prompt", typeId("prompt"), "2026-01-01"),
+                makeItem("command", typeId("command"), "2026-01-02"),
+            ],
+            itemTypesById,
+        );
+
+        expect(breakdown.map((itemType) => itemType.label)).toEqual(["Commands", "Prompts"]);
+    });
+
+    it("omits types the collection has no items of, rather than listing them at zero", () => {
+        const breakdown = buildItemTypeBreakdown(
+            [makeItem("note", typeId("note"), "2026-01-01")],
+            itemTypesById,
+        );
+
+        expect(breakdown).toHaveLength(1);
+        expect(breakdown[0]).toMatchObject({ label: "Notes", itemCount: 1, slug: "notes" });
+    });
+
+    it("has an empty breakdown for an empty collection", () => {
+        expect(buildItemTypeBreakdown([], itemTypesById)).toEqual([]);
     });
 
     it("normalizes nullable columns into display-safe values", () => {

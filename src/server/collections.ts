@@ -15,6 +15,7 @@ import { getItemTypesById } from "./item-types";
 import {
     buildCollectionViewModel,
     buildItemSummaryViewModel,
+    buildItemTypeBreakdown,
     resolveDominantTypeId,
     sortByUpdatedAtDesc,
 } from "./view-models";
@@ -189,6 +190,10 @@ export async function getCollectionPageData(
 
     return {
         collection: buildCollectionViewModel(row, items, itemTypesById),
+        // Counted from the items already in hand rather than by a `groupBy` of its own: this query
+        // has read every row in the collection, so a second trip to the database would only ask
+        // Postgres to re-derive what is sitting in memory.
+        itemTypeCounts: buildItemTypeBreakdown(items, itemTypesById),
         items: sortByUpdatedAtDesc(
             items.map((item) =>
                 buildItemSummaryViewModel(
