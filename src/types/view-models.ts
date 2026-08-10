@@ -119,9 +119,11 @@ export interface DashboardItemsViewModel {
 }
 
 /**
- * An item type reduced to what a count display needs: its presentation, and how many of the user's
- * items carry it. Shared by the sidebar nav and the profile page's type breakdown, which ask the
- * same question of the same data and would otherwise keep two identical shapes in step by hand.
+ * An item type reduced to what a count display needs: its presentation, and how many items carry it.
+ * Shared by the sidebar nav, the profile page's type breakdown, and a collection page's breakdown,
+ * which ask the same question of different scopes and would otherwise keep identical shapes in step
+ * by hand. What the count is *over* is the caller's: the first two count everything the user owns,
+ * the collection page counts only what is in that collection.
  */
 export interface ItemTypeCountViewModel {
     id: string;
@@ -184,4 +186,12 @@ export interface ItemTypePageViewModel {
 export interface CollectionPageViewModel {
     collection: CollectionViewModel;
     items: ItemSummaryViewModel[];
+    /**
+     * How the collection's items divide by type, most numerous first. `collection.itemTypes` says
+     * only *which* types are in there; this says how many of each, which is what the page's
+     * breakdown renders. Types with no items in the collection are absent rather than zero — unlike
+     * the sidebar and profile lists, which show every accessible type precisely so a zero is
+     * visible.
+     */
+    itemTypeCounts: ItemTypeCountViewModel[];
 }
