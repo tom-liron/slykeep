@@ -205,14 +205,37 @@ export interface SearchDataViewModel {
     collections: SearchCollectionViewModel[];
 }
 
+/**
+ * Where a paginated listing currently is, and how far it goes.
+ *
+ * `totalCount` is the size of the whole result set, not of the page — it is what the header counts
+ * ("42 items") and what `pageCount` was derived from, and a paginated query no longer has the full
+ * set in hand to count it from. `page` is the *clamped* page: a request for a page past the end is
+ * answered with the last one, so this never describes a window the query did not actually read.
+ */
+export interface PaginationViewModel {
+    page: number;
+    pageCount: number;
+    totalCount: number;
+    perPage: number;
+}
+
 export interface ItemTypePageViewModel {
     itemType: ItemTypeViewModel;
     items: ItemSummaryViewModel[];
+    pagination: PaginationViewModel;
+}
+
+/** The collections grid: one page of cards, and where that page sits. */
+export interface CollectionsPageViewModel {
+    collections: CollectionViewModel[];
+    pagination: PaginationViewModel;
 }
 
 export interface CollectionPageViewModel {
     collection: CollectionViewModel;
     items: ItemSummaryViewModel[];
+    pagination: PaginationViewModel;
     /**
      * How the collection's items divide by type, most numerous first. `collection.itemTypes` says
      * only *which* types are in there; this says how many of each, which is what the page's

@@ -322,6 +322,7 @@ devstash/
 │   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
 │   │   ├── code-language.ts     # free-text `Item.language` → a Monaco language id
 │   │   ├── fuzzy-search.ts      # the command palette's match and ranking rule
+│   │   ├── pagination.ts        # `?page=` parsing, page clamping, skip, and the page-number window
 │   │   ├── utils.ts             # `cn` class merging
 │   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
@@ -355,7 +356,8 @@ devstash/
 │       ├── access.ts            # temporary feature-entitlement configuration
 │       ├── dashboard.ts         # dashboard presentation values
 │       ├── editor.ts            # the surface and height bounds both content editors share
-│       └── item-type-catalog.ts # built-in item types: colors, icons, routes
+│       ├── item-type-catalog.ts # built-in item types: colors, icons, routes
+│       └── pagination.ts        # how many rows one page of a listing renders
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed
 ├── vitest.config.ts             # unit tests; tests sit beside the module as `*.test.ts`
