@@ -1,14 +1,17 @@
 "use client";
 
+import { Check, Folder } from "lucide-react";
+
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { CodeEditor } from "./CodeEditor";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 /**
  * The fields the create dialog and the edit drawer render identically.
  *
- * Only these three. Title, description, and URL look similar but differ in placeholder, `rows`, and
+ * Only these four. Title, description, and URL look similar but differ in placeholder, `rows`, and
  * `autoFocus`, and pulling them in here would turn readable markup into prop-level configuration.
  * There is deliberately no component covering the whole field *set* either: the two forms order them
  * differently — create puts URL and the upload before the content, edit puts description before the
@@ -122,5 +125,117 @@ export function TagsField({ id, value, onChange, error }: ItemFieldProps) {
                 {...invalidProps(id, error)}
             />
         </Field>
+    );
+}
+
+/**
+ * Which collections the item belongs to — any number of them, including none.
+ *
+ * Checkboxes rather than a `<select multiple>` or a combobox: an item can be in many collections at
+ * once, and a multi-select hides that behind a control most people only ever pick one option from.
+ * They are styled as the chips the type selector uses, so "pick several" reads the same in both item
+ * forms. The real `<input type="checkbox">` is kept and only visually hidden, which is what keeps
+ * the keyboard and screen-reader behaviour the browser already gives this for free.
+ *
+ * This is the one field here that does not use `Field`. `Field` renders a `<label htmlFor>`, and a
+ * group of checkboxes has no single input for a label to point at — the correct markup is a
+ * `<fieldset>` with a `<legend>`, so it restates `Field`'s three lines rather than mislabelling
+ * itself. `aria-describedby` on the group is what ties the error to it.
+ *
+ * The options are the caller's, not fetched here: only the caller knows whether they arrived, and
+ * that decides whether the form may submit a membership list at all. Sending an empty one when the
+ * list simply failed to load would read as "remove this item from everything".
+ */
+export function CollectionsField({
+    id,
+    options,
+    selectedIds,
+    onChange,
+    isLoading,
+    failed,
+    error,
+}: {
+    id: string;
+    options: readonly { id: string; name: string }[];
+    selectedIds: readonly string[];
+    onChange: (ids: string[]) => void;
+    isLoading: boolean;
+    failed: boolean;
+    error?: string;
+}) {
+    const toggle = (collectionId: string) =>
+        onChange(
+            selectedIds.includes(collectionId)
+                ? selectedIds.filter((id) => id !== collectionId)
+                : [...selectedIds, collectionId],
+        );
+
+    return (
+        <fieldset
+            className="space-y-1.5"
+            // On the group rather than on any one checkbox: the message is about the selection, and
+            // there is no single input for it to belong to.
+            aria-describedby={error ? `${id}-error` : undefined}
+        >
+            <legend className="text-xs font-medium text-muted-foreground">Collections</legend>
+
+            {isLoading ? (
+                <div className="h-8 animate-pulse rounded-md bg-muted" />
+            ) : failed ? (
+                <p className="text-sm text-muted-foreground">
+                    Collections could not be loaded. Saving leaves this item&apos;s collections as
+                    they are.
+                </p>
+            ) : options.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                    No collections yet — create one from the top bar.
+                </p>
+            ) : (
+                // Grows to fit, deliberately uncapped. A `max-h` here gives the list its own
+                // scrollbar *inside* a panel that already has one — two nested scrollbars for one
+                // field, with the outer one no longer reaching the content the inner one hides.
+                // Both callers already scroll (the drawer's sheet, and the dialog's `max-h-[60vh]`),
+                // so letting this be as tall as it needs to be is what keeps there being one.
+                <div className="flex flex-wrap gap-2 pt-1.5">
+                    {options.map((collection) => {
+                        const selected = selectedIds.includes(collection.id);
+
+                        return (
+                            <label
+                                key={collection.id}
+                                className={cn(
+                                    "flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                                    "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                                    selected
+                                        ? "border-primary bg-primary/10 text-foreground"
+                                        : "border-border text-muted-foreground hover:text-foreground",
+                                )}
+                            >
+                                <input
+                                    type="checkbox"
+                                    name={id}
+                                    value={collection.id}
+                                    checked={selected}
+                                    onChange={() => toggle(collection.id)}
+                                    className="sr-only"
+                                />
+                                {selected ? (
+                                    <Check className="size-3.5 shrink-0" aria-hidden="true" />
+                                ) : (
+                                    <Folder className="size-3.5 shrink-0" aria-hidden="true" />
+                                )}
+                                <span className="truncate">{collection.name}</span>
+                            </label>
+                        );
+                    })}
+                </div>
+            )}
+
+            {error && (
+                <p id={`${id}-error`} className="text-sm text-destructive">
+                    {error}
+                </p>
+            )}
+        </fieldset>
     );
 }

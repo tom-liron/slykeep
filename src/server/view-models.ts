@@ -2,6 +2,7 @@ import "server-only";
 
 import { ITEM_TYPE_CATALOG, isIconName, isItemTypeName } from "@/config/item-type-catalog";
 import type {
+    CollectionOptionViewModel,
     CollectionViewModel,
     ItemDetailViewModel,
     ItemSummaryViewModel,
@@ -53,12 +54,12 @@ export interface ItemSummaryRow {
     fileSize: number | null;
 }
 
-/** The summary columns plus the body and collection names the drawer adds to them. */
+/** The summary columns plus the body and the collections the drawer adds to them. */
 export interface ItemDetailRow extends ItemSummaryRow {
     content: string | null;
     url: string | null;
     language: string | null;
-    collections: readonly string[];
+    collections: readonly CollectionOptionViewModel[];
 }
 
 export interface UserRow {
@@ -175,7 +176,7 @@ export function buildItemDetailViewModel(
         content: item.content ?? "",
         url: item.url ?? "",
         language: item.language ?? "",
-        collections: [...item.collections],
+        collections: item.collections.map(({ id, name }) => ({ id, name })),
     };
 }
 

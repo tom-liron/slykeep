@@ -52,7 +52,9 @@ const ITEM_DETAIL_SELECT = {
     content: true,
     url: true,
     language: true,
-    collections: { select: { collection: { select: { name: true } } } },
+    // The id as well as the name: the drawer only ever showed the name, but the edit form has to
+    // check the boxes for the collections this item is already in, and membership is by id.
+    collections: { select: { collection: { select: { id: true, name: true } } } },
 } as const;
 
 /** How many recent (non-pinned) items the dashboard lists. */
@@ -127,7 +129,7 @@ export async function getItemDetail(id: string): Promise<ItemDetailViewModel | u
         {
             ...row,
             tags: row.tags.map((tag) => tag.name),
-            collections: row.collections.map((link) => link.collection.name),
+            collections: row.collections.map((link) => link.collection),
         },
         itemTypesById,
     );

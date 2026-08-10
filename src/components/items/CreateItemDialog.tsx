@@ -7,7 +7,12 @@ import { toast } from "sonner";
 
 import { createItem } from "@/actions/items";
 import { FileUpload } from "@/components/items/FileUpload";
-import { ContentField, LanguageField, TagsField } from "@/components/items/ItemFormFields";
+import {
+    CollectionsField,
+    ContentField,
+    LanguageField,
+    TagsField,
+} from "@/components/items/ItemFormFields";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +29,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import { useCollectionOptions } from "@/hooks/use-collection-options";
 import type { UploadedFile } from "@/hooks/use-file-upload";
 import { isFileItemTypeName } from "@/lib/file-constraints";
 import {
@@ -136,6 +142,11 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     // both read. It survives a type switch, exactly as the typed fields do — an upload made, then
     // reconsidered, then chosen again is not asked for twice.
     const [file, setFile] = useState<UploadedFile | null>(null);
+    const [collectionIds, setCollectionIds] = useState<string[]>([]);
+
+    // Fetched when the dialog opens, since Radix mounts this form then — so a collection created
+    // from the top bar's other dialog a moment ago is already in the list.
+    const collections = useCollectionOptions();
 
     const {
         content: showsContent,
@@ -159,6 +170,7 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
             description,
             // Split only — trimming, dropping blanks, and de-duplicating are the schema's job.
             tags: tags.split(","),
+            collectionIds,
             ...(showsContent && { content }),
             ...(showsUrl && { url }),
             ...(showsLanguage && { language }),
@@ -321,6 +333,18 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     value={tags}
                     onChange={setTags}
                     error={fieldErrors.tags}
+                />
+
+                {/* Last, and after the tags: filing is what happens to an item once it exists, so
+                    it belongs below the fields that describe it. */}
+                <CollectionsField
+                    id="new-item-collections"
+                    options={collections.options ?? []}
+                    selectedIds={collectionIds}
+                    onChange={setCollectionIds}
+                    isLoading={collections.isLoading}
+                    failed={collections.failed}
+                    error={fieldErrors.collectionIds}
                 />
             </div>
 

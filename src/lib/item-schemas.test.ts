@@ -146,6 +146,33 @@ describe("updateItemSchema", () => {
             );
         });
     });
+
+    describe("collectionIds", () => {
+        it("drops a repeated id", () => {
+            // `ItemCollection`'s primary key is [itemId, collectionId], so the same id twice is a
+            // unique-constraint violation the user would see as "could not save your changes".
+            expect(parse({ ...base, collectionIds: ["c1", "c2", "c1"] }).collectionIds).toEqual([
+                "c1",
+                "c2",
+            ]);
+        });
+
+        it("treats an empty array as 'in no collection' rather than 'leave them alone'", () => {
+            // The edit form's every-box-unchecked save. It has to reach the action as an empty list
+            // and not as an absent key, or an item could never be removed from its last collection.
+            expect(parse({ ...base, collectionIds: [] }).collectionIds).toEqual([]);
+        });
+
+        it("leaves an omitted list undefined, so membership is untouched", () => {
+            expect(parse(base).collectionIds).toBeUndefined();
+        });
+
+        it("rejects more collections than one payload may carry", () => {
+            const collectionIds = Array.from({ length: 101 }, (_, index) => `c-${index}`);
+
+            expect(firstError({ ...base, collectionIds })).toBe("That is too many collections.");
+        });
+    });
 });
 
 /** A snippet is the dialog's default, so it is what the create cases vary from. */

@@ -6,11 +6,17 @@ import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateItem } from "@/actions/items";
-import { ContentField, LanguageField, TagsField } from "@/components/items/ItemFormFields";
+import {
+    CollectionsField,
+    ContentField,
+    LanguageField,
+    TagsField,
+} from "@/components/items/ItemFormFields";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCollectionOptions } from "@/hooks/use-collection-options";
 import { formatFileSize } from "@/lib/format";
 import { itemTypeOwns, type UpdateItemField, type UpdateItemInput } from "@/lib/item-schemas";
 import type { ItemDetailViewModel } from "@/types/view-models";
@@ -46,6 +52,14 @@ export function ItemEditForm({
     const [content, setContent] = useState(detail.content);
     const [url, setUrl] = useState(detail.url);
     const [language, setLanguage] = useState(detail.language);
+    // Seeded from where the item already lives, which is why the detail carries collection ids and
+    // not only the names the read view renders.
+    const [collectionIds, setCollectionIds] = useState(() =>
+        detail.collections.map((collection) => collection.id),
+    );
+
+    // Fetched when edit mode opens, since that is when this form mounts.
+    const collections = useCollectionOptions();
 
     const {
         content: showsContent,
@@ -69,6 +83,10 @@ export function ItemEditForm({
             // Split only. Trimming, dropping blanks, and de-duplicating are the schema's job, so
             // "react, , React" is normalized in the one place that also has to reject a bad payload.
             tags: tags.split(","),
+            // Omitted entirely while the picker has nothing to show, which the update contract reads
+            // as "leave this item's collections alone". Sending the empty selection instead would
+            // mean a failed fetch silently unfiled the item from everything it was in.
+            ...(collections.options && { collectionIds }),
             ...(showsContent && { content }),
             ...(showsUrl && { url }),
             ...(showsLanguage && { language }),
@@ -181,6 +199,16 @@ export function ItemEditForm({
             )}
 
             <TagsField id="item-tags" value={tags} onChange={setTags} error={fieldErrors.tags} />
+
+            <CollectionsField
+                id="item-collections"
+                options={collections.options ?? []}
+                selectedIds={collectionIds}
+                onChange={setCollectionIds}
+                isLoading={collections.isLoading}
+                failed={collections.failed}
+                error={fieldErrors.collectionIds}
+            />
         </form>
     );
 }

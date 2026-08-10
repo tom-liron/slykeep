@@ -22,6 +22,33 @@ import type { CreateItemResult, DeleteItemResult, UpdateItemResult } from "@/typ
 const RECORD_NOT_FOUND = "P2025";
 
 /**
+ * Whether every submitted collection id belongs to the signed-in user.
+ *
+ * The ids reach the server the same way `fileKey` does — chosen from a list this account was served,
+ * then posted back — so by the time they arrive they are client input again, and a hand-made payload
+ * could name a collection belonging to someone else. Nothing else on the write path would catch it:
+ * `ItemCollection` has no `userId` of its own, so the insert would happily file this user's item into
+ * a stranger's collection, and the stranger's collection page would then render it.
+ *
+ * Counting is enough, and is one query: the ids are already de-duplicated by the schema, so a count
+ * short of the list means at least one of them is not theirs — or does not exist, which is
+ * deliberately the same answer, so an id cannot be probed for.
+ */
+async function ownsEveryCollection(collectionIds: string[], userId: string) {
+    const owned = await prisma.collection.count({
+        where: { id: { in: collectionIds }, userId },
+    });
+
+    return owned === collectionIds.length;
+}
+
+/** What both actions report when an id in the payload is not one of the caller's collections. */
+const UNKNOWN_COLLECTION = {
+    error: "One of those collections no longer exists.",
+    fields: { collectionIds: "One of those collections no longer exists." },
+} as const;
+
+/**
  * Creates an item from the top bar's dialog.
  *
  * Four things the payload is deliberately not trusted with. `userId` comes from the session, so an
@@ -52,7 +79,11 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
         };
     }
 
-    const { type, tags, ...columns } = parsed.data;
+    const { type, tags, collectionIds, ...columns } = parsed.data;
+
+    if (collectionIds?.length && !(await ownsEveryCollection(collectionIds, userId))) {
+        return { success: false, ...UNKNOWN_COLLECTION };
+    }
 
     if (columns.fileKey) {
         // The same entitlement the upload route checked, re-checked at the write: an upload and a
@@ -127,6 +158,13 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
                 // `connect` rather than the `set` an edit uses: a row that does not exist yet has no
                 // relation to replace.
                 tags: tags?.length ? { connect: tags.map((name) => ({ name })) } : undefined,
+                // `create` rather than `connect`, because `ItemCollection` is an explicit join
+                // model: what is being made here is the membership row itself, and its `itemId` is
+                // the item this same statement is writing. Nested, so an item is never left created
+                // but unfiled by a second statement that failed.
+                collections: collectionIds?.length
+                    ? { create: collectionIds.map((collectionId) => ({ collectionId })) }
+                    : undefined,
             },
             select: { id: true },
         });
@@ -173,7 +211,11 @@ export async function updateItem(
         };
     }
 
-    const { tags, title, description, content, url, language } = parsed.data;
+    const { tags, collectionIds, title, description, content, url, language } = parsed.data;
+
+    if (collectionIds?.length && !(await ownsEveryCollection(collectionIds, userId))) {
+        return { success: false, ...UNKNOWN_COLLECTION };
+    }
 
     try {
         // The item's type is what says which content columns it has, and an edit payload never
@@ -233,6 +275,28 @@ export async function updateItem(
                 // is disconnected and exactly this list is connected. An empty array is meaningful
                 // (clear every tag); `undefined` leaves the relation alone.
                 tags: tags && { set: tags.map((name) => ({ name })) },
+                // Membership is replaced with exactly what was submitted, but not by clearing and
+                // re-inserting: the rows that survive keep their `addedAt`, which is the only thing
+                // recording when an item was filed somewhere.
+                //
+                // The two halves work on disjoint sets — one deletes what is no longer selected, the
+                // other inserts what is newly selected and skips what is already there — so they
+                // hold whichever order Prisma runs them in. `undefined` leaves the relation alone,
+                // exactly as it does for tags.
+                collections: collectionIds && {
+                    // An empty selection is meaningful: remove the item from every collection. It is
+                    // written as an empty `where` rather than `notIn: []` so that "delete all of
+                    // them" is stated rather than inferred from how a database treats `NOT IN ()`.
+                    deleteMany: collectionIds.length
+                        ? { collectionId: { notIn: collectionIds } }
+                        : {},
+                    createMany: collectionIds.length
+                        ? {
+                              data: collectionIds.map((collectionId) => ({ collectionId })),
+                              skipDuplicates: true,
+                          }
+                        : undefined,
+                },
             },
         });
     } catch (error) {

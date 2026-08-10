@@ -22,6 +22,14 @@ const TAG_MAX_LENGTH = 50;
 const MAX_TAGS = 20;
 
 /**
+ * A bound on how many collections one item may be filed into at once. Nothing caps how many
+ * collections an account holds yet, so this is a bound on the *payload* rather than a product limit:
+ * the picker submits one id per checkbox, and a hand-made request should not be able to ask for an
+ * unbounded `IN (...)` and an unbounded insert.
+ */
+const MAX_COLLECTIONS = 100;
+
+/**
  * Normalize before validating, for the reason `auth-schemas.ts` spells out: a check that runs first
  * rejects input the trim would have made valid. Blank collapses to `null` rather than `""` so the
  * nullable columns hold one representation of "nothing" instead of two — the view models already
@@ -90,6 +98,24 @@ const tags = z.preprocess(
         .optional(),
 );
 
+/**
+ * The collections an item is filed into, as ids.
+ *
+ * Blanks are dropped and repeats collapsed for the same reason tags are — the difference is that
+ * this list is not typed by hand, so a duplicate is a bug rather than ordinary input. It is still
+ * removed rather than rejected: `ItemCollection`'s primary key is `[itemId, collectionId]`, so the
+ * same id twice is a unique-constraint violation reported as "could not save your changes" when
+ * dropping it costs one `Set`. Deduplication is exact, not case-insensitive: these are ids, and two
+ * casings are two different rows rather than two spellings of one.
+ *
+ * Whether an id is *the caller's* is deliberately not decided here. Only the server knows who is
+ * signed in, so `createItem` and `updateItem` check ownership — the same split `fileKey` takes.
+ */
+const collectionIds = z.preprocess(
+    (value) => (Array.isArray(value) ? [...new Set(value.filter(Boolean))] : value),
+    z.array(z.string()).max(MAX_COLLECTIONS, "That is too many collections.").optional(),
+);
+
 const title = z
     .string()
     .trim()
@@ -110,6 +136,7 @@ export const updateItemSchema = z.object({
     language: optionalText,
     url: optionalUrl,
     tags,
+    collectionIds,
 });
 
 /**
@@ -127,6 +154,13 @@ export type UpdateItemInput = {
     language?: string | null;
     url?: string | null;
     tags?: string[];
+    /**
+     * Absent means "leave this item's collections alone"; an empty array means "it belongs to
+     * none". The same absent-versus-empty split every other optional field here makes, and the
+     * reason the edit form always submits the key — the form is where membership is edited, so an
+     * unchecked-everything save has to be able to say so.
+     */
+    collectionIds?: string[];
 };
 
 /** The fields an error can be reported against, so the drawer can place a message under one. */
@@ -193,6 +227,7 @@ export const createItemSchema = z
         fileName: optionalText,
         fileSize: z.number().int().positive().nullable().optional(),
         tags,
+        collectionIds,
     })
     // A link with no URL is an empty row: `optionalUrl` checks the shape of one that was given, and
     // this is what insists there is one. Only URL types have anywhere to put it.
@@ -213,6 +248,7 @@ export const createItemSchema = z
             title,
             description,
             tags,
+            collectionIds,
             content,
             url,
             language,
@@ -227,6 +263,9 @@ export const createItemSchema = z
                 title,
                 description,
                 tags,
+                // Every type can be filed anywhere — a collection holds items of any type — so
+                // unlike the content columns there is nothing here to strip by type.
+                collectionIds,
                 content: owns.content ? content : undefined,
                 url: owns.url ? url : undefined,
                 language: owns.language ? language : undefined,
@@ -250,6 +289,8 @@ export type CreateItemInput = {
     fileName?: string | null;
     fileSize?: number | null;
     tags?: string[];
+    /** The collections to file the new item into. Absent or empty is an item in none. */
+    collectionIds?: string[];
 };
 
 /** The fields an error can be reported against, so the dialog can mark the input that was rejected. */
