@@ -30,14 +30,31 @@ const blankToNull = (value: unknown) => (typeof value === "string" ? value.trim(
 
 const optionalText = z.preprocess(blankToNull, z.string().nullable().optional());
 
-export const createCollectionSchema = z.object({
+/**
+ * The metadata a collection form owns. Both contracts are built from this rather than one aliasing
+ * the other, so each keeps its own identity — and so a column that becomes creatable but not
+ * editable (or the reverse) is added to one object instead of silently appearing in both.
+ */
+const collectionMetadata = {
     name: z
         .string()
         .trim()
         .min(1, "Name is required.")
         .max(NAME_MAX_LENGTH, `Name must be at most ${NAME_MAX_LENGTH} characters.`),
     description: optionalText,
-});
+};
+
+export const createCollectionSchema = z.object(collectionMetadata);
+
+/**
+ * Input contract for the edit dialog, which edits exactly what creation set: the name and the
+ * description.
+ *
+ * `isFavorite` stays out for the reason it stays out of the create contract — favouriting is its own
+ * action with its own control, not a field on a metadata form. It is unreachable through this even
+ * once that control is wired, which is what stops a hand-made edit payload from flipping it.
+ */
+export const updateCollectionSchema = z.object(collectionMetadata);
 
 /**
  * What the dialog submits: raw strings straight from the inputs.
@@ -53,3 +70,18 @@ export type CreateCollectionInput = {
 
 /** The fields an error can be reported against, so the dialog can place a message under one. */
 export type CreateCollectionField = keyof CreateCollectionInput;
+
+/**
+ * What the edit dialog submits. The same two fields as a create, written out separately for the same
+ * reason the schemas are: they are two contracts that happen to agree today.
+ *
+ * `description` is optional here in the payload sense only — the dialog always sends the field, and
+ * a blank one clears the column. Omitting it entirely leaves the column as it was, which is what
+ * makes this safe to reuse for a partial edit later.
+ */
+export type UpdateCollectionInput = {
+    name: string;
+    description?: string | null;
+};
+
+export type UpdateCollectionField = keyof UpdateCollectionInput;
