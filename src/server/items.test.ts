@@ -25,7 +25,7 @@ type ItemRow = {
     url: string | null;
     language: string | null;
     tags: { name: string }[];
-    collections: { collection: { name: string } }[];
+    collections: { collection: { id: string; name: string } }[];
 };
 
 const db = vi.hoisted(() => ({ items: [] as ItemRow[] }));
@@ -77,7 +77,7 @@ function makeRow(overrides: Partial<ItemRow> = {}): ItemRow {
         url: null,
         language: "typescript",
         tags: [{ name: "react" }, { name: "auth" }],
-        collections: [{ collection: { name: "React Patterns" } }],
+        collections: [{ collection: { id: "collection-1", name: "React Patterns" } }],
         ...overrides,
     };
 }
@@ -97,7 +97,7 @@ describe("getItemDetail", () => {
         await expect(getItemDetail("item-nonexistent")).resolves.toBeUndefined();
     });
 
-    it("flattens tags and collection names onto the view model", async () => {
+    it("flattens tags and collections onto the view model", async () => {
         db.items = [makeRow()];
 
         const item = await getItemDetail("item-1");
@@ -109,7 +109,7 @@ describe("getItemDetail", () => {
             url: "",
             language: "typescript",
             tags: ["react", "auth"],
-            collections: ["React Patterns"],
+            collections: [{ id: "collection-1", name: "React Patterns" }],
             createdAt: "2026-01-01T00:00:00.000Z",
         });
         expect(item?.itemType.label).toBe("Snippets");

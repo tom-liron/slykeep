@@ -130,13 +130,22 @@ describe("item detail view models", () => {
         expect(viewModel.itemType.name).toBe("snippet");
     });
 
-    it("copies the collection names rather than aliasing the row's array", () => {
-        const collections = ["React Patterns"];
+    it("copies the collections rather than aliasing the row's array", () => {
+        const collections = [{ id: "collection-1", name: "React Patterns" }];
         const viewModel = buildItemDetailViewModel(makeDetail({ collections }), itemTypesById);
 
-        collections.push("Interview Prep");
+        collections.push({ id: "collection-2", name: "Interview Prep" });
 
-        expect(viewModel.collections).toEqual(["React Patterns"]);
+        expect(viewModel.collections).toEqual([{ id: "collection-1", name: "React Patterns" }]);
+    });
+
+    it("carries each collection's id, which is what the edit form preselects by", () => {
+        const viewModel = buildItemDetailViewModel(
+            makeDetail({ collections: [{ id: "collection-1", name: "React Patterns" }] }),
+            itemTypesById,
+        );
+
+        expect(viewModel.collections).toEqual([{ id: "collection-1", name: "React Patterns" }]);
     });
 });
 

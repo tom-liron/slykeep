@@ -60,8 +60,21 @@ export interface ItemDetailViewModel extends ItemSummaryViewModel {
     url: string;
     /** Code language for a TEXT item, e.g. "typescript". Empty when the item declares none. */
     language: string;
-    /** Names of the collections holding this item. Empty when it belongs to none. */
-    collections: string[];
+    /** The collections holding this item. Empty when it belongs to none. */
+    collections: CollectionOptionViewModel[];
+}
+
+/**
+ * A collection reduced to what it takes to name one and submit it back: the drawer renders the name,
+ * and the item forms preselect and post the id.
+ *
+ * Ids rather than names alone is what the membership editor needs — `ItemDetailViewModel.collections`
+ * used to carry names only, which is enough to *show* where an item lives but not to check the boxes
+ * for it, since a name is not what `ItemCollection` points at.
+ */
+export interface CollectionOptionViewModel {
+    id: string;
+    name: string;
 }
 
 /**

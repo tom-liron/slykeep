@@ -405,9 +405,9 @@ export function ItemDrawer({
                     {detail && detail.collections.length > 0 && (
                         <Section label="Collections" icon={Folder}>
                             <div className="flex flex-wrap gap-1.5">
-                                {detail.collections.map((name) => (
-                                    <Badge key={name} variant="outline">
-                                        {name}
+                                {detail.collections.map((collection) => (
+                                    <Badge key={collection.id} variant="outline">
+                                        {collection.name}
                                     </Badge>
                                 ))}
                             </div>

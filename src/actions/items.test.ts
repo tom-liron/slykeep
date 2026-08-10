@@ -28,6 +28,9 @@ type ItemTypeRow = { id: string; name: string; userId: string | null };
 const db = vi.hoisted(() => ({
     items: [] as ItemRow[],
     itemTypes: [] as ItemTypeRow[],
+    collections: [] as { id: string; userId: string }[],
+    /** The nested collection write the last `item.create` was given, if any. */
+    lastCreateCollections: null as unknown,
     // What the last `item.update` was asked to write, so a test can assert on the columns that were
     // left out as well as the ones that were sent.
     lastUpdateData: null as Record<string, unknown> | null,
@@ -77,11 +80,24 @@ vi.mock("@/lib/prisma", async () => {
         contentType: string;
         user: { connect: { id: string } };
         itemType: { connect: { id: string } };
+        collections?: unknown;
     };
 
     return {
         prisma: {
             tag: { createMany: () => Promise.resolve({ count: 0 }) },
+            collection: {
+                // Counts on both keys, like the real query: drop `userId` and every id in the
+                // payload starts counting as the caller's, which is the bug these tests exist for.
+                count: ({ where }: { where: { id: { in: string[] }; userId: string } }) =>
+                    Promise.resolve(
+                        db.collections.filter(
+                            (candidate) =>
+                                where.id.in.includes(candidate.id) &&
+                                candidate.userId === where.userId,
+                        ).length,
+                    ),
+            },
             itemType: {
                 // Matches on both keys for the same reason the item matcher does: drop `userId` from
                 // the query and a user's custom type of the same name starts winning.
@@ -95,6 +111,8 @@ vi.mock("@/lib/prisma", async () => {
             },
             item: {
                 create: ({ data }: { data: CreateData }) => {
+                    db.lastCreateCollections = data.collections;
+
                     const row = {
                         id: `item-${db.items.length + 1}`,
                         userId: data.user.connect.id,
@@ -148,6 +166,11 @@ const { createItem, deleteItem, updateItem } = await import("./items");
 describe("createItem", () => {
     beforeEach(() => {
         db.items = [];
+        db.lastCreateCollections = null;
+        db.collections = [
+            { id: "collection-mine", userId: "user-owner" },
+            { id: "collection-theirs", userId: "user-other" },
+        ];
         // The custom type comes first, so a `findFirst` that stopped filtering on `userId` would
         // return it — which is the bug the `name`-alone lookup in `schema.prisma`'s note describes.
         db.itemTypes = [
@@ -230,12 +253,62 @@ describe("createItem", () => {
         });
         expect(db.items).toHaveLength(0);
     });
+
+    it("files the new item into the collections it names", async () => {
+        const result = await createItem({
+            type: "snippet",
+            title: "My snippet",
+            collectionIds: ["collection-mine"],
+        });
+
+        expect(result.success).toBe(true);
+        expect(db.lastCreateCollections).toEqual({
+            create: [{ collectionId: "collection-mine" }],
+        });
+    });
+
+    /**
+     * `ItemCollection` has no `userId` of its own, so nothing downstream of this check would notice:
+     * the insert succeeds, and the item shows up on a stranger's collection page. The ids are chosen
+     * from a list this account was served and then posted back, which makes them client input again
+     * by the time they arrive — the same reason `fileKey` is re-checked.
+     */
+    it("refuses to file the item into another user's collection", async () => {
+        await expect(
+            createItem({
+                type: "snippet",
+                title: "My snippet",
+                collectionIds: ["collection-mine", "collection-theirs"],
+            }),
+        ).resolves.toMatchObject({ success: false });
+
+        expect(db.items).toHaveLength(0);
+    });
+
+    it("answers a collection that does not exist the same way, so neither confirms the other", async () => {
+        await expect(
+            createItem({
+                type: "snippet",
+                title: "My snippet",
+                collectionIds: ["collection-nonexistent"],
+            }),
+        ).resolves.toMatchObject({
+            success: false,
+            error: "One of those collections no longer exists.",
+        });
+
+        expect(db.items).toHaveLength(0);
+    });
 });
 
 describe("updateItem", () => {
     beforeEach(() => {
         db.items = [];
         db.lastUpdateData = null;
+        db.collections = [
+            { id: "collection-mine", userId: "user-owner" },
+            { id: "collection-theirs", userId: "user-other" },
+        ];
     });
 
     it("refuses to update an item owned by another user", async () => {
@@ -332,6 +405,62 @@ describe("updateItem", () => {
         expect(db.lastUpdateData).toMatchObject({
             content: "const a = 1;",
             language: "typescript",
+        });
+    });
+
+    describe("collections", () => {
+        beforeEach(() => {
+            db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet" }];
+        });
+
+        it("replaces membership with exactly what was submitted", async () => {
+            // Two halves over disjoint sets — drop what is no longer selected, insert what is newly
+            // selected — rather than clear-and-reinsert, which would reset every row's `addedAt`.
+            const result = await updateItem("item-1", {
+                title: "Renamed",
+                collectionIds: ["collection-mine"],
+            });
+
+            expect(result.success).toBe(true);
+            expect(db.lastUpdateData?.collections).toEqual({
+                deleteMany: { collectionId: { notIn: ["collection-mine"] } },
+                createMany: {
+                    data: [{ collectionId: "collection-mine" }],
+                    skipDuplicates: true,
+                },
+            });
+        });
+
+        it("removes the item from every collection when the selection is empty", async () => {
+            const result = await updateItem("item-1", { title: "Renamed", collectionIds: [] });
+
+            expect(result.success).toBe(true);
+            // An empty `where`, so "delete all of them" is stated rather than left to how a database
+            // happens to treat `NOT IN ()`.
+            expect(db.lastUpdateData?.collections).toEqual({
+                deleteMany: {},
+                createMany: undefined,
+            });
+        });
+
+        it("leaves membership alone when the payload carries no list", async () => {
+            // What the edit form submits when the collection list could not be loaded. Writing the
+            // relation here would unfile the item from everything on a failed fetch.
+            const result = await updateItem("item-1", { title: "Renamed" });
+
+            expect(result.success).toBe(true);
+            expect(db.lastUpdateData?.collections).toBeUndefined();
+        });
+
+        it("refuses to file the item into another user's collection", async () => {
+            await expect(
+                updateItem("item-1", { title: "Renamed", collectionIds: ["collection-theirs"] }),
+            ).resolves.toMatchObject({
+                success: false,
+                error: "One of those collections no longer exists.",
+            });
+
+            expect(db.lastUpdateData).toBeNull();
         });
     });
 });

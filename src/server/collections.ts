@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@/generated/prisma-client/client";
 import { prisma } from "@/lib/prisma";
 import type {
+    CollectionOptionViewModel,
     CollectionPageViewModel,
     CollectionViewModel,
     DashboardCollectionsViewModel,
@@ -76,6 +77,26 @@ export async function getCollections(): Promise<CollectionViewModel[]> {
     });
 
     return toCollectionViewModels(rows, userId);
+}
+
+/**
+ * Every collection the user could file an item into, for the pickers on the two item forms.
+ *
+ * Ordered by name rather than by recency, because this is a list to *find* a collection in — the
+ * ordering the sidebar and the cards use answers a different question ("what did I touch last") and
+ * would move a checkbox out from under the cursor between one open and the next.
+ *
+ * Deliberately not `getCollections()`: that reads every collection's items to derive a dominant type
+ * and a count, none of which a checkbox renders.
+ */
+export async function getCollectionOptions(): Promise<CollectionOptionViewModel[]> {
+    const userId = await getCurrentUserId();
+
+    return prisma.collection.findMany({
+        where: { userId },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+    });
 }
 
 /** The dashboard's recent-collection cards, plus the two collection stat cards. */
