@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, User } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
 
 import { signOutAction } from "@/actions/auth";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -37,6 +37,13 @@ export function UserMenu({ user }: { user: UserViewModel }) {
                         <Link href="/profile">
                             <User className="size-4" aria-hidden="true" />
                             Profile
+                        </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
+                        <Link href="/settings">
+                            <Settings className="size-4" aria-hidden="true" />
+                            Settings
                         </Link>
                     </DropdownMenuItem>
 

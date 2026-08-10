@@ -162,20 +162,35 @@ export interface SidebarNavViewModel {
 export type SidebarViewModel = SidebarNavViewModel & SidebarCollectionsViewModel;
 
 /**
- * The profile page: who the account belongs to, when it was opened, how much is in it, and which
- * of the two account actions it can offer.
+ * The profile page: who the account belongs to, when it was opened, and how much is in it.
  *
- * `hasPassword` is deliberately a boolean rather than the hash it derives from. The page needs to
- * know only whether a password exists — a credentials account can change one, a GitHub-only account
- * has none to change — and the hash itself must never leave the server boundary.
+ * Read-only throughout — the account *actions* moved to the settings page, and `hasPassword` went
+ * with them (see `AccountSettingsViewModel`).
  */
 export interface ProfileViewModel {
     user: UserViewModel;
     createdAt: string;
-    hasPassword: boolean;
     totalItems: number;
     totalCollections: number;
     itemTypeCounts: ItemTypeCountViewModel[];
+}
+
+/**
+ * The settings page's account section: which of the two password bodies to render, and what the
+ * delete confirmation needs to state before it destroys anything.
+ *
+ * `hasPassword` is deliberately a boolean rather than the hash it derives from. The page needs to
+ * know only whether a password exists — a credentials account can change one, a GitHub-only account
+ * has none to change — and the hash itself must never leave the server boundary.
+ *
+ * The two totals are here because the delete dialog names them ("42 items and 3 collections will be
+ * deleted"), not because settings reports usage; that stayed on the profile page.
+ */
+export interface AccountSettingsViewModel {
+    email: string;
+    hasPassword: boolean;
+    totalItems: number;
+    totalCollections: number;
 }
 
 /**
