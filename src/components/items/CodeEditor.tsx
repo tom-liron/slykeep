@@ -66,6 +66,11 @@ const SLIDER_COLORS = {
  * The token colours are the two themes' own published palettes, trimmed to the scopes monaco's
  * tokenizers actually emit. Backgrounds are duplicated in `EDITOR_THEME_CATALOG` as `surface`,
  * which is what the frame around the editor is painted with — the two must agree.
+ *
+ * Each name is `satisfies EditorThemeId` rather than a bare string, because monaco does not complain
+ * about a theme it was never given: rename an id in the catalog and the preference would resolve to
+ * nothing, monaco would quietly fall back, and the failure would be a wrong colour rather than an
+ * error. This makes that a compile error instead.
  */
 const defineTheme: BeforeMount = (monaco) => {
     monaco.editor.defineTheme(THEME_NAME, {
@@ -86,7 +91,7 @@ const defineTheme: BeforeMount = (monaco) => {
         },
     });
 
-    monaco.editor.defineTheme("monokai", {
+    monaco.editor.defineTheme("monokai" satisfies EditorThemeId, {
         base: "vs-dark",
         inherit: true,
         rules: [
@@ -117,7 +122,7 @@ const defineTheme: BeforeMount = (monaco) => {
         },
     });
 
-    monaco.editor.defineTheme("github-dark", {
+    monaco.editor.defineTheme("github-dark" satisfies EditorThemeId, {
         base: "vs-dark",
         inherit: true,
         rules: [
