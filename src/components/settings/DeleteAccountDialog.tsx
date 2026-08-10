@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Trash2 } from "lucide-react";
 
 import { deleteAccount } from "@/actions/account";
 import {
@@ -55,7 +56,10 @@ export function DeleteAccountDialog({
             }}
         >
             <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="lg">
+                {/* `shrink-0` because `SettingsRow` lays the copy and this button out on one row:
+                    without it the flex row steals width from the label before the sentence. */}
+                <Button variant="destructive" size="lg" className="shrink-0">
+                    <Trash2 className="size-4" aria-hidden="true" />
                     Delete account
                 </Button>
             </AlertDialogTrigger>

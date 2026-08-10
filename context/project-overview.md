@@ -275,9 +275,10 @@ devstash/
 │   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
-│   │   │   ├── profile/         # account page: identity, usage, password, delete
+│   │   │   ├── profile/         # account page, read-only: identity and usage
 │   │   │   ├── search/          # (planned)
-│   │   │   └── settings/        # (planned) account, billing, export
+│   │   │   └── settings/        # account actions: change password, delete account
+│   │   │                        # (billing and export land here later)
 │   │   ├── api/
 │   │   │   ├── auth/[...nextauth]/  # Auth.js handler
 │   │   │   ├── auth/register/       # account creation (needs 400 vs 409)
@@ -295,12 +296,12 @@ devstash/
 │   │   ├── layout.tsx           # root shell and default dark theme
 │   │   └── globals.css
 │   ├── components/
-│   │   ├── ui/                  # shared UI primitives and presentational components
+│   │   ├── ui/                  # shared UI primitives and presentational components (incl. the account Panel)
 │   │   ├── auth/                # sign-in, register, reset, and verification forms
 │   │   ├── items/               # item card, list, detail drawer, edit form, create dialog, upload
 │   │   ├── collections/         # collection card and page composition
 │   │   ├── dashboard/           # stat card
-│   │   ├── profile/             # change-password form, delete-account dialog
+│   │   ├── settings/            # change-password dialog, delete-account dialog
 │   │   └── layout/              # sidebar, topbar, command palette, mobile drawer, account menu
 │   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
 │   │                            # Build output: gitignored, never edited, rewritten by
@@ -338,7 +339,7 @@ devstash/
 │   │   ├── collections.ts       # collection reads
 │   │   ├── item-types.ts        # item types, per-type counts, sidebar nav
 │   │   ├── current-user.ts      # signed-in user resolution from the session
-│   │   ├── profile.ts           # account page read: identity, usage, hasPassword
+│   │   ├── profile.ts           # profile read: identity + usage; settings read: hasPassword + totals
 │   │   ├── passwords.ts         # the one bcrypt cost factor and the decoy hash pinned to it
 │   │   ├── verification.ts      # issue, look up, and spend verification/reset tokens
 │   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
@@ -431,7 +432,7 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 - **Soft vs hard delete.** Whether deleted items are recoverable (a trash view) or gone immediately — affects schema (`deletedAt`) if you want undo.
 - **Data export scope.** Does export include files (ZIP with the actual R2 objects) or just metadata/text (JSON)? The spec implies both formats.
 - **Caching strategy.** Redis is marked "maybe" — defer until there's a measured hot path (likely the collections grid and recently-used) rather than adding it upfront.
-- **Session revocation.** Sessions are JWTs with no version claim, so nothing can invalidate one that is already issued. Changing a password — from `/profile` or a reset link — leaves any session held on another device signed in, which means a compromised password cannot actually be locked out. Account deletion is unaffected: the row is gone, so `getCurrentUser()` throws and every authenticated read fails closed. The fix is a `sessionVersion` (or `passwordChangedAt`) on `User`, carried in the token and compared on each request — but that comparison is a database read per request, which is most of the reason `strategy: "jwt"` was chosen over `"database"` (the edge proxy authorizes without touching Postgres). So this reopens the session-strategy decision rather than being a patch, and is deliberately deferred until the account-linking work settles. Lowering the JWT `maxAge` from the 30-day default bounds the exposure in the meantime without committing to anything.
+- **Session revocation.** Sessions are JWTs with no version claim, so nothing can invalidate one that is already issued. Changing a password — from `/settings` or a reset link — leaves any session held on another device signed in, which means a compromised password cannot actually be locked out. Account deletion is unaffected: the row is gone, so `getCurrentUser()` throws and every authenticated read fails closed. The fix is a `sessionVersion` (or `passwordChangedAt`) on `User`, carried in the token and compared on each request — but that comparison is a database read per request, which is most of the reason `strategy: "jwt"` was chosen over `"database"` (the edge proxy authorizes without touching Postgres). So this reopens the session-strategy decision rather than being a patch, and is deliberately deferred until the account-linking work settles. Lowering the JWT `maxAge` from the 30-day default bounds the exposure in the meantime without committing to anything.
 
 ---
 
