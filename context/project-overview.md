@@ -302,6 +302,7 @@ devstash/
 │   │   ├── items/               # item card, row, list, detail drawer, edit form, create dialog, upload
 │   │   ├── collections/         # collection card, row, actions, and page composition
 │   │   ├── dashboard/           # stat card
+│   │   ├── favorites/           # the starred lists and their client-side sort control
 │   │   ├── settings/            # change-password dialog, delete-account dialog
 │   │   └── layout/              # sidebar, topbar, command palette, mobile drawer, account menu
 │   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
@@ -323,6 +324,7 @@ devstash/
 │   │   ├── format.ts            # dates and file sizes, formatted for display
 │   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
 │   │   ├── code-language.ts     # free-text `Item.language` → a Monaco language id
+│   │   ├── favorites-sort.ts    # how `/favorites` orders its two lists, client-side
 │   │   ├── fuzzy-search.ts      # the command palette's match and ranking rule
 │   │   ├── pagination.ts        # `?page=` parsing, page clamping, skip, and the page-number window
 │   │   ├── utils.ts             # `cn` class merging
