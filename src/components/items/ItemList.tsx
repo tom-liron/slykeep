@@ -9,6 +9,7 @@ import { FileRow } from "./FileRow";
 import { ImageCard } from "./ImageCard";
 import { ItemCard } from "./ItemCard";
 import { ItemDrawer } from "./ItemDrawer";
+import { ItemRow } from "./ItemRow";
 
 /**
  * A list of item cards that open the detail drawer when clicked.
@@ -27,7 +28,7 @@ import { ItemDrawer } from "./ItemDrawer";
  * `variant` picks what an entry looks like, never how the list is arranged — the container classes
  * still arrive as `className`. A file is described by its object rather than summarised by a body, so
  * the files page renders rows; an image *is* its object, so the images page renders thumbnails;
- * everything else is a card.
+ * `"row"` is the flat line `/favorites` scans; everything else is a card.
  */
 export function ItemList({
     items,
@@ -36,7 +37,7 @@ export function ItemList({
 }: {
     items: ItemSummaryViewModel[];
     className?: string;
-    variant?: "card" | "file" | "image";
+    variant?: "card" | "file" | "image" | "row";
 }) {
     // Two pieces of state rather than one, so the drawer can animate out: `open` goes false on
     // close while `selected` keeps rendering the item until the transition finishes. Keying the
@@ -66,6 +67,7 @@ export function ItemList({
                         <div key={item.id} className="group relative">
                             {variant === "file" && <FileRow item={item} />}
                             {variant === "image" && <ImageCard item={item} />}
+                            {variant === "row" && <ItemRow item={item} />}
                             {variant === "card" && <ItemCard item={item} showsCopy={showsCopy} />}
                             <button
                                 type="button"
@@ -74,7 +76,12 @@ export function ItemList({
                                     "absolute inset-0 cursor-pointer transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                                     // Matched to the entry underneath, so the hover tint stops
                                     // exactly where its border curves.
-                                    variant === "file" ? "rounded-lg" : "rounded-xl",
+                                    variant === "file" && "rounded-lg",
+                                    // A row has no border to curve around, so the tint is a plain
+                                    // band across the list — the smallest radius that still softens
+                                    // its ends.
+                                    variant === "row" && "rounded-md",
+                                    (variant === "card" || variant === "image") && "rounded-xl",
                                     // A thumbnail is already lit by its zoom, and a tint over a
                                     // picture reads as the image changing rather than the card
                                     // responding.

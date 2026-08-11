@@ -28,7 +28,13 @@ type ItemRow = {
     collections: { collection: { id: string; name: string } }[];
 };
 
-const db = vi.hoisted(() => ({ items: [] as ItemRow[] }));
+const db = vi.hoisted(() => ({
+    items: [] as ItemRow[],
+    /** The arguments the last `item.findMany` was given, so a test can assert on the ordering too. */
+    lastFindManyArgs: null as { where?: ItemWhere; orderBy?: unknown } | null,
+}));
+
+type ItemWhere = { id?: string; userId?: string; isFavorite?: boolean };
 
 // The signed-in user is fixed: these tests vary who owns the row, not who is asking.
 vi.mock("./current-user", () => ({
@@ -36,31 +42,39 @@ vi.mock("./current-user", () => ({
     getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true }),
 }));
 
-vi.mock("@/lib/prisma", () => ({
-    prisma: {
-        item: {
-            // Filters only on the keys actually present, the way Prisma does. That is what makes
-            // the ownership test load-bearing: drop `userId` from the query and this fake starts
-            // matching on id alone, handing back the other user's row rather than quietly missing.
-            findFirst: ({ where }: { where: { id?: string; userId?: string } }) =>
-                Promise.resolve(
-                    db.items.find(
-                        (row) =>
-                            (where.id === undefined || row.id === where.id) &&
-                            (where.userId === undefined || row.userId === where.userId),
-                    ) ?? null,
-                ),
-        },
-        itemType: {
-            findMany: () =>
-                Promise.resolve([
-                    { id: "type-snippet", name: "snippet", icon: "Code", color: "#3b82f6" },
-                ]),
-        },
-    },
-}));
+vi.mock("@/lib/prisma", () => {
+    // Filters only on the keys actually present, the way Prisma does. That is what makes the
+    // ownership tests load-bearing: drop `userId` from a query and this starts matching on the rest
+    // alone, handing back the other user's rows rather than quietly missing.
+    const matches = (row: ItemRow, where: ItemWhere) =>
+        (where.id === undefined || row.id === where.id) &&
+        (where.userId === undefined || row.userId === where.userId) &&
+        (where.isFavorite === undefined || row.isFavorite === where.isFavorite);
 
-const { getItemDetail } = await import("./items");
+    return {
+        prisma: {
+            item: {
+                findFirst: ({ where }: { where: ItemWhere }) =>
+                    Promise.resolve(db.items.find((row) => matches(row, where)) ?? null),
+                findMany: (args: { where?: ItemWhere; orderBy?: unknown }) => {
+                    db.lastFindManyArgs = args;
+
+                    return Promise.resolve(
+                        db.items.filter((row) => matches(row, args.where ?? {})),
+                    );
+                },
+            },
+            itemType: {
+                findMany: () =>
+                    Promise.resolve([
+                        { id: "type-snippet", name: "snippet", icon: "Code", color: "#3b82f6" },
+                    ]),
+            },
+        },
+    };
+});
+
+const { getFavoriteItems, getItemDetail } = await import("./items");
 
 function makeRow(overrides: Partial<ItemRow> = {}): ItemRow {
     return {
@@ -113,5 +127,49 @@ describe("getItemDetail", () => {
             createdAt: "2026-01-01T00:00:00.000Z",
         });
         expect(item?.itemType.label).toBe("Snippets");
+    });
+});
+
+describe("getFavoriteItems", () => {
+    beforeEach(() => {
+        db.items = [];
+        db.lastFindManyArgs = null;
+    });
+
+    it("returns only the signed-in user's favourites", async () => {
+        db.items = [
+            makeRow({ id: "item-mine", isFavorite: true }),
+            makeRow({ id: "item-mine-unstarred", isFavorite: false }),
+            makeRow({ id: "item-theirs", userId: "user-other", isFavorite: true }),
+        ];
+
+        const items = await getFavoriteItems();
+
+        expect(items.map((item) => item.id)).toEqual(["item-mine"]);
+    });
+
+    it("asks for them most recently updated first, tie-broken by id", async () => {
+        await getFavoriteItems();
+
+        // Asserted on the query rather than on the result, because the ordering is Postgres's work
+        // and the fake does none of it. The tiebreaker is the load-bearing half: without it two
+        // items saved in the same write come back in whatever order the database felt like, and the
+        // list appears to shuffle between renders.
+        expect(db.lastFindManyArgs?.orderBy).toEqual([{ updatedAt: "desc" }, { id: "desc" }]);
+    });
+
+    it("builds summaries with no item body in them", async () => {
+        db.items = [makeRow({ isFavorite: true })];
+
+        const [item] = await getFavoriteItems();
+
+        expect(item).toMatchObject({
+            id: "item-1",
+            title: "useAuth Hook",
+            tags: ["react", "auth"],
+        });
+        // The summary select does not read `content`, and the view model has nowhere to put one —
+        // this is the rule that keeps an unpaginated list off the large columns.
+        expect(item).not.toHaveProperty("content");
     });
 });

@@ -147,6 +147,25 @@ export interface SidebarCollectionViewModel {
     dominantItemType: ItemTypeViewModel | null;
 }
 
+/**
+ * A collection as one compact row on `/favorites`: named, counted, dated, and coloured by the type
+ * it mostly holds.
+ *
+ * Close to `SidebarCollectionViewModel` but not the same question. That one is a navigation entry —
+ * it needs `isFavorite` because the sidebar splits favourites from recents, and it needs no date
+ * because nothing there shows one. Here every row is a favourite by definition, so the flag would be
+ * a constant, and the row does show a date. Narrower than `CollectionViewModel`, which additionally
+ * derives the contained-type strip that only a card renders.
+ */
+export interface FavoriteCollectionViewModel {
+    id: string;
+    name: string;
+    itemCount: number;
+    updatedAt: string;
+    /** Colours the row's folder icon. Null when the collection has no dominant type. */
+    dominantItemType: ItemTypeViewModel | null;
+}
+
 /** The sidebar's collection lists, read from the database. */
 export interface SidebarCollectionsViewModel {
     favoriteCollections: SidebarCollectionViewModel[];

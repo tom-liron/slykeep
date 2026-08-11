@@ -275,6 +275,7 @@ devstash/
 │   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
 │   │   │   ├── collections/
 │   │   │   │   └── [id]/
+│   │   │   ├── favorites/       # /favorites — starred items and collections, one dense list
 │   │   │   ├── profile/         # account page, read-only: identity and usage
 │   │   │   ├── search/          # (planned)
 │   │   │   └── settings/        # account actions: change password, delete account
@@ -298,8 +299,8 @@ devstash/
 │   ├── components/
 │   │   ├── ui/                  # shared UI primitives and presentational components (incl. the account Panel)
 │   │   ├── auth/                # sign-in, register, reset, and verification forms
-│   │   ├── items/               # item card, list, detail drawer, edit form, create dialog, upload
-│   │   ├── collections/         # collection card and page composition
+│   │   ├── items/               # item card, row, list, detail drawer, edit form, create dialog, upload
+│   │   ├── collections/         # collection card, row, actions, and page composition
 │   │   ├── dashboard/           # stat card
 │   │   ├── settings/            # change-password dialog, delete-account dialog
 │   │   └── layout/              # sidebar, topbar, command palette, mobile drawer, account menu
@@ -390,7 +391,9 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 - Create / read / update / delete items via the quick-access drawer
 - Markdown editor for text types, syntax highlighting for code
 - Collections: create, color-coding logic, add/remove items, many-to-many
-- Favorites, pinning, recently used
+- ~~Favorites~~ — items and collections both toggle from their existing star controls, and
+  `/favorites` lists everything starred. Pinning and "recently used" are still open; `Item.isPinned`
+  is persisted and rendered but nothing writes it, which is exactly where favouriting was before this
 
 **Phase 3 — Search & Polish**
 - ~~Search across tags, titles, types~~ — the ⌘K command palette, matching client-side over

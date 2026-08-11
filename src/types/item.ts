@@ -35,3 +35,13 @@ export type CreateItemResult =
  * drawer's next move is to close — so the success arm carries no payload.
  */
 export type DeleteItemResult = { success: true } | { success: false; error: string };
+
+/**
+ * What `toggleItemFavorite` hands back: the state the row is now in, read back from the write.
+ *
+ * The caller sent the state it wanted, so this is not news to it in the ordinary case — but the star
+ * is rendered from what came back rather than from what was asked for, so a write that lands
+ * differently than expected cannot leave a filled star over an unfavourited row.
+ */
+export type ToggleItemFavoriteResult =
+    { success: true; data: { isFavorite: boolean } } | { success: false; error: string };
