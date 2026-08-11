@@ -16,7 +16,12 @@ import { prisma } from "@/lib/prisma";
 import { deleteObject, isOwnedKey } from "@/lib/r2";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import { getItemDetail } from "@/server/items";
-import type { CreateItemResult, DeleteItemResult, UpdateItemResult } from "@/types/item";
+import type {
+    CreateItemResult,
+    DeleteItemResult,
+    ToggleItemFavoriteResult,
+    UpdateItemResult,
+} from "@/types/item";
 
 /** Prisma's "no record matched the `where`" code, raised by `update` when nothing was found. */
 const RECORD_NOT_FOUND = "P2025";
@@ -321,6 +326,54 @@ export async function updateItem(
     }
 
     return { success: true, data: detail };
+}
+
+/**
+ * Favourites or unfavourites an item from the detail drawer.
+ *
+ * Takes the state to write rather than flipping what it finds, for the reasons set out in
+ * `toggleCollectionFavorite` — the write is idempotent, needs no read in front of it, and cannot be
+ * raced into disagreeing with the star that triggered it. Ownership is the `where`, so an item that
+ * is not the caller's is refused exactly as one that does not exist.
+ *
+ * No re-read afterwards, unlike `updateItem`: that one returns the whole detail because the drawer
+ * re-renders its body from what came back, while this touches one boolean the caller is already
+ * rendering. `updatedAt` still moves, via `@updatedAt`, which is what surfaces a just-favourited item
+ * at the top of `/favorites`.
+ *
+ * And no `revalidatePath` either, where `toggleCollectionFavorite` has one — not an oversight. That
+ * one writes to a list the dashboard *layout* renders (the sidebar's favourites), which a caller's
+ * `router.refresh()` cannot reach from inside a page. Nothing in the layout renders an item's star:
+ * every surface that does — the cards, the dashboard's favourite count, `/favorites` itself — is part
+ * of the page the drawer is open over, so refreshing the route is enough and re-fetching the whole
+ * group's layout data on every star click would not buy anything.
+ */
+export async function toggleItemFavorite(
+    itemId: string,
+    isFavorite: boolean,
+): Promise<ToggleItemFavoriteResult> {
+    const userId = await getCurrentUserId();
+
+    try {
+        const updated = await prisma.item.update({
+            where: { id: itemId, userId },
+            data: { isFavorite },
+            select: { isFavorite: true },
+        });
+
+        return { success: true, data: { isFavorite: updated.isFavorite } };
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === RECORD_NOT_FOUND
+        ) {
+            return { success: false, error: "This item no longer exists." };
+        }
+
+        console.error("Item favorite toggle failed:", error);
+
+        return { success: false, error: "Could not update this item. Try again." };
+    }
 }
 
 /**

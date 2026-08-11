@@ -25,7 +25,14 @@ import type { CreateCollectionInput, UpdateCollectionInput } from "@/lib/collect
  * rather than the dialog, and the second a second account and one of its collection ids.
  */
 
-type CollectionRow = { id: string; userId: string; name: string; description?: string | null };
+type CollectionRow = {
+    id: string;
+    userId: string;
+    name: string;
+    description?: string | null;
+    /** What `toggleCollectionFavorite` writes, and reads back out of the row afterwards. */
+    isFavorite?: boolean;
+};
 
 /** What `createCollection` builds: the owner connected by id, never assigned as a column. */
 type CreateData = {
@@ -173,7 +180,8 @@ vi.mock("@/lib/prisma", async () => {
     };
 });
 
-const { createCollection, deleteCollection, updateCollection } = await import("./collections");
+const { createCollection, deleteCollection, toggleCollectionFavorite, updateCollection } =
+    await import("./collections");
 
 /** Two collections with the same shape, owned by different accounts. */
 function seedTwoOwners() {
@@ -468,6 +476,77 @@ describe("deleteCollection", () => {
         await expect(deleteCollection("collection-owned")).resolves.toEqual({
             success: false,
             error: "Could not delete this collection. Try again.",
+        });
+    });
+});
+
+describe("toggleCollectionFavorite", () => {
+    beforeEach(seedTwoOwners);
+
+    it("writes the state it was given rather than flipping what it finds", async () => {
+        // Already favourited, and asked to favourite again. A read-then-flip implementation would
+        // unfavourite it here — the race two quick clicks used to lose, and the reason this action
+        // takes the state rather than deriving it.
+        db.collections[0].isFavorite = true;
+
+        await expect(toggleCollectionFavorite("collection-owned", true)).resolves.toEqual({
+            success: true,
+            data: { isFavorite: true },
+        });
+        expect(db.collections[0]?.isFavorite).toBe(true);
+    });
+
+    it("unfavourites when asked to", async () => {
+        db.collections[0].isFavorite = true;
+
+        await expect(toggleCollectionFavorite("collection-owned", false)).resolves.toEqual({
+            success: true,
+            data: { isFavorite: false },
+        });
+        expect(db.collections[0]?.isFavorite).toBe(false);
+    });
+
+    it("writes nothing but the flag", async () => {
+        await toggleCollectionFavorite("collection-owned", true);
+
+        expect(db.lastUpdateData).toEqual({ isFavorite: true });
+    });
+
+    it("revalidates the layout, so the sidebar's favourites list follows", async () => {
+        await toggleCollectionFavorite("collection-owned", true);
+
+        // The whole point of the write: this is the list the star adds to and removes from, and it
+        // is rendered by the layout rather than by the page the click came from.
+        expect(db.revalidated).toContainEqual(["/", "layout"]);
+    });
+
+    describe("someone else's collection", () => {
+        it("is reported exactly as one that does not exist", async () => {
+            await expect(toggleCollectionFavorite("collection-other", true)).resolves.toEqual({
+                success: false,
+                error: "This collection no longer exists.",
+            });
+
+            await expect(toggleCollectionFavorite("collection-ghost", true)).resolves.toEqual({
+                success: false,
+                error: "This collection no longer exists.",
+            });
+        });
+
+        it("is not favourited, and nothing is revalidated", async () => {
+            await toggleCollectionFavorite("collection-other", true);
+
+            expect(db.collections[1]?.isFavorite).toBeUndefined();
+            expect(db.revalidated).toEqual([]);
+        });
+    });
+
+    it("reports a database failure instead of throwing it at the star", async () => {
+        db.failNextWrite = true;
+
+        await expect(toggleCollectionFavorite("collection-owned", true)).resolves.toEqual({
+            success: false,
+            error: "Could not update this collection. Try again.",
         });
     });
 });

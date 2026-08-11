@@ -11,6 +11,7 @@ import type {
     CollectionsPageViewModel,
     CollectionViewModel,
     DashboardCollectionsViewModel,
+    FavoriteCollectionViewModel,
     SidebarCollectionsViewModel,
 } from "@/types/view-models";
 import { getCurrentUserId } from "./current-user";
@@ -173,6 +174,39 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
         favoriteCollections: favorites.map(toSidebarCollection),
         recentNonFavoriteCollections: recentNonFavorites.map(toSidebarCollection),
     };
+}
+
+/**
+ * Every collection the user has favourited, most recently touched first, for `/favorites`.
+ *
+ * The same item join the sidebar uses, plus the timestamp the row renders — the dominant type is what
+ * colours the folder icon, so a favourites row is recognisable as the same collection the sidebar and
+ * the cards show. Unpaginated for the reason `getFavoriteItems` is.
+ */
+export async function getFavoriteCollections(): Promise<FavoriteCollectionViewModel[]> {
+    const userId = await getCurrentUserId();
+
+    const [rows, itemTypesById] = await Promise.all([
+        prisma.collection.findMany({
+            where: { userId, isFavorite: true },
+            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+            select: { ...SIDEBAR_COLLECTION_SELECT, updatedAt: true },
+        }),
+        getItemTypesById(userId),
+    ]);
+
+    return rows.map((row) => {
+        const items = row.items.map(({ item }) => item);
+        const dominantTypeId = resolveDominantTypeId(row, items);
+
+        return {
+            id: row.id,
+            name: row.name,
+            itemCount: items.length,
+            updatedAt: row.updatedAt.toISOString(),
+            dominantItemType: dominantTypeId ? (itemTypesById.get(dominantTypeId) ?? null) : null,
+        };
+    });
 }
 
 /**

@@ -21,6 +21,8 @@ type ItemRow = {
     itemTypeId?: string;
     /** The type `updateItem` reads to decide which content columns this row owns. */
     itemTypeName?: string;
+    /** What `toggleItemFavorite` writes, and what it reads back out of the row afterwards. */
+    isFavorite?: boolean;
 };
 
 type ItemTypeRow = { id: string; name: string; userId: string | null };
@@ -143,6 +145,11 @@ vi.mock("@/lib/prisma", async () => {
 
                     db.lastUpdateData = data;
 
+                    // Applied to the row, not only recorded: `toggleItemFavorite` returns the value
+                    // Postgres ends up holding rather than the one it sent, so a fake that never
+                    // wrote anything would let that distinction pass untested.
+                    Object.assign(row, data);
+
                     return Promise.resolve(row);
                 },
                 delete: ({ where }: { where: ItemWhere }) => {
@@ -161,7 +168,7 @@ vi.mock("@/lib/prisma", async () => {
     };
 });
 
-const { createItem, deleteItem, updateItem } = await import("./items");
+const { createItem, deleteItem, toggleItemFavorite, updateItem } = await import("./items");
 
 describe("createItem", () => {
     beforeEach(() => {
@@ -492,5 +499,63 @@ describe("deleteItem", () => {
 
         await expect(deleteItem("item-1")).resolves.toEqual({ success: true });
         expect(db.items).toHaveLength(0);
+    });
+});
+
+describe("toggleItemFavorite", () => {
+    beforeEach(() => {
+        db.items = [];
+        db.lastUpdateData = null;
+    });
+
+    it("refuses an item owned by another user, and leaves its state alone", async () => {
+        db.items = [
+            { id: "item-theirs", userId: "user-other", title: "Their snippet", isFavorite: false },
+        ];
+
+        await expect(toggleItemFavorite("item-theirs", true)).resolves.toEqual({
+            success: false,
+            error: "This item no longer exists.",
+        });
+        expect(db.items[0]?.isFavorite).toBe(false);
+    });
+
+    it("answers a missing item the same way, so the two are indistinguishable", async () => {
+        await expect(toggleItemFavorite("item-nonexistent", true)).resolves.toEqual({
+            success: false,
+            error: "This item no longer exists.",
+        });
+    });
+
+    it("writes the state it was given rather than flipping what it finds", async () => {
+        // Already favourited, and asked to favourite again. A read-then-flip implementation would
+        // write `false` here — which is what a double click on the star used to do to itself, and
+        // the whole reason this action takes the state instead of deriving it.
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isFavorite: true }];
+
+        await expect(toggleItemFavorite("item-1", true)).resolves.toEqual({
+            success: true,
+            data: { isFavorite: true },
+        });
+        expect(db.items[0]?.isFavorite).toBe(true);
+    });
+
+    it("unfavourites when asked to", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isFavorite: true }];
+
+        await expect(toggleItemFavorite("item-1", false)).resolves.toEqual({
+            success: true,
+            data: { isFavorite: false },
+        });
+        expect(db.items[0]?.isFavorite).toBe(false);
+    });
+
+    it("writes nothing but the flag", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isFavorite: false }];
+
+        await toggleItemFavorite("item-1", true);
+
+        // The star must not be able to touch a title, a body, or a type on its way past.
+        expect(db.lastUpdateData).toEqual({ isFavorite: true });
     });
 });

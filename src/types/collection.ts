@@ -44,6 +44,14 @@ export type UpdateCollectionResult =
 export type DeleteCollectionResult = { success: true } | { success: false; error: string };
 
 /**
+ * What `toggleCollectionFavorite` hands back. The twin of `ToggleItemFavoriteResult`, restated here
+ * rather than shared for the same reason the two delete results are: these two write paths are
+ * independent, and a shape one of them outgrows should not drag the other with it.
+ */
+export type ToggleCollectionFavoriteResult =
+    { success: true; data: { isFavorite: boolean } } | { success: false; error: string };
+
+/**
  * The collection an edit / delete / favorite control is acting on, reduced to what those three
  * actually need: an id to act on, a name to put in the confirmation and the dialog's fields, a
  * description to edit, and the favourite state the star renders.

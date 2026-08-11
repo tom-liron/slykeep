@@ -15,6 +15,7 @@ import { getCurrentUserId } from "@/server/current-user";
 import type {
     CreateCollectionResult,
     DeleteCollectionResult,
+    ToggleCollectionFavoriteResult,
     UpdateCollectionResult,
 } from "@/types/collection";
 
@@ -131,6 +132,59 @@ export async function updateCollection(
 
         return { success: false, error: "Could not save your changes. Try again." };
     }
+}
+
+/**
+ * Favourites or unfavourites a collection, from the card menu or the collection page's header.
+ *
+ * **Takes the state to write, rather than flipping what it finds.** The name is the course's, so its
+ * lesson logic still transfers, but the signature deliberately is not: reading the row and writing
+ * `!isFavorite` is two statements with a gap between them, and two clicks that overlap in that gap
+ * both read the same value and write the same one — the second click does nothing, and the star ends
+ * up disagreeing with the database. Sending the wanted state makes the write idempotent: clicking
+ * favourite twice writes `true` twice, which is the same row either way, and there is nothing to
+ * read first. The `where` is what makes it safe, exactly as in `updateCollection` — another user's
+ * id is refused by the same path as one that does not exist.
+ *
+ * `updatedAt` moves as a side effect of this write, via Prisma's `@updatedAt`. That is deliberate and
+ * `/favorites` depends on it: with no favourited-at column, ordering by `updatedAt` is what puts a
+ * just-favourited collection at the top of the list. It also means an unrelated rename reorders that
+ * list, which is the limit of what this ordering can promise (`project-overview.md` §11).
+ */
+export async function toggleCollectionFavorite(
+    collectionId: string,
+    isFavorite: boolean,
+): Promise<ToggleCollectionFavoriteResult> {
+    const userId = await getCurrentUserId();
+
+    let updated: { isFavorite: boolean };
+
+    try {
+        updated = await prisma.collection.update({
+            where: { id: collectionId, userId },
+            data: { isFavorite },
+            select: { isFavorite: true },
+        });
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === RECORD_NOT_FOUND
+        ) {
+            return { success: false, error: "This collection no longer exists." };
+        }
+
+        console.error("Collection favorite toggle failed:", error);
+
+        return { success: false, error: "Could not update this collection. Try again." };
+    }
+
+    // The same layout-wide revalidation `deleteCollection` explains at length, for the same reason:
+    // the sidebar's favourites list sits in the dashboard layout, above every route in the group, so
+    // a caller's own `router.refresh()` cannot reach it from a page — and this write is precisely a
+    // write to that list.
+    revalidatePath("/", "layout");
+
+    return { success: true, data: { isFavorite: updated.isFavorite } };
 }
 
 /**

@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Calendar, Copy, Download, Folder, Pencil, Pin, Star, Tag } from "lucide-react";
+import { toast } from "sonner";
 
+import { toggleItemFavorite } from "@/actions/items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -37,9 +40,20 @@ export function ItemDrawer({
     open: boolean;
     onClose: () => void;
 }) {
+    const router = useRouter();
     const [detail, setDetail] = useState<ItemDetailViewModel | null>(null);
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
+    const [isFavoriting, startFavoriting] = useTransition();
+    /**
+     * The favourite state this drawer has written, or null when it has written none.
+     *
+     * Neither `item` nor `detail` can hold it on its own: the prop is a snapshot the list passed in
+     * and never updates, and the detail may still be in flight when the star is clicked — the toolbar
+     * is on screen before the fetch lands. This wins over both once it is set, so the star answers
+     * the click immediately and keeps answering it if a slower detail response arrives afterwards.
+     */
+    const [writtenFavorite, setWrittenFavorite] = useState<boolean | null>(null);
     // The object's own contents, for the formats that are rendered rather than downloaded.
     const [fileText, setFileText] = useState("");
     const [fileError, setFileError] = useState("");
@@ -135,6 +149,34 @@ export function ItemDrawer({
     // same action reached two ways should not be able to start reporting itself two ways.
     const copyBody = () => copyToClipboard(body);
 
+    const isFavorite = writtenFavorite ?? view.isFavorite;
+
+    const toggleFavorite = () => {
+        const next = !isFavorite;
+
+        startFavoriting(async () => {
+            const result = await toggleItemFavorite(itemId, next);
+
+            if (!result.success) {
+                toast.error(result.error);
+
+                return;
+            }
+
+            setWrittenFavorite(result.data.isFavorite);
+            toast.success(
+                result.data.isFavorite ? "Added to favorites." : "Removed from favorites.",
+            );
+
+            // Re-renders the page behind the drawer: the card's star, the dashboard's favourite
+            // count, and — when the drawer was opened from `/favorites` — the list this item is
+            // being removed from. That last one takes the row out from under an open drawer, which
+            // is the honest outcome: the item is no longer a favourite, and the drawer stays open on
+            // it until it is closed.
+            router.refresh();
+        });
+    };
+
     return (
         <Sheet
             open={open}
@@ -204,9 +246,9 @@ export function ItemDrawer({
                         </div>
                     </div>
 
-                    {/* Edit, Copy, and Delete are live; Favorite and Pin are still layout only —
-                        each is its own mutation. They render in their resting state, so a
-                        favourited item shows a filled star and the bar is inert, not lying.
+                    {/* Pin is the last control here that is still layout only — it renders in its
+                        resting state, so a pinned item shows a filled pin and the button is inert
+                        rather than lying about what it would do.
 
                         The whole bar gives way to the form's Save / Cancel in edit mode. */}
                     {!isEditing && (
@@ -217,18 +259,23 @@ export function ItemDrawer({
                         // `sm`, which is exactly where `ActionLabel` drops the words and leaves the
                         // icons — the same trade the top bar's "New Item" makes.
                         <div className="flex items-center gap-1 border-t border-border pt-3">
+                            {/* Titled and labelled by what the click will *do*, not by what the item
+                                is — the filled star already says which of the two states it is in,
+                                and a control named "Favorite" on an already-favourited item reads as
+                                the one thing it will not do. */}
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                disabled
-                                title="Coming soon"
-                                aria-label="Favorite"
+                                onClick={toggleFavorite}
+                                disabled={isFavoriting}
+                                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                                aria-label={
+                                    isFavorite ? "Remove from favorites" : "Add to favorites"
+                                }
                             >
                                 <Star
                                     className={
-                                        view.isFavorite
-                                            ? "fill-yellow-400 text-yellow-400"
-                                            : undefined
+                                        isFavorite ? "fill-yellow-400 text-yellow-400" : undefined
                                     }
                                     aria-hidden="true"
                                 />

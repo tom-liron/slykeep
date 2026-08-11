@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, PanelLeft } from "lucide-react";
+import Link from "next/link";
+import { Menu, PanelLeft, Star } from "lucide-react";
 
 import { CreateCollectionDialog } from "@/components/collections/CreateCollectionDialog";
 import { CreateItemDialog } from "@/components/items/CreateItemDialog";
@@ -52,6 +53,19 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
             <CommandPalette data={searchData} />
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                {/* `aria-label` as well as `title`: the tooltip is for a pointer, and the star on its
+                    own says nothing to a screen reader. Both, like the two toggles above. */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    aria-label="Favorites"
+                    title="Favorites"
+                >
+                    <Link href="/favorites">
+                        <Star className="size-5" aria-hidden="true" />
+                    </Link>
+                </Button>
                 <CreateCollectionDialog />
                 <CreateItemDialog />
             </div>

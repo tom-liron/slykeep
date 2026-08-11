@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { toggleCollectionFavorite } from "@/actions/collections";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -44,27 +46,51 @@ export function CollectionActions({
     afterDeleteHref?: string;
     className?: string;
 }) {
+    const router = useRouter();
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [isFavoriting, startFavoriting] = useTransition();
 
     /**
-     * Favoriting is not built yet — `Collection.isFavorite` is persisted and rendered, but nothing
-     * writes it, and this feature was scoped to the control alone.
+     * What the star shows, which is not always what the prop says.
      *
-     * A no-op that says so, rather than a disabled control: disabled reads as "not available to you"
-     * and, in a dropdown, as a bug. A neutral toast (not success — nothing succeeded) is the honest
-     * version, and the control keeps its place, its label, and its keyboard behaviour for the day the
-     * write lands behind it.
+     * `collection` comes from a server component, so the prop only catches up once the refresh below
+     * has round-tripped — long enough for a click to look like it did nothing. Null means "nothing
+     * clicked here yet", so the prop wins until this component has written a value of its own, and
+     * the prop wins again for a fresh mount.
      */
-    const favorite = () => toast("Favoriting collections is coming soon.");
+    const [written, setWritten] = useState<boolean | null>(null);
+    const isFavorite = written ?? collection.isFavorite;
 
-    const favoriteLabel = collection.isFavorite ? "Remove from favorites" : "Add to favorites";
+    const favorite = () => {
+        const next = !isFavorite;
+
+        startFavoriting(async () => {
+            const result = await toggleCollectionFavorite(collection.id, next);
+
+            if (!result.success) {
+                toast.error(result.error);
+
+                return;
+            }
+
+            // From what came back, not from `next`: the star follows the row, so it cannot end up
+            // filled over a collection the write left alone.
+            setWritten(result.data.isFavorite);
+            toast.success(
+                result.data.isFavorite ? "Added to favorites." : "Removed from favorites.",
+            );
+
+            // The action revalidates the layout, which re-renders the sidebar's favourites; this is
+            // what re-renders the page under it — the card's own star, and the collection's header.
+            router.refresh();
+        });
+    };
+
+    const favoriteLabel = isFavorite ? "Remove from favorites" : "Add to favorites";
 
     const star = (
-        <Star
-            className={cn(collection.isFavorite && "fill-yellow-400 text-yellow-400")}
-            aria-hidden="true"
-        />
+        <Star className={cn(isFavorite && "fill-yellow-400 text-yellow-400")} aria-hidden="true" />
     );
 
     return (
@@ -87,7 +113,7 @@ export function CollectionActions({
                             <Pencil aria-hidden="true" />
                             Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={favorite}>
+                        <DropdownMenuItem onSelect={favorite} disabled={isFavoriting}>
                             {star}
                             {favoriteLabel}
                         </DropdownMenuItem>
@@ -105,7 +131,7 @@ export function CollectionActions({
                 </DropdownMenu>
             ) : (
                 <div className={cn("flex items-center gap-1", className)}>
-                    <Button variant="ghost" size="icon" onClick={favorite}>
+                    <Button variant="ghost" size="icon" onClick={favorite} disabled={isFavoriting}>
                         {star}
                         <span className="sr-only">{favoriteLabel}</span>
                     </Button>

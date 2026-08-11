@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import type {
     DashboardItemsViewModel,
     ItemDetailViewModel,
+    ItemSummaryViewModel,
     ItemTypePageViewModel,
 } from "@/types/view-models";
 import { getCurrentUser, getCurrentUserId } from "./current-user";
@@ -94,6 +95,43 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
         pinnedItems: pinnedRows.map(toViewModel),
         recentItems: recentRows.map(toViewModel),
     };
+}
+
+/**
+ * Every item the user has favourited, most recently touched first, for `/favorites`.
+ *
+ * Full summaries rather than a narrower row, for the reason the search prefetch carries them too:
+ * clicking one opens `ItemDrawer`, which takes an `ItemSummaryViewModel` — a reduced shape would have
+ * to be re-fetched before the drawer could open on it. Still no item bodies, so this stays a list
+ * query.
+ *
+ * Unpaginated, deliberately. This is the one list in the app whose length the user chooses directly,
+ * a star at a time, and paginating it would put a page control in front of a list most accounts will
+ * never fill one page of. Should that stop being true, `buildPagination` and the `/items/[slug]`
+ * pattern are what it grows into.
+ *
+ * "Most recently touched" is as close to "most recently favourited" as the schema can get: there is
+ * no favourited-at column, and `updatedAt` is what the toggle moves (`project-overview.md` §11).
+ */
+export async function getFavoriteItems(): Promise<ItemSummaryViewModel[]> {
+    const userId = await getCurrentUserId();
+
+    const [rows, itemTypesById] = await Promise.all([
+        prisma.item.findMany({
+            where: { userId, isFavorite: true },
+            // Tie-broken by id like every other ordered list here. Nothing is paginated, so no row
+            // can land on two pages — but two items saved in one write still have the same
+            // `updatedAt`, and an order Postgres is free to vary between renders is one that appears
+            // to shuffle itself.
+            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+            select: ITEM_SUMMARY_SELECT,
+        }),
+        getItemTypesById(userId),
+    ]);
+
+    return rows.map((row) =>
+        buildItemSummaryViewModel({ ...row, tags: row.tags.map((tag) => tag.name) }, itemTypesById),
+    );
 }
 
 /**
