@@ -20,6 +20,7 @@ import type {
     CreateItemResult,
     DeleteItemResult,
     ToggleItemFavoriteResult,
+    ToggleItemPinResult,
     UpdateItemResult,
 } from "@/types/item";
 
@@ -371,6 +372,50 @@ export async function toggleItemFavorite(
         }
 
         console.error("Item favorite toggle failed:", error);
+
+        return { success: false, error: "Could not update this item. Try again." };
+    }
+}
+
+/**
+ * Pins or unpins an item from the detail drawer.
+ *
+ * The same write as `toggleItemFavorite` on a different column, and deliberately so — the state to
+ * write arrives from the caller, ownership is the `where`, and a missing row and someone else's row
+ * give the same answer. The two are kept as separate actions rather than one parameterised toggle:
+ * the column would then be a string from the client, which is a wider door than two boolean writes.
+ *
+ * Pinning is what `Item.isPinned` was waiting for. The column has been persisted and rendered — the
+ * cards' pin indicator, the dashboard's Pinned section — since before anything could write it.
+ *
+ * `updatedAt` moves here too, so pinning also lifts the item within the recency ordering it is now
+ * sorted above. That is a side effect rather than the point, and a harmless one: pinned items sort to
+ * the top of a listing regardless, and on the dashboard the two lists are disjoint — `getDashboardItems`
+ * queries recent items as `isPinned: false`, so a pinned item leaves that list rather than jumping up it.
+ */
+export async function toggleItemPin(
+    itemId: string,
+    isPinned: boolean,
+): Promise<ToggleItemPinResult> {
+    const userId = await getCurrentUserId();
+
+    try {
+        const updated = await prisma.item.update({
+            where: { id: itemId, userId },
+            data: { isPinned },
+            select: { isPinned: true },
+        });
+
+        return { success: true, data: { isPinned: updated.isPinned } };
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === RECORD_NOT_FOUND
+        ) {
+            return { success: false, error: "This item no longer exists." };
+        }
+
+        console.error("Item pin toggle failed:", error);
 
         return { success: false, error: "Could not update this item. Try again." };
     }

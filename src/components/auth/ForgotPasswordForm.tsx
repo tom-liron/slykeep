@@ -78,7 +78,7 @@ export function ForgotPasswordForm() {
                         <button
                             type="button"
                             onClick={() => setSentTo(null)}
-                            className="font-medium text-foreground underline underline-offset-2"
+                            className="cursor-pointer font-medium text-foreground underline underline-offset-2"
                         >
                             try a different address
                         </button>

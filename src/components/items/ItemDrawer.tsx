@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, Copy, Download, Folder, Pencil, Pin, Star, Tag } from "lucide-react";
 import { toast } from "sonner";
 
-import { toggleItemFavorite } from "@/actions/items";
+import { toggleItemFavorite, toggleItemPin } from "@/actions/items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -54,6 +54,9 @@ export function ItemDrawer({
      * the click immediately and keeps answering it if a slower detail response arrives afterwards.
      */
     const [writtenFavorite, setWrittenFavorite] = useState<boolean | null>(null);
+    const [isPinning, startPinning] = useTransition();
+    /** The pinned state this drawer has written, held for the same reason `writtenFavorite` is. */
+    const [writtenPinned, setWrittenPinned] = useState<boolean | null>(null);
     // The object's own contents, for the formats that are rendered rather than downloaded.
     const [fileText, setFileText] = useState("");
     const [fileError, setFileError] = useState("");
@@ -177,6 +180,31 @@ export function ItemDrawer({
         });
     };
 
+    const isPinned = writtenPinned ?? view.isPinned;
+
+    const togglePin = () => {
+        const next = !isPinned;
+
+        startPinning(async () => {
+            const result = await toggleItemPin(itemId, next);
+
+            if (!result.success) {
+                toast.error(result.error);
+
+                return;
+            }
+
+            setWrittenPinned(result.data.isPinned);
+            toast.success(result.data.isPinned ? "Pinned to the top." : "Unpinned.");
+
+            // The listing behind the drawer orders by pin, so this moves the row the drawer was
+            // opened from — as does the dashboard, where pinning takes the item out of Recent Items
+            // and into Pinned. Same trade the star makes: the page tells the truth immediately, and
+            // the drawer stays open on the item until it is closed.
+            router.refresh();
+        });
+    };
+
     return (
         <Sheet
             open={open}
@@ -246,11 +274,7 @@ export function ItemDrawer({
                         </div>
                     </div>
 
-                    {/* Pin is the last control here that is still layout only — it renders in its
-                        resting state, so a pinned item shows a filled pin and the button is inert
-                        rather than lying about what it would do.
-
-                        The whole bar gives way to the form's Save / Cancel in edit mode. */}
+                    {/* The whole bar gives way to the form's Save / Cancel in edit mode. */}
                     {!isEditing && (
                         // One row, always. These buttons carry `shrink-0 whitespace-nowrap`, so a row
                         // that does not fit does not compress — it widens the panel, and the sheet's
@@ -281,14 +305,26 @@ export function ItemDrawer({
                                 />
                                 <ActionLabel>Favorite</ActionLabel>
                             </Button>
+                            {/* Named by the action for the same reason Favorite is: the filled pin
+                                already says which state the item is in. */}
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                disabled
-                                title="Coming soon"
-                                aria-label="Pin"
+                                onClick={togglePin}
+                                disabled={isPinning}
+                                title={isPinned ? "Unpin" : "Pin to the top"}
+                                aria-label={isPinned ? "Unpin" : "Pin to the top"}
                             >
-                                <Pin aria-hidden="true" />
+                                {/* Filled sky blue when pinned, the same way the star goes filled
+                                    yellow — a fill alone reads as "slightly bolder icon" at 14px,
+                                    which is not a state. Blue rather than any of the type accents'
+                                    blues would be, at `sky-400`: light enough to carry on the dark
+                                    surface, and not `#3b82f6`, which is what a snippet's own accent
+                                    is drawn in three inches above this. */}
+                                <Pin
+                                    className={isPinned ? "fill-sky-400 text-sky-400" : undefined}
+                                    aria-hidden="true"
+                                />
                                 <ActionLabel>Pin</ActionLabel>
                             </Button>
                             {/* Copy appears for a file only when the file is text, where its rendered
