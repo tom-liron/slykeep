@@ -23,6 +23,8 @@ type ItemRow = {
     itemTypeName?: string;
     /** What `toggleItemFavorite` writes, and what it reads back out of the row afterwards. */
     isFavorite?: boolean;
+    /** The same, for `toggleItemPin`. */
+    isPinned?: boolean;
 };
 
 type ItemTypeRow = { id: string; name: string; userId: string | null };
@@ -168,7 +170,8 @@ vi.mock("@/lib/prisma", async () => {
     };
 });
 
-const { createItem, deleteItem, toggleItemFavorite, updateItem } = await import("./items");
+const { createItem, deleteItem, toggleItemFavorite, toggleItemPin, updateItem } =
+    await import("./items");
 
 describe("createItem", () => {
     beforeEach(() => {
@@ -557,5 +560,75 @@ describe("toggleItemFavorite", () => {
 
         // The star must not be able to touch a title, a body, or a type on its way past.
         expect(db.lastUpdateData).toEqual({ isFavorite: true });
+    });
+});
+
+/**
+ * The same five properties as the block above, on the other boolean. They are re-tested rather than
+ * assumed to follow: the two actions share a shape, not an implementation, and the ownership `where`
+ * is exactly the kind of thing a copied function loses.
+ */
+describe("toggleItemPin", () => {
+    beforeEach(() => {
+        db.items = [];
+        db.lastUpdateData = null;
+    });
+
+    it("refuses an item owned by another user, and leaves its state alone", async () => {
+        db.items = [
+            { id: "item-theirs", userId: "user-other", title: "Their snippet", isPinned: false },
+        ];
+
+        await expect(toggleItemPin("item-theirs", true)).resolves.toEqual({
+            success: false,
+            error: "This item no longer exists.",
+        });
+        expect(db.items[0]?.isPinned).toBe(false);
+    });
+
+    it("answers a missing item the same way, so the two are indistinguishable", async () => {
+        await expect(toggleItemPin("item-nonexistent", true)).resolves.toEqual({
+            success: false,
+            error: "This item no longer exists.",
+        });
+    });
+
+    it("writes the state it was given rather than flipping what it finds", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isPinned: true }];
+
+        await expect(toggleItemPin("item-1", true)).resolves.toEqual({
+            success: true,
+            data: { isPinned: true },
+        });
+        expect(db.items[0]?.isPinned).toBe(true);
+    });
+
+    it("unpins when asked to", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isPinned: true }];
+
+        await expect(toggleItemPin("item-1", false)).resolves.toEqual({
+            success: true,
+            data: { isPinned: false },
+        });
+        expect(db.items[0]?.isPinned).toBe(false);
+    });
+
+    it("writes nothing but the flag", async () => {
+        db.items = [
+            {
+                id: "item-1",
+                userId: "user-owner",
+                title: "My snippet",
+                isPinned: false,
+                isFavorite: true,
+            },
+        ];
+
+        await toggleItemPin("item-1", true);
+
+        // In particular not `isFavorite`: the two toggles sit next to each other in the drawer's
+        // toolbar and write the same row, and neither may carry the other's state along.
+        expect(db.lastUpdateData).toEqual({ isPinned: true });
+        expect(db.items[0]?.isFavorite).toBe(true);
     });
 });

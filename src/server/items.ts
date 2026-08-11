@@ -231,10 +231,14 @@ export async function getItemTypePageData(
 
     const rows = await prisma.item.findMany({
         where,
+        // Pinned first, then recency. This belongs in the query rather than in a re-sort of the
+        // rows that come back: the listing is paginated, and sorting one page in memory would lift a
+        // pinned item to the top of page three while leaving it on page three.
+        //
         // `id` breaks ties on purpose: `skip`/`take` only mean anything over a total order, and two
         // items saved in the same write carry the same `updatedAt` — without a tiebreaker Postgres
         // is free to return them in either order, which is how a row appears on two pages at once.
-        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
         skip: paginationSkip(pagination),
         take: pagination.perPage,
         select: ITEM_SUMMARY_SELECT,

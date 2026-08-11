@@ -170,7 +170,7 @@ function SectionHeader({
         <button
             type="button"
             onClick={onToggle}
-            className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+            className="flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
             aria-expanded={open}
             aria-controls={controls}
         >

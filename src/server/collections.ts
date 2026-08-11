@@ -247,7 +247,9 @@ export async function getCollectionPageData(
             // `userId` as well as the membership filter, so this cannot widen what the collection
             // read already authorized.
             where: { userId, collections: { some: { collectionId } } },
-            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+            // Pinned first, then recency, then `id` — the same total order the item-type listing
+            // uses, and paginated for the same reason it is sorted in the query rather than after.
+            orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
             skip: paginationSkip(pagination),
             take: pagination.perPage,
             select: ITEM_SUMMARY_SELECT,

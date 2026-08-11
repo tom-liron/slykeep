@@ -45,3 +45,10 @@ export type DeleteItemResult = { success: true } | { success: false; error: stri
  */
 export type ToggleItemFavoriteResult =
     { success: true; data: { isFavorite: boolean } } | { success: false; error: string };
+
+/**
+ * What `toggleItemPin` hands back, for the same reason its neighbour above does: the pin is drawn
+ * from the state that was written, never from the state that was asked for.
+ */
+export type ToggleItemPinResult =
+    { success: true; data: { isPinned: boolean } } | { success: false; error: string };
