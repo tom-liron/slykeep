@@ -70,8 +70,8 @@ export function ImageCard({ item }: { item: ItemSummaryViewModel }) {
                         </>
                     )}
                 </div>
-                <time dateTime={item.updatedAt} className="shrink-0 text-xs text-muted-foreground">
-                    {formatDate(item.updatedAt)}
+                <time dateTime={item.editedAt} className="shrink-0 text-xs text-muted-foreground">
+                    {formatDate(item.editedAt)}
                 </time>
             </div>
         </article>

@@ -130,10 +130,20 @@ model Item {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Moves only when the item's *content* changes: `updateItem` writes it by hand, a create gets it
+  // from the default, and nothing else touches it. Deliberately not `@updatedAt` — that is what
+  // `updatedAt` above is, and being Prisma-managed is exactly why that column also moves on the
+  // favourite and pin toggles. Every recency listing orders by this one instead: starring a
+  // year-old snippet is not editing it.
+  editedAt  DateTime @default(now())
 
   @@index([userId])
   @@index([itemTypeId])
-  @@index([createdAt])
+  // The recency listings: the dashboard's Recent items, /items/[slug], and a collection's items.
+  @@index([userId, editedAt])
+  // The dashboard's pinned/recent split, and /favorites.
+  @@index([userId, isPinned])
+  @@index([userId, isFavorite])
   @@map("items")
 }
 
@@ -188,6 +198,11 @@ model Collection {
 
   @@index([userId])
   @@index([defaultTypeId])
+  // The dashboard's recent cards, the sidebar's two lists, /collections, and /favorites. Collections
+  // have no `editedAt`: whether their recency should mean *activity* — an item added, edited, or
+  // removed — is still open (`project-overview.md` §11). These index what the queries do today.
+  @@index([userId, updatedAt])
+  @@index([userId, isFavorite])
   @@map("collections")
 }
 

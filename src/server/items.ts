@@ -38,7 +38,10 @@ export const ITEM_SUMMARY_SELECT = {
     itemTypeId: true,
     isFavorite: true,
     isPinned: true,
-    updatedAt: true,
+    // `editedAt`, not `updatedAt`: this is the date every listing sorts by and every card renders,
+    // and it is the one that means the item's content changed. `updatedAt` also moves on a
+    // favourite or pin toggle, so nothing user-facing reads it — see `prisma/schema.prisma`.
+    editedAt: true,
     createdAt: true,
     fileName: true,
     fileSize: true,
@@ -72,12 +75,12 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
     const [pinnedRows, recentRows, totalItems, favoriteItems, itemTypesById] = await Promise.all([
         prisma.item.findMany({
             where: { userId, isPinned: true },
-            orderBy: { updatedAt: "desc" },
+            orderBy: { editedAt: "desc" },
             select: ITEM_SUMMARY_SELECT,
         }),
         prisma.item.findMany({
             where: { userId, isPinned: false },
-            orderBy: { updatedAt: "desc" },
+            orderBy: { editedAt: "desc" },
             take: DASHBOARD_RECENT_ITEMS_LIMIT,
             select: ITEM_SUMMARY_SELECT,
         }),
@@ -98,7 +101,7 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
 }
 
 /**
- * Every item the user has favourited, most recently touched first, for `/favorites`.
+ * Every item the user has favourited, most recently edited first, for `/favorites`.
  *
  * Full summaries rather than a narrower row, for the reason the search prefetch carries them too:
  * clicking one opens `ItemDrawer`, which takes an `ItemSummaryViewModel` — a reduced shape would have
@@ -110,8 +113,13 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
  * never fill one page of. Should that stop being true, `buildPagination` and the `/items/[slug]`
  * pattern are what it grows into.
  *
- * "Most recently touched" is as close to "most recently favourited" as the schema can get: there is
- * no favourited-at column, and `updatedAt` is what the toggle moves (`project-overview.md` §11).
+ * Ordered by `editedAt` like every other item listing, which means starring something does *not*
+ * lift it to the top of this page. That was the previous behaviour and it was a side effect rather
+ * than a feature: ordering by `updatedAt` approximated "most recently favourited" only because the
+ * toggle happened to move that column. The rows render `editedAt`, so keeping the old ordering would
+ * have sorted this list by a date it does not show. Genuine "most recently starred" needs a
+ * `favoritedAt` column, which is deliberately not part of this (`project-overview.md` §11); the sort
+ * control on the page covers name and type in the meantime.
  */
 export async function getFavoriteItems(): Promise<ItemSummaryViewModel[]> {
     const userId = await getCurrentUserId();
@@ -121,9 +129,9 @@ export async function getFavoriteItems(): Promise<ItemSummaryViewModel[]> {
             where: { userId, isFavorite: true },
             // Tie-broken by id like every other ordered list here. Nothing is paginated, so no row
             // can land on two pages — but two items saved in one write still have the same
-            // `updatedAt`, and an order Postgres is free to vary between renders is one that appears
+            // `editedAt`, and an order Postgres is free to vary between renders is one that appears
             // to shuffle itself.
-            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+            orderBy: [{ editedAt: "desc" }, { id: "desc" }],
             select: ITEM_SUMMARY_SELECT,
         }),
         getItemTypesById(userId),
@@ -238,7 +246,7 @@ export async function getItemTypePageData(
         // `id` breaks ties on purpose: `skip`/`take` only mean anything over a total order, and two
         // items saved in the same write carry the same `updatedAt` — without a tiebreaker Postgres
         // is free to return them in either order, which is how a row appears on two pages at once.
-        orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
+        orderBy: [{ isPinned: "desc" }, { editedAt: "desc" }, { id: "desc" }],
         skip: paginationSkip(pagination),
         take: pagination.perPage,
         select: ITEM_SUMMARY_SELECT,

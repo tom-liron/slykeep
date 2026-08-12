@@ -504,8 +504,8 @@ export function ItemDrawer({
                                 <dd>{detail ? formatLongDate(detail.createdAt) : "—"}</dd>
                             </div>
                             <div className="flex items-center justify-between gap-4">
-                                <dt className="text-muted-foreground">Updated</dt>
-                                <dd>{formatLongDate(view.updatedAt)}</dd>
+                                <dt className="text-muted-foreground">Edited</dt>
+                                <dd>{formatLongDate(view.editedAt)}</dd>
                             </div>
                         </dl>
                     </Section>

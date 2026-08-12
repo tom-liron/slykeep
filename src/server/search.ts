@@ -36,7 +36,10 @@ export async function getSearchData(): Promise<SearchDataViewModel> {
     const [itemRows, collectionRows, itemTypesById] = await Promise.all([
         prisma.item.findMany({
             where: { userId },
-            orderBy: { updatedAt: "desc" },
+            // Not just a display order: the prefetch is capped, so this decides *which* items are
+            // searchable at all. `editedAt` keeps that cut on the ones actually being worked on
+            // rather than on whatever was starred last.
+            orderBy: { editedAt: "desc" },
             take: SEARCH_ITEM_LIMIT,
             select: ITEM_SUMMARY_SELECT,
         }),

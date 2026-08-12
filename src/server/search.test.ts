@@ -20,7 +20,7 @@ type ItemRow = {
     itemTypeId: string;
     isFavorite: boolean;
     isPinned: boolean;
-    updatedAt: Date;
+    editedAt: Date;
     createdAt: Date;
     fileName: string | null;
     fileSize: number | null;
@@ -77,7 +77,7 @@ function makeItem(overrides: Partial<ItemRow> = {}): ItemRow {
         itemTypeId: "type-snippet",
         isFavorite: false,
         isPinned: false,
-        updatedAt: new Date("2026-01-02T00:00:00Z"),
+        editedAt: new Date("2026-01-02T00:00:00Z"),
         createdAt: new Date("2026-01-01T00:00:00Z"),
         fileName: null,
         fileSize: null,
@@ -126,7 +126,7 @@ describe("getSearchData", () => {
             title: "useAuth Hook",
             description: "Custom authentication hook",
             tags: ["react", "auth"],
-            updatedAt: "2026-01-02T00:00:00.000Z",
+            editedAt: "2026-01-02T00:00:00.000Z",
         });
         expect(item.itemType.label).toBe("Snippets");
         // The palette matches on titles, tags, and descriptions precisely because no query on this

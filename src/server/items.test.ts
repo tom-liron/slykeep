@@ -19,7 +19,7 @@ type ItemRow = {
     itemTypeId: string;
     isFavorite: boolean;
     isPinned: boolean;
-    updatedAt: Date;
+    editedAt: Date;
     createdAt: Date;
     content: string | null;
     url: string | null;
@@ -32,9 +32,11 @@ const db = vi.hoisted(() => ({
     items: [] as ItemRow[],
     /** The arguments the last `item.findMany` was given, so a test can assert on the ordering too. */
     lastFindManyArgs: null as { where?: ItemWhere; orderBy?: unknown } | null,
+    /** Every such call, for the reads that issue more than one — the dashboard runs two at once. */
+    findManyCalls: [] as { where?: ItemWhere; orderBy?: unknown }[],
 }));
 
-type ItemWhere = { id?: string; userId?: string; isFavorite?: boolean };
+type ItemWhere = { id?: string; userId?: string; isFavorite?: boolean; isPinned?: boolean };
 
 // The signed-in user is fixed: these tests vary who owns the row, not who is asking.
 vi.mock("./current-user", () => ({
@@ -49,7 +51,8 @@ vi.mock("@/lib/prisma", () => {
     const matches = (row: ItemRow, where: ItemWhere) =>
         (where.id === undefined || row.id === where.id) &&
         (where.userId === undefined || row.userId === where.userId) &&
-        (where.isFavorite === undefined || row.isFavorite === where.isFavorite);
+        (where.isFavorite === undefined || row.isFavorite === where.isFavorite) &&
+        (where.isPinned === undefined || row.isPinned === where.isPinned);
 
     return {
         prisma: {
@@ -58,11 +61,14 @@ vi.mock("@/lib/prisma", () => {
                     Promise.resolve(db.items.find((row) => matches(row, where)) ?? null),
                 findMany: (args: { where?: ItemWhere; orderBy?: unknown }) => {
                     db.lastFindManyArgs = args;
+                    db.findManyCalls.push(args);
 
                     return Promise.resolve(
                         db.items.filter((row) => matches(row, args.where ?? {})),
                     );
                 },
+                count: ({ where }: { where: ItemWhere }) =>
+                    Promise.resolve(db.items.filter((row) => matches(row, where)).length),
             },
             itemType: {
                 findMany: () =>
@@ -74,7 +80,7 @@ vi.mock("@/lib/prisma", () => {
     };
 });
 
-const { getFavoriteItems, getItemDetail } = await import("./items");
+const { getDashboardItems, getFavoriteItems, getItemDetail } = await import("./items");
 
 function makeRow(overrides: Partial<ItemRow> = {}): ItemRow {
     return {
@@ -85,7 +91,7 @@ function makeRow(overrides: Partial<ItemRow> = {}): ItemRow {
         itemTypeId: "type-snippet",
         isFavorite: false,
         isPinned: false,
-        updatedAt: new Date("2026-01-02T00:00:00Z"),
+        editedAt: new Date("2026-01-02T00:00:00Z"),
         createdAt: new Date("2026-01-01T00:00:00Z"),
         content: "const x = 1;",
         url: null,
@@ -148,14 +154,14 @@ describe("getFavoriteItems", () => {
         expect(items.map((item) => item.id)).toEqual(["item-mine"]);
     });
 
-    it("asks for them most recently updated first, tie-broken by id", async () => {
+    it("asks for them most recently edited first, tie-broken by id", async () => {
         await getFavoriteItems();
 
         // Asserted on the query rather than on the result, because the ordering is Postgres's work
         // and the fake does none of it. The tiebreaker is the load-bearing half: without it two
         // items saved in the same write come back in whatever order the database felt like, and the
         // list appears to shuffle between renders.
-        expect(db.lastFindManyArgs?.orderBy).toEqual([{ updatedAt: "desc" }, { id: "desc" }]);
+        expect(db.lastFindManyArgs?.orderBy).toEqual([{ editedAt: "desc" }, { id: "desc" }]);
     });
 
     it("builds summaries with no item body in them", async () => {
@@ -171,5 +177,42 @@ describe("getFavoriteItems", () => {
         // The summary select does not read `content`, and the view model has nowhere to put one —
         // this is the rule that keeps an unpaginated list off the large columns.
         expect(item).not.toHaveProperty("content");
+    });
+});
+
+/**
+ * The regression this whole column exists for. Both dashboard lists used to order by `updatedAt`,
+ * which Prisma moves on *any* write to the row — so starring a year-old snippet lifted it to the top
+ * of "Recent Items", and unpinning one dropped it back in at position one. Neither is an edit.
+ *
+ * Asserted on the query rather than on the rows for the same reason the favourites test is: the fake
+ * does no ordering, and the thing that was wrong was the key, not the sort.
+ */
+describe("getDashboardItems", () => {
+    beforeEach(() => {
+        db.items = [];
+        db.findManyCalls = [];
+    });
+
+    it("orders both the pinned and the recent list by editedAt, never by updatedAt", async () => {
+        await getDashboardItems();
+
+        expect(db.findManyCalls).toHaveLength(2);
+
+        for (const call of db.findManyCalls) {
+            expect(call.orderBy).toEqual({ editedAt: "desc" });
+        }
+    });
+
+    it("keeps the two lists disjoint, so a pinned item is not also a recent one", async () => {
+        db.items = [
+            makeRow({ id: "item-pinned", isPinned: true }),
+            makeRow({ id: "item-loose", isPinned: false }),
+        ];
+
+        const { pinnedItems, recentItems } = await getDashboardItems();
+
+        expect(pinnedItems.map((item) => item.id)).toEqual(["item-pinned"]);
+        expect(recentItems.map((item) => item.id)).toEqual(["item-loose"]);
     });
 });
