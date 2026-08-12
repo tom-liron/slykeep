@@ -37,3 +37,8 @@ already finished by step 3.
      **Total:** 4 files changed, 185 insertions(+), 50 deletions(-)
      ```
    - Display this table in the chat so you see it immediately without opening terminal
+
+The plain-words summary and the "what to look for in the browser" list are **not** here — they moved
+to `/feature start`, which is where they can still be acted on. A list of things to check that
+arrives after the branch has been merged, deleted and pushed is a list nobody can do anything with.
+By the time this action runs, the checking is already done and this table is the receipt.
