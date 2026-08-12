@@ -61,14 +61,14 @@ export function ItemCard({
                         `group-*` rather than `hover:` because the pointer is never over this card:
                         a sibling covers it. */}
                     <time
-                        dateTime={item.updatedAt}
+                        dateTime={item.editedAt}
                         className={cn(
                             "shrink-0 text-xs text-muted-foreground",
                             showsCopy &&
                                 "transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
                         )}
                     >
-                        {formatDate(item.updatedAt)}
+                        {formatDate(item.editedAt)}
                     </time>
                 </div>
 

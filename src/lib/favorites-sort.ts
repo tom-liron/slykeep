@@ -3,19 +3,19 @@ import type { FavoriteCollectionViewModel, ItemSummaryViewModel } from "@/types/
 /**
  * How `/favorites` orders its two lists, client-side.
  *
- * The page reads both sections already sorted — `updatedAt desc, id desc` — and that is the only
- * order the server offers. Reordering by name or by type is a preference, not a query: the rows are
- * already on the client, both lists are small (they are what one person has starred), and a round
+ * The page reads both sections already sorted — newest date first, `id desc` to break ties — and
+ * that is the only order the server offers. Reordering by name or by type is a preference, not a
+ * query: the rows are already on the client, both lists are small (one person's stars), and a round
  * trip to re-`ORDER BY` what is sitting in memory would be slower than the sort and would cost a
  * database read per click. So the rule lives here, as a pure function with a test, rather than in the
  * component that renders the dropdown.
  *
  * Items and collections are sorted by the same rule but are not the same shape — an item has a
- * `title` and always has a type, a collection has a `name` and may have none. Rather than a generic
- * constrained on fields they do not share (the `sortByUpdatedAtDesc` idiom in `server/view-models.ts`
- * works precisely because `updatedAt` *is* shared), each shape projects to `FavoriteSortFields` and
- * the comparator sees only that. Which is the honest version of "these are different things": they
- * are, they merely sort by the same four values.
+ * `title` and always has a type, a collection has a `name` and may have none, and since the
+ * `editedAt` split they do not even date themselves from the same column. Rather than a generic
+ * constrained on fields they do not share, each shape projects to `FavoriteSortFields` and the
+ * comparator sees only that. Which is the honest version of "these are different things": they are,
+ * they merely sort by the same four values.
  */
 
 /** The three things a favourite can be ordered by. */
@@ -39,8 +39,14 @@ export interface FavoriteSort {
 export interface FavoriteSortFields {
     /** What the row is called: an item's title, a collection's name. */
     label: string;
-    /** ISO-8601, UTC, as both view models serialize it. Compared as a string — see `byUpdatedAtDesc`. */
-    updatedAt: string;
+    /**
+     * The date the row actually renders, which is not the same column on both sides: an item's
+     * `editedAt` (when its content last changed) and a collection's `updatedAt`. Named for what it
+     * is used for rather than after either column, so neither side has to pretend to be the other.
+     *
+     * ISO-8601, UTC, as both view models serialize it. Compared as a string — see `byDateDesc`.
+     */
+    sortDate: string;
     /** The item type's display label, which is the only part of a type a user can see. Null when absent. */
     typeLabel: string | null;
     id: string;
@@ -80,9 +86,9 @@ const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: tr
  * That skips parsing two dates per comparison and, more usefully, makes this identical to what the
  * database returned rather than merely equivalent to it.
  */
-function byUpdatedAtDesc(left: FavoriteSortFields, right: FavoriteSortFields): number {
-    if (left.updatedAt !== right.updatedAt) {
-        return left.updatedAt < right.updatedAt ? 1 : -1;
+function byDateDesc(left: FavoriteSortFields, right: FavoriteSortFields): number {
+    if (left.sortDate !== right.sortDate) {
+        return left.sortDate < right.sortDate ? 1 : -1;
     }
 
     return byIdDesc(left, right);
@@ -122,10 +128,10 @@ export function compareFavorites(
     const flip = sort.direction === "asc" ? 1 : -1;
 
     if (sort.key === "date") {
-        // `updatedAt` is the primary here, so the tiebreak below it is `id desc` alone — running the
-        // full `byUpdatedAtDesc` would compare the same field a second time.
-        if (left.updatedAt !== right.updatedAt) {
-            return flip * (left.updatedAt < right.updatedAt ? -1 : 1);
+        // The date is the primary here, so the tiebreak below it is `id desc` alone — running the
+        // full `byDateDesc` would compare the same field a second time.
+        if (left.sortDate !== right.sortDate) {
+            return flip * (left.sortDate < right.sortDate ? -1 : 1);
         }
 
         return byIdDesc(left, right);
@@ -138,15 +144,13 @@ export function compareFavorites(
                 return left.typeLabel === null ? 1 : -1;
             }
 
-            return byUpdatedAtDesc(left, right);
+            return byDateDesc(left, right);
         }
 
-        return (
-            flip * collator.compare(left.typeLabel, right.typeLabel) || byUpdatedAtDesc(left, right)
-        );
+        return flip * collator.compare(left.typeLabel, right.typeLabel) || byDateDesc(left, right);
     }
 
-    return flip * collator.compare(left.label, right.label) || byUpdatedAtDesc(left, right);
+    return flip * collator.compare(left.label, right.label) || byDateDesc(left, right);
 }
 
 /**
@@ -171,7 +175,7 @@ export function sortFavorites<T>(
 export function itemSortFields(item: ItemSummaryViewModel): FavoriteSortFields {
     return {
         label: item.title,
-        updatedAt: item.updatedAt,
+        sortDate: item.editedAt,
         typeLabel: item.itemType.label,
         id: item.id,
     };
@@ -181,7 +185,7 @@ export function itemSortFields(item: ItemSummaryViewModel): FavoriteSortFields {
 export function collectionSortFields(collection: FavoriteCollectionViewModel): FavoriteSortFields {
     return {
         label: collection.name,
-        updatedAt: collection.updatedAt,
+        sortDate: collection.updatedAt,
         typeLabel: collection.dominantItemType?.label ?? null,
         id: collection.id,
     };

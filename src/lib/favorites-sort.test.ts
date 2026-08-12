@@ -17,7 +17,7 @@ import {
 function row(fields: Partial<FavoriteSortFields> & { id: string }): FavoriteSortFields {
     return {
         label: "untitled",
-        updatedAt: "2026-01-01T00:00:00.000Z",
+        sortDate: "2026-01-01T00:00:00.000Z",
         typeLabel: "Snippets",
         ...fields,
     };
@@ -61,8 +61,8 @@ describe("compareFavorites — name", () => {
     it("treats a case-only difference as a tie, and hands it to the tiebreak", () => {
         const cased = [
             row({ id: "z", label: "zebra" }),
-            row({ id: "upper", label: "APIKEY", updatedAt: "2026-01-02T00:00:00.000Z" }),
-            row({ id: "lower", label: "apiKey", updatedAt: "2026-01-03T00:00:00.000Z" }),
+            row({ id: "upper", label: "APIKEY", sortDate: "2026-01-02T00:00:00.000Z" }),
+            row({ id: "lower", label: "apiKey", sortDate: "2026-01-03T00:00:00.000Z" }),
         ];
 
         expect(order(cased, { key: "name", direction: "asc" })).toEqual(["lower", "upper", "z"]);
@@ -71,9 +71,9 @@ describe("compareFavorites — name", () => {
 
 describe("compareFavorites — date", () => {
     const rows = [
-        row({ id: "old", updatedAt: "2026-01-01T00:00:00.000Z" }),
-        row({ id: "new", updatedAt: "2026-03-01T00:00:00.000Z" }),
-        row({ id: "mid", updatedAt: "2026-02-01T00:00:00.000Z" }),
+        row({ id: "old", sortDate: "2026-01-01T00:00:00.000Z" }),
+        row({ id: "new", sortDate: "2026-03-01T00:00:00.000Z" }),
+        row({ id: "mid", sortDate: "2026-02-01T00:00:00.000Z" }),
     ];
 
     it("sorts newest first descending, which is what the server already returned", () => {
@@ -117,8 +117,8 @@ describe("compareFavorites — type", () => {
 
     it("orders two untyped rows against each other by the standing tiebreak", () => {
         const untyped = [
-            row({ id: "a", typeLabel: null, updatedAt: "2026-01-01T00:00:00.000Z" }),
-            row({ id: "b", typeLabel: null, updatedAt: "2026-05-01T00:00:00.000Z" }),
+            row({ id: "a", typeLabel: null, sortDate: "2026-01-01T00:00:00.000Z" }),
+            row({ id: "b", typeLabel: null, sortDate: "2026-05-01T00:00:00.000Z" }),
         ];
 
         expect(order(untyped, { key: "type", direction: "asc" })).toEqual(["b", "a"]);
@@ -133,8 +133,8 @@ describe("compareFavorites — the tiebreak", () => {
      */
     it("does not reverse with the direction", () => {
         const tied = [
-            row({ id: "a", label: "same", updatedAt: "2026-01-01T00:00:00.000Z" }),
-            row({ id: "b", label: "same", updatedAt: "2026-02-01T00:00:00.000Z" }),
+            row({ id: "a", label: "same", sortDate: "2026-01-01T00:00:00.000Z" }),
+            row({ id: "b", label: "same", sortDate: "2026-02-01T00:00:00.000Z" }),
         ];
 
         expect(order(tied, { key: "name", direction: "asc" })).toEqual(["b", "a"]);
@@ -197,23 +197,28 @@ describe("sortFavorites", () => {
 });
 
 describe("the projections", () => {
-    it("reads an item's title and its type label", () => {
+    /**
+     * The two sides do not date themselves from the same column, which is the reason `sortDate` is
+     * named for its use rather than after either of them: an item dates from `editedAt`, a
+     * collection from `updatedAt`. These two tests are what pins that down.
+     */
+    it("reads an item's title, its edit date, and its type label", () => {
         const item = {
             id: "item-1",
             title: "useDebounce",
-            updatedAt: "2026-04-01T00:00:00.000Z",
+            editedAt: "2026-04-01T00:00:00.000Z",
             itemType: { label: "Snippets" },
         };
 
         expect(itemSortFields(item as Parameters<typeof itemSortFields>[0])).toEqual({
             id: "item-1",
             label: "useDebounce",
-            updatedAt: "2026-04-01T00:00:00.000Z",
+            sortDate: "2026-04-01T00:00:00.000Z",
             typeLabel: "Snippets",
         });
     });
 
-    it("reads a collection's name and its dominant type label", () => {
+    it("reads a collection's name, its update date, and its dominant type label", () => {
         const collection = {
             id: "collection-1",
             name: "React Patterns",
@@ -226,7 +231,7 @@ describe("the projections", () => {
         ).toEqual({
             id: "collection-1",
             label: "React Patterns",
-            updatedAt: "2026-04-01T00:00:00.000Z",
+            sortDate: "2026-04-01T00:00:00.000Z",
             typeLabel: "Snippets",
         });
     });

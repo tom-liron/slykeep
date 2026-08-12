@@ -22,7 +22,7 @@ function itemWith(
         tags: [],
         isFavorite: false,
         isPinned: false,
-        updatedAt: "2026-08-06T00:00:00.000Z",
+        editedAt: "2026-08-06T00:00:00.000Z",
         createdAt: "2026-08-06T00:00:00.000Z",
         ...file,
         itemType: {

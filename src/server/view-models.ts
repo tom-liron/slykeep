@@ -35,10 +35,16 @@ export interface CollectionRow {
     updatedAt: Date;
 }
 
-/** All a collection's derived metadata (dominant type, contained types, count) depends on. */
+/**
+ * All a collection's derived metadata (dominant type, contained types, count) depends on.
+ *
+ * `editedAt` rather than `updatedAt` because the one thing it decides — which of two tied types wins
+ * the dominant slot — is a question about items, and every other item recency question now answers
+ * with the same column. Favouriting an item would otherwise be able to recolour a collection.
+ */
 export interface CollectionItemRow {
     itemTypeId: string;
-    updatedAt: Date;
+    editedAt: Date;
 }
 
 export interface ItemSummaryRow {
@@ -49,7 +55,7 @@ export interface ItemSummaryRow {
     tags: readonly string[];
     isFavorite: boolean;
     isPinned: boolean;
-    updatedAt: Date;
+    editedAt: Date;
     createdAt: Date;
     fileName: string | null;
     fileSize: number | null;
@@ -77,8 +83,8 @@ function toTime(value: Date | string): number {
     return value instanceof Date ? value.getTime() : Date.parse(value);
 }
 
-export function sortByUpdatedAtDesc<T extends { updatedAt: Date | string }>(records: T[]): T[] {
-    return [...records].sort((left, right) => toTime(right.updatedAt) - toTime(left.updatedAt));
+export function sortByEditedAtDesc<T extends { editedAt: Date | string }>(records: T[]): T[] {
+    return [...records].sort((left, right) => toTime(right.editedAt) - toTime(left.editedAt));
 }
 
 /**
@@ -140,7 +146,7 @@ export function resolveDominantTypeId(
     );
 
     return (
-        sortByUpdatedAtDesc(collectionItems).find((item) => tiedTypeIds.has(item.itemTypeId))
+        sortByEditedAtDesc(collectionItems).find((item) => tiedTypeIds.has(item.itemTypeId))
             ?.itemTypeId ?? collection.defaultTypeId
     );
 }
@@ -156,7 +162,7 @@ export function buildItemSummaryViewModel(
         tags: [...item.tags],
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
-        updatedAt: item.updatedAt.toISOString(),
+        editedAt: item.editedAt.toISOString(),
         createdAt: item.createdAt.toISOString(),
         fileName: item.fileName ?? "",
         fileSize: item.fileSize ?? 0,

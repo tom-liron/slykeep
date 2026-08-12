@@ -9,7 +9,7 @@ import {
     buildItemTypeBreakdown,
     buildUserViewModel,
     resolveDominantTypeId,
-    sortByUpdatedAtDesc,
+    sortByEditedAtDesc,
     toItemTypeViewModel,
 } from "./view-models";
 import type { CollectionRow, ItemDetailRow, ItemSummaryRow, ItemTypeRow } from "./view-models";
@@ -43,7 +43,7 @@ const collection: CollectionRow = {
     updatedAt: new Date("2026-01-01T00:00:00Z"),
 };
 
-function makeItem(id: string, itemTypeId: string, updatedAt: string): ItemSummaryRow {
+function makeItem(id: string, itemTypeId: string, editedAt: string): ItemSummaryRow {
     return {
         id,
         title: id,
@@ -52,7 +52,7 @@ function makeItem(id: string, itemTypeId: string, updatedAt: string): ItemSummar
         tags: [],
         isFavorite: false,
         isPinned: false,
-        updatedAt: new Date(`${updatedAt}T00:00:00Z`),
+        editedAt: new Date(`${editedAt}T00:00:00Z`),
         createdAt: new Date("2026-01-01T00:00:00Z"),
         fileName: null,
         fileSize: null,
@@ -127,7 +127,7 @@ describe("item detail view models", () => {
         expect(viewModel.description).toBe("");
         expect(viewModel.content).toBe("const x = 1;");
         expect(viewModel.createdAt).toBe("2026-01-01T00:00:00.000Z");
-        expect(viewModel.updatedAt).toBe("2026-01-02T00:00:00.000Z");
+        expect(viewModel.editedAt).toBe("2026-01-02T00:00:00.000Z");
         expect(viewModel.itemType.name).toBe("snippet");
     });
 
@@ -151,7 +151,7 @@ describe("item detail view models", () => {
 });
 
 describe("collection view models", () => {
-    it("uses the most recently updated item to break dominant-type ties", () => {
+    it("uses the most recently edited item to break dominant-type ties", () => {
         const items = [
             makeItem("snippet-old", typeId("snippet"), "2026-01-01"),
             makeItem("snippet-new", typeId("snippet"), "2026-01-03"),
@@ -270,7 +270,7 @@ describe("collection view models", () => {
             itemTypesById,
         );
 
-        expect(summary.updatedAt).toBe("2026-01-01T00:00:00.000Z");
+        expect(summary.editedAt).toBe("2026-01-01T00:00:00.000Z");
         expect(summary.createdAt).toBe("2026-01-01T00:00:00.000Z");
     });
 
@@ -300,23 +300,23 @@ describe("collection view models", () => {
         expect(summary.fileSize).toBe(2048);
     });
 
-    it("sorts records by updatedAt without mutating the input", () => {
+    it("sorts records by editedAt without mutating the input", () => {
         const records = [
-            { id: "older", updatedAt: new Date("2026-01-01T00:00:00Z") },
-            { id: "newer", updatedAt: new Date("2026-01-02T00:00:00Z") },
+            { id: "older", editedAt: new Date("2026-01-01T00:00:00Z") },
+            { id: "newer", editedAt: new Date("2026-01-02T00:00:00Z") },
         ];
 
-        expect(sortByUpdatedAtDesc(records).map((record) => record.id)).toEqual(["newer", "older"]);
+        expect(sortByEditedAtDesc(records).map((record) => record.id)).toEqual(["newer", "older"]);
         expect(records[0].id).toBe("older");
     });
 
     it("sorts serialized view models the same way as records", () => {
         const viewModels = [
-            { id: "older", updatedAt: "2026-01-01T00:00:00.000Z" },
-            { id: "newer", updatedAt: "2026-01-02T00:00:00.000Z" },
+            { id: "older", editedAt: "2026-01-01T00:00:00.000Z" },
+            { id: "newer", editedAt: "2026-01-02T00:00:00.000Z" },
         ];
 
-        expect(sortByUpdatedAtDesc(viewModels).map((record) => record.id)).toEqual([
+        expect(sortByEditedAtDesc(viewModels).map((record) => record.id)).toEqual([
             "newer",
             "older",
         ]);

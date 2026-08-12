@@ -277,6 +277,11 @@ export async function updateItem(
                 content: owns.content ? content : undefined,
                 url: owns.url ? url : undefined,
                 language: owns.language ? language : undefined,
+                // This is one of exactly two writes to `editedAt` — the other is `createItem`. It is
+                // set by hand rather than declared `@updatedAt` in the schema precisely so that the
+                // favourite and pin toggles cannot move it: those write a boolean, not an edit, and
+                // the recency listings order by this column. `updatedAt` still moves everywhere.
+                editedAt: new Date(),
                 // `set` replaces the whole relation in one operation: everything currently attached
                 // is disconnected and exactly this list is connected. An empty array is meaningful
                 // (clear every tag); `undefined` leaves the relation alone.

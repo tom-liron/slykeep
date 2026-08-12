@@ -36,7 +36,7 @@ const COLLECTION_SELECT = {
     defaultTypeId: true,
     updatedAt: true,
     items: {
-        select: { item: { select: { itemTypeId: true, updatedAt: true } } },
+        select: { item: { select: { itemTypeId: true, editedAt: true } } },
     },
 } as const;
 
@@ -50,7 +50,7 @@ const SIDEBAR_COLLECTION_SELECT = {
     isFavorite: true,
     defaultTypeId: true,
     items: {
-        select: { item: { select: { itemTypeId: true, updatedAt: true } } },
+        select: { item: { select: { itemTypeId: true, editedAt: true } } },
     },
 } as const;
 
@@ -249,7 +249,7 @@ export async function getCollectionPageData(
             where: { userId, collections: { some: { collectionId } } },
             // Pinned first, then recency, then `id` — the same total order the item-type listing
             // uses, and paginated for the same reason it is sorted in the query rather than after.
-            orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
+            orderBy: [{ isPinned: "desc" }, { editedAt: "desc" }, { id: "desc" }],
             skip: paginationSkip(pagination),
             take: pagination.perPage,
             select: ITEM_SUMMARY_SELECT,

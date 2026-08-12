@@ -18,3 +18,22 @@ already finished by step 3.
 5. Delete the local feature branch
 6. Push main to origin ONCE (single push with all changes)
 7. If feature branch was previously pushed, delete it from origin
+8. Display files changed in this feature, directly in the chat:
+   - Run: `git diff HEAD~1 --name-status` (shows A/M/D for each file)
+   - Run: `git diff HEAD~1 --stat` (shows line changes per file)
+   - Combine outputs into a markdown table formatted like:
+     ```
+     ✅ Feature Complete!
+     
+     📁 Files Changed:
+     
+     | File | Status | Changes |
+     |------|--------|---------|
+     | src/components/Header.tsx | M | +45 lines |
+     | src/utils/newHelper.ts | A | +128 lines |
+     | prisma/schema.prisma | M | +12 lines |
+     | old-file.js | D | -50 lines |
+     
+     **Total:** 4 files changed, 185 insertions(+), 50 deletions(-)
+     ```
+   - Display this table in the chat so you see it immediately without opening terminal

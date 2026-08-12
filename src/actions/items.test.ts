@@ -356,6 +356,21 @@ describe("updateItem", () => {
     });
 
     /**
+     * The other half of the rule the two toggle blocks assert from the outside: this is the one write
+     * path that *does* move `editedAt`. Without it the column would only ever hold its creation
+     * default, every listing would freeze in creation order, and nothing would fail.
+     */
+    it("stamps editedAt, which is what the recency listings order by", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet" }];
+        const before = Date.now();
+
+        await updateItem("item-1", { title: "Renamed" });
+
+        expect(db.lastUpdateData?.editedAt).toBeInstanceOf(Date);
+        expect((db.lastUpdateData?.editedAt as Date).getTime()).toBeGreaterThanOrEqual(before);
+    });
+
+    /**
      * The edit form renders only the fields a type owns, so these payloads are ones only a
      * hand-made request produces. That is the point: without the strip, the form's field list is the
      * only thing keeping a URL out of a snippet's `url` column — and an item whose `contentType` says
@@ -558,7 +573,9 @@ describe("toggleItemFavorite", () => {
 
         await toggleItemFavorite("item-1", true);
 
-        // The star must not be able to touch a title, a body, or a type on its way past.
+        // The star must not be able to touch a title, a body, or a type on its way past — nor
+        // `editedAt`, which is the whole reason that column is written by hand instead of being
+        // declared `@updatedAt`. An exact match rather than `toMatchObject`, so an extra key fails.
         expect(db.lastUpdateData).toEqual({ isFavorite: true });
     });
 });
@@ -627,7 +644,9 @@ describe("toggleItemPin", () => {
         await toggleItemPin("item-1", true);
 
         // In particular not `isFavorite`: the two toggles sit next to each other in the drawer's
-        // toolbar and write the same row, and neither may carry the other's state along.
+        // toolbar and write the same row, and neither may carry the other's state along. And not
+        // `editedAt` either — pinning is not editing, which is what keeps a pinned item from
+        // reappearing at the top of the dashboard's recent list the moment it is unpinned.
         expect(db.lastUpdateData).toEqual({ isPinned: true });
         expect(db.items[0]?.isFavorite).toBe(true);
     });

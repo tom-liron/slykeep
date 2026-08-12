@@ -31,7 +31,12 @@ export interface ItemSummaryViewModel {
     tags: string[];
     isFavorite: boolean;
     isPinned: boolean;
-    updatedAt: string;
+    /**
+     * When the item's content last changed — what every listing sorts by and every card renders.
+     * Deliberately not `updatedAt`: that column also moves when the item is favourited or pinned,
+     * neither of which is an edit, so it has no reader outside the database.
+     */
+    editedAt: string;
     createdAt: string;
     /** Original filename of a FILE item's object. Empty when the item has no file. */
     fileName: string;

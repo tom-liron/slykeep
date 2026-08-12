@@ -49,10 +49,10 @@ export function ItemRow({ item }: { item: ItemSummaryViewModel }) {
                 </span>
 
                 <time
-                    dateTime={item.updatedAt}
+                    dateTime={item.editedAt}
                     className="w-14 text-right font-mono text-xs text-muted-foreground"
                 >
-                    {formatDate(item.updatedAt)}
+                    {formatDate(item.editedAt)}
                 </time>
             </div>
         </div>
