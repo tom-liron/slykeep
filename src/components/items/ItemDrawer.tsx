@@ -198,9 +198,10 @@ export function ItemDrawer({
             toast.success(result.data.isPinned ? "Pinned to the top." : "Unpinned.");
 
             // The listing behind the drawer orders by pin, so this moves the row the drawer was
-            // opened from — as does the dashboard, where pinning takes the item out of Recent Items
-            // and into Pinned. Same trade the star makes: the page tells the truth immediately, and
-            // the drawer stays open on the item until it is closed.
+            // opened from — and on the dashboard it adds the item to the Pinned section without
+            // removing it from Recent, which the two lists no longer being disjoint is what allows.
+            // Same trade the star makes: the page tells the truth immediately, and the drawer stays
+            // open on the item until it is closed.
             router.refresh();
         });
     };

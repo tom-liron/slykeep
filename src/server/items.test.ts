@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DASHBOARD_RECENT_ITEMS_LIMIT } from "@/config/dashboard";
+
 /**
  * The property under test is the one this read must not get wrong: an item that is not the signed-in
  * user's is never returned, and is reported exactly as a missing one. Ownership lives in the `where`
@@ -31,9 +33,9 @@ type ItemRow = {
 const db = vi.hoisted(() => ({
     items: [] as ItemRow[],
     /** The arguments the last `item.findMany` was given, so a test can assert on the ordering too. */
-    lastFindManyArgs: null as { where?: ItemWhere; orderBy?: unknown } | null,
+    lastFindManyArgs: null as { where?: ItemWhere; orderBy?: unknown; take?: number } | null,
     /** Every such call, for the reads that issue more than one — the dashboard runs two at once. */
-    findManyCalls: [] as { where?: ItemWhere; orderBy?: unknown }[],
+    findManyCalls: [] as { where?: ItemWhere; orderBy?: unknown; take?: number }[],
 }));
 
 type ItemWhere = { id?: string; userId?: string; isFavorite?: boolean; isPinned?: boolean };
@@ -59,7 +61,7 @@ vi.mock("@/lib/prisma", () => {
             item: {
                 findFirst: ({ where }: { where: ItemWhere }) =>
                     Promise.resolve(db.items.find((row) => matches(row, where)) ?? null),
-                findMany: (args: { where?: ItemWhere; orderBy?: unknown }) => {
+                findMany: (args: { where?: ItemWhere; orderBy?: unknown; take?: number }) => {
                     db.lastFindManyArgs = args;
                     db.findManyCalls.push(args);
 
@@ -181,12 +183,13 @@ describe("getFavoriteItems", () => {
 });
 
 /**
- * The regression this whole column exists for. Both dashboard lists used to order by `updatedAt`,
- * which Prisma moves on *any* write to the row — so starring a year-old snippet lifted it to the top
- * of "Recent Items", and unpinning one dropped it back in at position one. Neither is an edit.
+ * Two regressions, both about a timestamp meaning the wrong thing. Both lists once ordered by
+ * `updatedAt`, which Prisma moves on *any* write — so starring a year-old snippet lifted it to the
+ * top of "Recent Items". And Pinned then ordered by `editedAt`, which made pinning an old item look
+ * like it had done nothing.
  *
- * Asserted on the query rather than on the rows for the same reason the favourites test is: the fake
- * does no ordering, and the thing that was wrong was the key, not the sort.
+ * Asserted on the queries rather than on the rows: the fake does no ordering and no slicing, and
+ * what was wrong in both cases was the key, not the sort.
  */
 describe("getDashboardItems", () => {
     beforeEach(() => {
@@ -194,17 +197,25 @@ describe("getDashboardItems", () => {
         db.findManyCalls = [];
     });
 
-    it("orders both the pinned and the recent list by editedAt, never by updatedAt", async () => {
+    it("orders the two lists by their own question: pins by pinnedAt, recency by editedAt", async () => {
         await getDashboardItems();
 
-        expect(db.findManyCalls).toHaveLength(2);
+        const [pinned, recent] = db.findManyCalls;
 
-        for (const call of db.findManyCalls) {
-            expect(call.orderBy).toEqual({ editedAt: "desc" });
-        }
+        // Newest pin first. Ordering this by `editedAt` — as it was at first — buries a
+        // just-pinned old item at the bottom of the section, so the click looks like a no-op.
+        expect(pinned?.orderBy).toEqual([{ pinnedAt: "desc" }, { id: "desc" }]);
+        // And never `updatedAt`, which moves on any write to the row including both toggles.
+        expect(recent?.orderBy).toEqual({ editedAt: "desc" });
     });
 
-    it("keeps the two lists disjoint, so a pinned item is not also a recent one", async () => {
+    /**
+     * The inverse of what this asserted a day earlier. Recent filtered `isPinned: false`, so pinning
+     * an item removed it from the list entirely — and editing a pinned item then changed nothing
+     * visible anywhere on the dashboard, which is how it was found. The two sections answer
+     * different questions and one item can be the answer to both.
+     */
+    it("lets a pinned item appear in Recent too, rather than removing it", async () => {
         db.items = [
             makeRow({ id: "item-pinned", isPinned: true }),
             makeRow({ id: "item-loose", isPinned: false }),
@@ -213,6 +224,24 @@ describe("getDashboardItems", () => {
         const { pinnedItems, recentItems } = await getDashboardItems();
 
         expect(pinnedItems.map((item) => item.id)).toEqual(["item-pinned"]);
-        expect(recentItems.map((item) => item.id)).toEqual(["item-loose"]);
+        // Membership, not order: the fake does no sorting, so asserting a sequence here would only
+        // pin down the order rows were pushed in. The ordering key has its own test above.
+        expect(recentItems.map((item) => item.id)).toContain("item-pinned");
+        expect(recentItems).toHaveLength(2);
+    });
+
+    /**
+     * A cap on Pinned was implemented and then taken back out. It is the same kind of list
+     * `/favorites` is — one the user lengthens themselves, a click at a time — and capping it means
+     * pinning an item can visibly do nothing, which is the failure this whole change is about.
+     * Recent has the opposite property: it grows on its own as you work, so it has to be bounded.
+     */
+    it("bounds Recent but not Pinned, since only one of them grows on its own", async () => {
+        await getDashboardItems();
+
+        const [pinned, recent] = db.findManyCalls;
+
+        expect(pinned?.take).toBeUndefined();
+        expect(recent?.take).toBe(DASHBOARD_RECENT_ITEMS_LIMIT);
     });
 });

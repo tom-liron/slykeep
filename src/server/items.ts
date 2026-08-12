@@ -68,6 +68,28 @@ const ITEM_DETAIL_SELECT = {
  * The dashboard's pinned + recent item lists and the two item stat cards. Totals come from
  * `count()` rather than the length of a full item load, and the lists carry no item bodies — the
  * same shape the collection read path settled on.
+ *
+ * The two lists overlap, deliberately. Recent used to filter `isPinned: false`, which made them
+ * disjoint — no card twice on one screen, and Recent's ten slots never spent on something already
+ * shown above it. Both are real benefits and both lose to the resulting lie: a section labelled
+ * Recent that silently omits an item edited five minutes ago cannot be read at all, and nothing on
+ * the page explains the omission. It also made `isPinned` mean two different things in one app —
+ * every listing outside this one keeps pinned items and merely sorts them first, so pinning meant
+ * "show first" there and "remove from Recent" here.
+ *
+ * So each list now answers its own question independently — *what is pinned* and *what did I work on
+ * lately* — and a pinned item that was just edited is a true answer to both, appearing in both. That
+ * redundancy is the accepted cost; it is the same trade a starred email makes by staying in the
+ * inbox.
+ *
+ * They sort on different columns for the same reason. Recent is recency, so `editedAt`. Pinned is a
+ * list *of pins*, so `pinnedAt` — newest pin first. Ordering it by `editedAt` was the first attempt
+ * and it made pinning look broken: pin an old reference snippet and it lands at the bottom of the
+ * section, so the click appears to do nothing at all.
+ *
+ * Pinned is also the one list here with no `take`. Recent grows on its own as you work and has to be
+ * bounded; Pinned only grows when the user asks it to, one click at a time, which is the same
+ * argument that keeps `/favorites` unpaginated. A cap here hides something explicitly requested.
  */
 export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
     const userId = await getCurrentUserId();
@@ -75,11 +97,14 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
     const [pinnedRows, recentRows, totalItems, favoriteItems, itemTypesById] = await Promise.all([
         prisma.item.findMany({
             where: { userId, isPinned: true },
-            orderBy: { editedAt: "desc" },
+            // `pinnedAt` is non-null for every row this `where` matches, so the ordering is total
+            // without a nulls rule — the two columns are written together by `toggleItemPin`.
+            orderBy: [{ pinnedAt: "desc" }, { id: "desc" }],
             select: ITEM_SUMMARY_SELECT,
         }),
         prisma.item.findMany({
-            where: { userId, isPinned: false },
+            // No `isPinned` filter: see above. Recency is the only question this list asks.
+            where: { userId },
             orderBy: { editedAt: "desc" },
             take: DASHBOARD_RECENT_ITEMS_LIMIT,
             select: ITEM_SUMMARY_SELECT,
