@@ -86,14 +86,9 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
     // prevented because ⌘K focuses the address bar in some browsers.
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            // The modifier is tested first and `key` is reached through `?.`, because `key` is not
-            // as guaranteed as its `string` type claims. A `window` listener receives every keydown
-            // on the page, not only the ones our components cause, and an event dispatched as a
-            // plain `new Event("keydown")` — by monaco, or by a browser extension — satisfies the
-            // `KeyboardEvent` type at compile time while carrying no `key` at runtime. Calling
-            // `.toLowerCase()` on that took the whole page down with a TypeError. Reordering also
-            // means the common case, a keystroke with no modifier held, returns without touching
-            // `key` at all.
+            // `key` is not as guaranteed as its `string` type claims: a `window` listener receives
+            // every keydown on the page, and one dispatched as a plain `new Event("keydown")`
+            // carries none. TypeScript types the interface, not what actually arrives.
             if (!(event.metaKey || event.ctrlKey) || event.key?.toLowerCase() !== "k") {
                 return;
             }
