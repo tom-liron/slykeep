@@ -1,0 +1,1489 @@
+/* =========================================================================
+   DevStash — marketing homepage prototype
+
+   Standalone static mockup. No build step, no Tailwind, no imports from the
+   app: open index.html in a browser and it works. The item-type accent
+   colours below are the app's real ones, from src/config/item-type-catalog.ts.
+   ========================================================================= */
+
+:root {
+    /* Surfaces — a neutral dark ramp, matching the app's shadcn dark theme. */
+    --bg: #09090b;
+    --bg-soft: #0c0c0f;
+    --surface: #131317;
+    --surface-2: #1a1a1f;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+
+    /* Text */
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+
+    /* Item type accents — keep in sync with ITEM_TYPE_COLORS. */
+    --snippet: #3b82f6;
+    --prompt: #8b5cf6;
+    --command: #f97316;
+    --note: #fde047;
+    --file: #6b7280;
+    --image: #ec4899;
+    --link: #10b981;
+
+    --radius: 14px;
+    --radius-sm: 8px;
+    --nav-h: 64px;
+
+    --font-sans:
+        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        sans-serif;
+    --font-mono:
+        ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+figure,
+pre {
+    margin: 0;
+}
+
+ul {
+    padding: 0;
+    list-style: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+kbd {
+    padding: 0.1em 0.4em;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: var(--surface-2);
+    font-family: var(--font-mono);
+    font-size: 0.78em;
+    color: var(--muted);
+}
+
+code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+:focus-visible {
+    outline: 2px solid var(--snippet);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 0.6rem 1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip-link:focus {
+    left: 0;
+}
+
+.container {
+    width: min(1180px, calc(100% - 2.5rem));
+    margin-inline: auto;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.05rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 550;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.btn-lg {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 12px;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-primary {
+    background: var(--text);
+    color: #0a0a0a;
+    box-shadow: 0 8px 24px -12px rgba(255, 255, 255, 0.5);
+}
+.btn-primary:hover {
+    background: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    border-color: var(--border-strong);
+    color: var(--text);
+    background: transparent;
+}
+.btn-outline:hover {
+    background: var(--surface-2);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-ghost {
+    color: var(--muted);
+}
+.btn-ghost:hover {
+    color: var(--text);
+    background: var(--surface-2);
+}
+
+/* ── Navigation ──────────────────────────────────────────────────────────── */
+
+.nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 50;
+    height: var(--nav-h);
+    background: rgba(9, 9, 11, 0.3);
+    border-bottom: 1px solid transparent;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        backdrop-filter 0.3s ease;
+}
+
+/* Set by script.js past ~8px of scroll: the bar has to stay legible once
+   content runs underneath it. */
+.nav.is-scrolled {
+    background: rgba(9, 9, 11, 0.9);
+    border-bottom-color: var(--border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.nav-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    height: 100%;
+    width: min(1180px, calc(100% - 2.5rem));
+    margin-inline: auto;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(140deg, var(--snippet), var(--prompt));
+    color: #fff;
+}
+.brand-mark svg {
+    width: 18px;
+    height: 18px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    margin-left: auto;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+.nav-links a:hover {
+    color: var(--text);
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* The hamburger and its menu exist only below 860px — the media query at the
+   bottom of this file switches both on. */
+.nav-toggle {
+    display: none;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.nav-toggle:hover {
+    background: var(--surface-2);
+}
+
+.nav-toggle-bars {
+    position: relative;
+    display: block;
+    width: 16px;
+    height: 12px;
+}
+.nav-toggle-bars span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1.6px;
+    border-radius: 2px;
+    background: currentColor;
+    transition:
+        top 0.2s ease,
+        transform 0.2s ease,
+        opacity 0.15s ease;
+}
+.nav-toggle-bars span:nth-child(1) {
+    top: 0;
+}
+.nav-toggle-bars span:nth-child(2) {
+    top: 5.2px;
+}
+.nav-toggle-bars span:nth-child(3) {
+    top: 10.4px;
+}
+
+/* Open: the outer bars meet in the middle and cross, the middle one goes. */
+.nav.is-open .nav-toggle-bars span:nth-child(1) {
+    top: 5.2px;
+    transform: rotate(45deg);
+}
+.nav.is-open .nav-toggle-bars span:nth-child(2) {
+    opacity: 0;
+}
+.nav.is-open .nav-toggle-bars span:nth-child(3) {
+    top: 5.2px;
+    transform: rotate(-45deg);
+}
+
+.nav-menu {
+    display: none;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.hero {
+    position: relative;
+    padding-top: calc(var(--nav-h) + clamp(3rem, 8vw, 6rem));
+    padding-bottom: clamp(3rem, 7vw, 6rem);
+    overflow: hidden;
+}
+
+.hero-glow {
+    position: absolute;
+    top: -260px;
+    left: 50%;
+    width: min(1100px, 120vw);
+    height: 620px;
+    transform: translateX(-50%);
+    background:
+        radial-gradient(closest-side, rgba(59, 130, 246, 0.18), transparent 70%),
+        radial-gradient(closest-side, rgba(139, 92, 246, 0.16), transparent 70%);
+    background-position:
+        20% 40%,
+        75% 30%;
+    background-size:
+        70% 90%,
+        70% 90%;
+    background-repeat: no-repeat;
+    filter: blur(20px);
+    pointer-events: none;
+}
+
+.hero-text {
+    position: relative;
+    max-width: 780px;
+    margin-inline: auto;
+    text-align: center;
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.85rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--link);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.hero-text h1 {
+    font-size: clamp(2.35rem, 6.2vw, 4.15rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+}
+
+.gradient-text {
+    display: inline-block;
+    background: linear-gradient(100deg, var(--snippet), var(--prompt) 48%, var(--image));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero-sub {
+    max-width: 620px;
+    margin: 1.4rem auto 0;
+    color: var(--muted);
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+}
+.hero-sub code {
+    padding: 0.1em 0.35em;
+    border-radius: 5px;
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.hero-note {
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--faint);
+}
+
+/* ── Chaos → order ───────────────────────────────────────────────────────── */
+
+.transform {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    gap: clamp(0.75rem, 2.5vw, 2rem);
+    margin-top: clamp(3rem, 7vw, 5rem);
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--surface), var(--bg-soft));
+}
+
+.panel-label {
+    margin-bottom: 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 550;
+    color: var(--muted);
+    letter-spacing: -0.01em;
+}
+
+.panel-foot {
+    margin-top: 0.85rem;
+    font-size: 0.75rem;
+    color: var(--faint);
+}
+
+/* The chaos box. Icons are absolutely positioned and driven by script.js —
+   the CSS only has to give them a stage with a known size. */
+.chaos {
+    border-color: rgba(239, 68, 68, 0.18);
+    background:
+        radial-gradient(120% 90% at 50% 0%, rgba(239, 68, 68, 0.07), transparent 70%),
+        linear-gradient(180deg, var(--surface), var(--bg-soft));
+}
+
+.chaos-field {
+    position: relative;
+    flex: 1;
+    min-height: 300px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    /* A faint grid, so the drift reads as movement against something. */
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 26px 26px;
+    cursor: crosshair;
+}
+
+/* Until script.js has scattered them, every icon sits stacked at 0,0. Hide
+   them for that one frame rather than flashing a pile in the corner. */
+.chaos-field:not(.is-ready) .chaos-icon {
+    opacity: 0;
+}
+
+.chaos-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(24, 24, 28, 0.92);
+    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.9);
+    will-change: transform;
+}
+.chaos-icon svg {
+    width: 26px;
+    height: 26px;
+}
+.chaos-icon.is-line svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* The arrow. CSS-only pulse, per the spec. */
+.transform-arrow {
+    display: grid;
+    place-items: center;
+}
+
+.arrow-ring {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.12);
+    color: #c4b5fd;
+    animation: arrow-pulse 2.4s ease-in-out infinite;
+}
+.arrow-ring svg {
+    width: 24px;
+    height: 24px;
+}
+
+@keyframes arrow-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35);
+    }
+    50% {
+        transform: scale(1.09);
+        box-shadow: 0 0 0 14px rgba(139, 92, 246, 0);
+    }
+}
+
+/* The dashboard preview. */
+.preview {
+    border-color: rgba(16, 185, 129, 0.18);
+    background:
+        radial-gradient(120% 90% at 50% 0%, rgba(16, 185, 129, 0.07), transparent 70%),
+        linear-gradient(180deg, var(--surface), var(--bg-soft));
+}
+
+.app-mock {
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    flex: 1;
+    min-height: 300px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    overflow: hidden;
+}
+
+.mock-sidebar {
+    padding: 0.7rem 0.6rem;
+    border-right: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.mock-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+}
+.mock-brand-mark {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    background: linear-gradient(140deg, var(--snippet), var(--prompt));
+}
+.mock-brand-name {
+    width: 46px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.mock-heading {
+    margin: 0.75rem 0 0.35rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.mock-nav li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.35rem;
+    border-radius: 5px;
+    font-size: 0.62rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mock-nav li.is-active {
+    background: var(--surface-2);
+    color: var(--text);
+}
+.mock-nav .dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--dot);
+}
+
+.mock-main {
+    display: flex;
+    flex-direction: column;
+    padding: 0.7rem;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.mock-topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.mock-search {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    font-size: 0.62rem;
+    color: var(--faint);
+}
+.mock-search kbd {
+    font-size: 0.55rem;
+    padding: 0.05em 0.3em;
+}
+.mock-new {
+    padding: 0.3rem 0.55rem;
+    border-radius: 6px;
+    background: var(--text);
+    color: #0a0a0a;
+    font-size: 0.62rem;
+    font-weight: 600;
+}
+
+.mock-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+/* The colored top border is the item's type — the same signal the real
+   dashboard uses down the left edge of a row. */
+.mock-card {
+    padding: 0.45rem 0.5rem 0.5rem;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 0 0 6px 6px;
+    background: var(--surface);
+    min-width: 0;
+}
+.mock-card-title {
+    font-size: 0.6rem;
+    font-weight: 550;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mock-line {
+    height: 4px;
+    margin-top: 0.35rem;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.09);
+}
+.mock-line.short {
+    width: 60%;
+}
+.mock-tag {
+    display: inline-block;
+    margin-top: 0.45rem;
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent);
+    font-size: 0.52rem;
+    font-weight: 600;
+}
+
+/* ── Section furniture ───────────────────────────────────────────────────── */
+
+.section {
+    padding: clamp(4rem, 9vw, 7rem) 0;
+}
+
+.section-head {
+    max-width: 660px;
+    margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
+    text-align: center;
+}
+
+.section-eyebrow {
+    margin-bottom: 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.section-head h2,
+.ai-copy h2,
+.cta-box h2 {
+    font-size: clamp(1.8rem, 3.7vw, 2.7rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+}
+
+.section-sub {
+    margin-top: 0.9rem;
+    color: var(--muted);
+    font-size: 1.02rem;
+}
+
+/* ── Features ────────────────────────────────────────────────────────────── */
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.feature-card {
+    position: relative;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--surface), var(--bg-soft));
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+.feature-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px -1px auto;
+    height: 2px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.feature-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    box-shadow: 0 22px 45px -30px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.feature-card:hover::before {
+    opacity: 1;
+}
+
+.feature-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    margin-bottom: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+}
+.feature-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+.feature-card h3 {
+    font-size: 1.08rem;
+    font-weight: 620;
+    letter-spacing: -0.015em;
+}
+
+.feature-card p {
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+/* ── AI ──────────────────────────────────────────────────────────────────── */
+
+.section-ai {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background:
+        radial-gradient(80% 60% at 15% 0%, rgba(139, 92, 246, 0.09), transparent 70%),
+        var(--bg-soft);
+}
+
+.ai-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: clamp(2rem, 5vw, 4rem);
+}
+
+/* A grid item's `min-width` defaults to `auto`, which means "no narrower than
+   my content" — and this column holds a `pre`, whose min-content width is a
+   whole unwrapped line of code. Without this the column refuses to shrink, the
+   grid grows wider than its container, and `overflow-x: hidden` on the body
+   crops the section instead of the `pre` scrolling as it was meant to. */
+.ai-copy,
+.ai-demo {
+    min-width: 0;
+}
+
+.badge-pro {
+    display: inline-block;
+    margin-bottom: 1.1rem;
+    padding: 0.25rem 0.7rem;
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    border-radius: 999px;
+    background: rgba(139, 92, 246, 0.14);
+    color: #c4b5fd;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.check-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.75rem;
+}
+.check-list li {
+    display: flex;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+.check-list strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.check,
+.cross {
+    position: relative;
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-top: 0.15rem;
+    border-radius: 50%;
+}
+.check {
+    background: rgba(139, 92, 246, 0.16);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.check::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 3px;
+    width: 5px;
+    height: 9px;
+    border: solid #c4b5fd;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.cross {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+}
+.cross::before,
+.cross::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 8.5px;
+    width: 10px;
+    height: 1.5px;
+    background: var(--faint);
+}
+.cross::before {
+    transform: rotate(45deg);
+}
+.cross::after {
+    transform: rotate(-45deg);
+}
+
+/* The editor mockup. */
+.editor {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #0b0b0e;
+    overflow: hidden;
+    box-shadow: 0 40px 70px -50px rgba(0, 0, 0, 1);
+}
+
+.editor-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+.editor-bar span:not(.editor-file) {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+.dot-red {
+    background: #ff5f57;
+}
+.dot-yellow {
+    background: #febc2e;
+}
+.dot-green {
+    background: #28c840;
+}
+.editor-file {
+    margin-left: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--faint);
+}
+
+.editor-code {
+    counter-reset: line;
+    padding: 1rem 1rem 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    line-height: 1.75;
+    color: #d4d4d8;
+    overflow-x: auto;
+}
+.ln {
+    counter-increment: line;
+}
+.ln::before {
+    content: counter(line);
+    display: inline-block;
+    width: 1.4em;
+    margin-right: 1.1em;
+    text-align: right;
+    color: #3f3f46;
+}
+.c-kw {
+    color: #c084fc;
+}
+.c-str {
+    color: #86efac;
+}
+.c-fn {
+    color: #7dd3fc;
+}
+.c-num {
+    color: #fdba74;
+}
+
+.editor-tags {
+    padding: 0.9rem 1rem 1.1rem;
+    border-top: 1px solid var(--border);
+    background: rgba(139, 92, 246, 0.05);
+}
+.editor-tags-head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #c4b5fd;
+}
+.spark {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--prompt);
+    box-shadow: 0 0 10px 1px rgba(139, 92, 246, 0.8);
+}
+
+.tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.tag {
+    padding: 0.2rem 0.55rem;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 999px;
+    background: rgba(139, 92, 246, 0.12);
+    color: #ddd6fe;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+}
+
+/* The tags land one at a time once the demo scrolls in — it is a demo of the
+   AI writing them, so they should not simply be there already. */
+.ai-demo .tag {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+}
+.ai-demo.is-visible .tag {
+    animation: tag-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.ai-demo.is-visible .tag:nth-child(1) {
+    animation-delay: 0.35s;
+}
+.ai-demo.is-visible .tag:nth-child(2) {
+    animation-delay: 0.5s;
+}
+.ai-demo.is-visible .tag:nth-child(3) {
+    animation-delay: 0.65s;
+}
+.ai-demo.is-visible .tag:nth-child(4) {
+    animation-delay: 0.8s;
+}
+.ai-demo.is-visible .tag:nth-child(5) {
+    animation-delay: 0.95s;
+}
+
+@keyframes tag-in {
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ── Pricing ─────────────────────────────────────────────────────────────── */
+
+.billing-toggle {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-top: 1.75rem;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+}
+.billing-toggle button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+.billing-toggle button:hover {
+    color: var(--text);
+}
+.billing-toggle button.is-active {
+    background: var(--surface-2);
+    color: var(--text);
+}
+.save {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+    font-size: 0.68rem;
+    font-weight: 650;
+}
+
+.price-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    max-width: 860px;
+    margin-inline: auto;
+    /* `start` sized each card to its own content, so the two cards ended at
+       different heights and their buttons sat at different y positions. They
+       are a comparison — they have to share a baseline. */
+    align-items: stretch;
+}
+
+.price-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 1.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--surface), var(--bg-soft));
+}
+.price-card.is-featured {
+    border-color: rgba(139, 92, 246, 0.45);
+    background:
+        radial-gradient(100% 60% at 50% 0%, rgba(139, 92, 246, 0.13), transparent 70%),
+        linear-gradient(180deg, var(--surface), var(--bg-soft));
+    box-shadow: 0 30px 70px -50px rgba(139, 92, 246, 0.9);
+}
+
+.popular {
+    position: absolute;
+    top: -0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    background: linear-gradient(100deg, var(--prompt), var(--image));
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.price-card h3 {
+    font-size: 1.3rem;
+    font-weight: 620;
+    letter-spacing: -0.015em;
+}
+
+.price-tag {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin-top: 0.6rem;
+}
+.price-amount {
+    font-size: 2.9rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+.price-period {
+    color: var(--faint);
+    font-size: 0.88rem;
+}
+
+/* Two lines' worth of room, always. The yearly note is longer than the monthly
+   one, and without this the Pro card grew a line taller the moment you touched
+   the billing toggle — the whole grid twitched. */
+.price-note {
+    min-height: 3.2em; /* two 1.6 line boxes exactly — see the note above */
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+/* `flex: 1` is what pins both CTAs to the bottom of their cards regardless of
+   how many lines the feature lists run to. */
+.price-list {
+    display: grid;
+    align-content: start;
+    flex: 1;
+    gap: 0.6rem;
+    margin: 1.5rem 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+.price-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+.price-list li.is-off {
+    color: var(--faint);
+}
+.price-list .check,
+.price-list .cross {
+    width: 18px;
+    height: 18px;
+    margin-top: 0.1rem;
+}
+.price-list .check::after {
+    left: 5.5px;
+    top: 2.5px;
+    width: 4px;
+    height: 8px;
+}
+.price-list .cross::before,
+.price-list .cross::after {
+    left: 3.5px;
+    top: 7.5px;
+    width: 9px;
+}
+
+/* ── Closing CTA ─────────────────────────────────────────────────────────── */
+
+.section-cta {
+    padding-bottom: clamp(4rem, 9vw, 7rem);
+}
+
+.cta-box {
+    position: relative;
+    padding: clamp(2.5rem, 6vw, 4.5rem) 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background:
+        radial-gradient(90% 120% at 50% 0%, rgba(59, 130, 246, 0.14), transparent 65%),
+        radial-gradient(90% 120% at 80% 100%, rgba(236, 72, 153, 0.1), transparent 65%),
+        linear-gradient(180deg, var(--surface), var(--bg-soft));
+    text-align: center;
+}
+.cta-box .section-sub {
+    max-width: 480px;
+    margin-inline: auto;
+}
+.cta-box .btn {
+    margin-top: 1.75rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+.footer {
+    padding: clamp(2.5rem, 5vw, 3.5rem) 0 2rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-soft);
+}
+
+.footer-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr);
+    gap: 2.5rem;
+}
+
+.footer-brand p {
+    max-width: 320px;
+    margin-top: 0.85rem;
+    color: var(--faint);
+    font-size: 0.88rem;
+}
+
+.footer-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+.footer-links div {
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+}
+.footer-links a {
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+.footer-links a:hover {
+    color: var(--text);
+}
+
+.footer-heading {
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+.footer-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--faint);
+    font-size: 0.82rem;
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+        opacity 0.65s ease,
+        transform 0.65s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Cards arrive in sequence rather than as one block. */
+.feature-grid .reveal:nth-child(2),
+.price-grid .reveal:nth-child(2) {
+    transition-delay: 0.08s;
+}
+.feature-grid .reveal:nth-child(3) {
+    transition-delay: 0.16s;
+}
+.feature-grid .reveal:nth-child(4) {
+    transition-delay: 0.24s;
+}
+.feature-grid .reveal:nth-child(5) {
+    transition-delay: 0.32s;
+}
+.feature-grid .reveal:nth-child(6) {
+    transition-delay: 0.4s;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 980px) {
+    .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .feature-grid .reveal:nth-child(n) {
+        transition-delay: 0s;
+    }
+    .ai-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 860px) {
+    /* The bar keeps the brand and the primary CTA. Everything else moves into
+       the menu, which is the whole reason the hamburger appears here. */
+    .nav-links {
+        display: none;
+    }
+    .nav .nav-actions .btn-ghost {
+        display: none;
+    }
+    .nav-toggle {
+        display: inline-grid;
+    }
+    .nav-actions {
+        margin-left: auto;
+    }
+    .nav.is-open {
+        background: rgba(9, 9, 11, 0.95);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+
+    .nav-menu {
+        display: grid;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        padding: 0.5rem 1.25rem 1.1rem;
+        background: rgba(9, 9, 11, 0.97);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        /* `visibility` rather than `display`, so the links leave the tab order
+           while closed but the open/close still animates. */
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition:
+            opacity 0.22s ease,
+            transform 0.22s ease,
+            visibility 0.22s;
+    }
+    .nav.is-open .nav-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+    }
+
+    .nav-menu a:not(.btn) {
+        padding: 0.7rem 0.15rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.95rem;
+    }
+    .nav-menu a:not(.btn):hover {
+        color: var(--text);
+    }
+    .nav-menu .btn {
+        margin-top: 0.9rem;
+    }
+
+    /* Chaos above, arrow between, dashboard below — and the arrow has to point
+       at where the next thing actually is. */
+    .transform {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .arrow-ring {
+        transform: rotate(90deg);
+    }
+    @keyframes arrow-pulse {
+        0%,
+        100% {
+            transform: rotate(90deg) scale(1);
+            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35);
+        }
+        50% {
+            transform: rotate(90deg) scale(1.09);
+            box-shadow: 0 0 0 14px rgba(139, 92, 246, 0);
+        }
+    }
+
+    .footer-inner {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 680px) {
+    .feature-grid,
+    .price-grid {
+        grid-template-columns: 1fr;
+    }
+    .price-card.is-featured {
+        order: -1;
+    }
+    .mock-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .app-mock {
+        grid-template-columns: 92px 1fr;
+    }
+    .hero-cta .btn {
+        width: 100%;
+    }
+    /* The code still scrolls sideways on a phone — it is code — but a smaller
+       ramp means a nudge rather than a journey. */
+    .editor-code {
+        font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 460px) {
+    .footer-links {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .chaos-icon {
+        width: 46px;
+        height: 46px;
+    }
+    /* At this width the fake search pill is ~65px and the badge no longer fits
+       inside it — the placeholder alone still says what the row is. */
+    .mock-search kbd {
+        display: none;
+    }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+    /* The reveal is a transition, so the rule above already lands it — but the
+       tags animate from opacity 0 and would otherwise finish invisible. */
+    .ai-demo .tag {
+        opacity: 1;
+        transform: none;
+    }
+    .reveal {
+        opacity: 1;
+        transform: none;
+    }
+}

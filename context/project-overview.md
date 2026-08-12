@@ -260,6 +260,9 @@ devstash/
 │   ├── test-email.ts            # sends through Resend and polls the real outcome (`npm run email:test`)
 │   └── verify-user.ts           # marks a dev account verified by hand (`npm run user:verify`)
 ├── public/                      # (planned, when static assets are needed)
+├── prototypes/
+│   └── homepage/                # marketing homepage mockup: plain HTML/CSS/JS, no build step,
+│                                # opened directly in a browser. Outside the Next.js app entirely.
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/              # signed-out routes, no sidebar
