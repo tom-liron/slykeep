@@ -630,7 +630,28 @@ describe("toggleItemPin", () => {
         expect(db.items[0]?.isPinned).toBe(false);
     });
 
-    it("writes nothing but the flag", async () => {
+    /**
+     * `pinnedAt` has to move with the flag, in the same statement. The dashboard's Pinned section
+     * orders by it and filters on `isPinned`, so a row where the two disagree either sorts as though
+     * it were pinned long ago or, on an unpin that left the timestamp behind, comes back to its old
+     * position when re-pinned instead of to the top. Nothing in the schema can state that
+     * invariant — this one write is what upholds it.
+     */
+    it("stamps pinnedAt alongside the flag, and clears it on unpin", async () => {
+        db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isPinned: false }];
+        const before = Date.now();
+
+        await toggleItemPin("item-1", true);
+
+        expect(db.lastUpdateData?.pinnedAt).toBeInstanceOf(Date);
+        expect((db.lastUpdateData?.pinnedAt as Date).getTime()).toBeGreaterThanOrEqual(before);
+
+        await toggleItemPin("item-1", false);
+
+        expect(db.lastUpdateData).toEqual({ isPinned: false, pinnedAt: null });
+    });
+
+    it("writes nothing but the flag and its timestamp", async () => {
         db.items = [
             {
                 id: "item-1",
@@ -647,7 +668,7 @@ describe("toggleItemPin", () => {
         // toolbar and write the same row, and neither may carry the other's state along. And not
         // `editedAt` either — pinning is not editing, which is what keeps a pinned item from
         // reappearing at the top of the dashboard's recent list the moment it is unpinned.
-        expect(db.lastUpdateData).toEqual({ isPinned: true });
+        expect(db.lastUpdateData).toEqual({ isPinned: true, pinnedAt: expect.any(Date) });
         expect(db.items[0]?.isFavorite).toBe(true);
     });
 });

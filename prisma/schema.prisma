@@ -119,6 +119,11 @@ model Item {
   language    String? // optional, for code highlighting
   isFavorite  Boolean     @default(false)
   isPinned    Boolean     @default(false)
+  // When the item was pinned, so the dashboard's Pinned section can show the newest pin first.
+  // Null exactly when `isPinned` is false — `toggleItemPin` writes both together, which is the same
+  // write-boundary rule `contentType` follows rather than a constraint the schema can state.
+  // Without it that section orders by `editedAt`, and pinning an old item drops it to the bottom.
+  pinnedAt    DateTime?
 
   // Relations
   userId      String
@@ -141,8 +146,9 @@ model Item {
   @@index([itemTypeId])
   // The recency listings: the dashboard's Recent items, /items/[slug], and a collection's items.
   @@index([userId, editedAt])
-  // The dashboard's pinned/recent split, and /favorites.
-  @@index([userId, isPinned])
+  // The dashboard's Pinned section: filters on the first two, orders by the third.
+  @@index([userId, isPinned, pinnedAt])
+  // /favorites.
   @@index([userId, isFavorite])
   @@map("items")
 }

@@ -393,10 +393,18 @@ export async function toggleItemFavorite(
  * Pinning is what `Item.isPinned` was waiting for. The column has been persisted and rendered — the
  * cards' pin indicator, the dashboard's Pinned section — since before anything could write it.
  *
- * `updatedAt` moves here too, so pinning also lifts the item within the recency ordering it is now
- * sorted above. That is a side effect rather than the point, and a harmless one: pinned items sort to
- * the top of a listing regardless, and on the dashboard the two lists are disjoint — `getDashboardItems`
- * queries recent items as `isPinned: false`, so a pinned item leaves that list rather than jumping up it.
+ * `updatedAt` moves here, and `editedAt` deliberately does not — pinning is not editing. That is what
+ * keeps this write out of every recency ordering in the app, including the dashboard's Recent list,
+ * which pinned items now appear in alongside everything else. The earlier version of this note argued
+ * the same conclusion from the lists being disjoint; they no longer are, and the column split is the
+ * better reason anyway, since it holds for every listing rather than for one query's `where`.
+ *
+ * `pinnedAt` is written in the same statement as the boolean, and cleared to `null` on unpin. Two
+ * columns rather than one nullable timestamp doing both jobs, so that `isPinned` stays the thing
+ * every listing filters and sorts on without having to reason about NULLs — but they are only ever
+ * consistent because this one write sets both, the same boundary rule `contentType` relies on. It
+ * also means an unpin genuinely forgets when the item was pinned: re-pinning it puts it at the top
+ * of the section, not back where it used to sit, which is the reading a user would expect.
  */
 export async function toggleItemPin(
     itemId: string,
@@ -407,7 +415,7 @@ export async function toggleItemPin(
     try {
         const updated = await prisma.item.update({
             where: { id: itemId, userId },
-            data: { isPinned },
+            data: { isPinned, pinnedAt: isPinned ? new Date() : null },
             select: { isPinned: true },
         });
 
