@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
 
 import { OPEN_ROUTES, SIGNED_OUT_ROUTES } from "@/lib/auth-redirects";
@@ -19,6 +20,16 @@ export const proxy = auth((req) => {
     }
 
     if (isSignedOutRoute || OPEN_ROUTES.has(pathname)) return;
+
+    // The root is the one protected path that does not bounce to sign-in: a landing page has to live
+    // at the root domain, so a visitor with no session is served the marketing page from here.
+    // A rewrite rather than a redirect — the URL they arrived at is the URL they should keep, and
+    // `/welcome` is reachable on its own anyway for anyone who wants it.
+    if (pathname === "/") {
+        const welcome = req.nextUrl.clone();
+        welcome.pathname = "/welcome";
+        return NextResponse.rewrite(welcome);
+    }
 
     const signInUrl = new URL("/sign-in", req.nextUrl.origin);
     const target = `${pathname}${req.nextUrl.search}`;

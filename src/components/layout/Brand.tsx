@@ -6,9 +6,10 @@ import { Layers } from "lucide-react";
  * auth shell.
  *
  * `href` is opt-in rather than always "/" because the auth shell renders this to visitors who are
- * not signed in: a link home would be bounced straight back to `/sign-in` by the proxy. The two
- * signed-in call sites pass it; `onNavigate` lets the mobile drawer close itself on the way, the
- * same way its nav links do.
+ * not signed in, and "/" does not mean the app for them — the proxy serves the marketing page
+ * there instead, so a wordmark over a sign-in form would be a link back out to the sales page. The
+ * signed-in call sites pass it, as does the marketing page itself; `onNavigate` lets the mobile
+ * drawer close itself on the way, the same way its nav links do.
  */
 export function Brand({ href, onNavigate }: { href?: string; onNavigate?: () => void }) {
     const content = (

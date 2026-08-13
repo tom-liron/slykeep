@@ -163,6 +163,18 @@ code {
     transform: translateY(-1px);
 }
 
+/* The sign-up CTA. Blue rather than white so the one action the page is asking
+   for is the item-type blue the rest of the page is built on. */
+.btn-accent {
+    background: var(--snippet);
+    color: #fff;
+    box-shadow: 0 8px 24px -12px rgba(59, 130, 246, 0.9);
+}
+.btn-accent:hover {
+    background: #2f78f0;
+    transform: translateY(-1px);
+}
+
 .btn-outline {
     border-color: var(--border-strong);
     color: var(--text);
@@ -549,9 +561,16 @@ code {
         linear-gradient(180deg, var(--surface), var(--bg-soft));
 }
 
+/* A scale model, not a miniature with fixed type. The panel is half of a fluid
+   container, so at ~1000px wide the mock is 387px and at 1440px it is 497px —
+   with `rem` type inside, every card title and sidebar row was cropped through
+   that whole range. Sizing the inside in `cqw` (percentages of the mock's own
+   width, via the container below) keeps type, padding, and boxes in one fixed
+   ratio: if the text fits at one width it fits at every width. */
 .app-mock {
+    container-type: inline-size;
     display: grid;
-    grid-template-columns: 108px 1fr;
+    grid-template-columns: auto 1fr;
     flex: 1;
     min-height: 300px;
     border: 1px solid var(--border);
@@ -560,8 +579,12 @@ code {
     overflow: hidden;
 }
 
+/* The width lives here rather than in `grid-template-columns`, because an
+   element cannot query itself — `cqw` on `.app-mock` would resolve against an
+   ancestor, not against the mock. */
 .mock-sidebar {
-    padding: 0.7rem 0.6rem;
+    width: 27cqw;
+    padding: 2.2cqw 2cqw;
     border-right: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.015);
 }
@@ -569,25 +592,25 @@ code {
 .mock-brand {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.9rem;
+    gap: 1.3cqw;
+    margin-bottom: 2.9cqw;
 }
 .mock-brand-mark {
-    width: 14px;
-    height: 14px;
+    width: 2.8cqw;
+    height: 2.8cqw;
     border-radius: 4px;
     background: linear-gradient(140deg, var(--snippet), var(--prompt));
 }
 .mock-brand-name {
-    width: 46px;
-    height: 6px;
+    width: 9.2cqw;
+    height: 1.2cqw;
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.22);
 }
 
 .mock-heading {
-    margin: 0.75rem 0 0.35rem;
-    font-size: 0.55rem;
+    margin: 2.4cqw 0 1.1cqw;
+    font-size: 1.75cqw;
     letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--faint);
@@ -596,12 +619,15 @@ code {
 .mock-nav li {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.25rem 0.35rem;
+    gap: 1.3cqw;
+    padding: 0.8cqw 1.1cqw;
     border-radius: 5px;
-    font-size: 0.62rem;
+    font-size: 2cqw;
     color: var(--muted);
     white-space: nowrap;
+    /* A backstop, not the plan: the sidebar is wide enough for every label
+       above. Kept so a longer one degrades to an ellipsis rather than a
+       hard cut at the border. */
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -611,8 +637,8 @@ code {
 }
 .mock-nav .dot {
     flex: none;
-    width: 6px;
-    height: 6px;
+    width: 1.2cqw;
+    height: 1.2cqw;
     border-radius: 2px;
     background: var(--dot);
 }
@@ -620,61 +646,65 @@ code {
 .mock-main {
     display: flex;
     flex-direction: column;
-    padding: 0.7rem;
-    gap: 0.7rem;
+    padding: 2.2cqw;
+    gap: 2.2cqw;
     min-width: 0;
 }
 
 .mock-topbar {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1.6cqw;
 }
 .mock-search {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 1.6cqw;
     flex: 1;
     min-width: 0;
-    padding: 0.3rem 0.5rem;
+    padding: 1cqw 1.6cqw;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--surface);
-    font-size: 0.62rem;
+    font-size: 2cqw;
     color: var(--faint);
 }
 .mock-search kbd {
-    font-size: 0.55rem;
+    flex: none;
+    font-size: 1.75cqw;
     padding: 0.05em 0.3em;
 }
 .mock-new {
-    padding: 0.3rem 0.55rem;
+    padding: 1cqw 1.8cqw;
     border-radius: 6px;
     background: var(--text);
     color: #0a0a0a;
-    font-size: 0.62rem;
+    font-size: 2cqw;
     font-weight: 600;
 }
 
 .mock-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
+    gap: 1.6cqw;
 }
 
 /* The colored top border is the item's type — the same signal the real
    dashboard uses down the left edge of a row. */
 .mock-card {
-    padding: 0.45rem 0.5rem 0.5rem;
+    padding: 1.4cqw 1.6cqw 1.6cqw;
     border: 1px solid var(--border);
     border-top: 2px solid var(--accent);
     border-radius: 0 0 6px 6px;
     background: var(--surface);
     min-width: 0;
 }
+/* Titles are chosen to fit a third of the main column outright — the longest
+   is 11 characters, which leaves ~13% slack at every width. Same backstop as
+   the sidebar rows. */
 .mock-card-title {
-    font-size: 0.6rem;
+    font-size: 1.9cqw;
     font-weight: 550;
     color: var(--text);
     white-space: nowrap;
@@ -682,8 +712,8 @@ code {
     text-overflow: ellipsis;
 }
 .mock-line {
-    height: 4px;
-    margin-top: 0.35rem;
+    height: 0.8cqw;
+    margin-top: 1.1cqw;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.09);
 }
@@ -692,12 +722,12 @@ code {
 }
 .mock-tag {
     display: inline-block;
-    margin-top: 0.45rem;
-    padding: 0.05rem 0.3rem;
+    margin-top: 1.45cqw;
+    padding: 0.16cqw 0.95cqw;
     border-radius: 4px;
     background: color-mix(in srgb, var(--accent) 16%, transparent);
     color: var(--accent);
-    font-size: 0.52rem;
+    font-size: 1.65cqw;
     font-weight: 600;
 }
 
@@ -1336,6 +1366,34 @@ code {
     }
 }
 
+/* Chaos above, arrow between, dashboard below — and the arrow has to point at
+   where the next thing actually is.
+
+   This stacks at 1024 rather than at the 860 the nav uses: side by side, each
+   panel is half the container, so at ~900px the dashboard mock is a 325px-wide
+   scale model and its type scales down with it. Stacking here hands the mock
+   the full width back before it gets that small. */
+@media (max-width: 1024px) {
+    .transform {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .arrow-ring {
+        transform: rotate(90deg);
+    }
+    @keyframes arrow-pulse {
+        0%,
+        100% {
+            transform: rotate(90deg) scale(1);
+            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35);
+        }
+        50% {
+            transform: rotate(90deg) scale(1.09);
+            box-shadow: 0 0 0 14px rgba(139, 92, 246, 0);
+        }
+    }
+}
+
 @media (max-width: 860px) {
     /* The bar keeps the brand and the primary CTA. Everything else moves into
        the menu, which is the whole reason the hamburger appears here. */
@@ -1397,27 +1455,6 @@ code {
         margin-top: 0.9rem;
     }
 
-    /* Chaos above, arrow between, dashboard below — and the arrow has to point
-       at where the next thing actually is. */
-    .transform {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    .arrow-ring {
-        transform: rotate(90deg);
-    }
-    @keyframes arrow-pulse {
-        0%,
-        100% {
-            transform: rotate(90deg) scale(1);
-            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35);
-        }
-        50% {
-            transform: rotate(90deg) scale(1.09);
-            box-shadow: 0 0 0 14px rgba(139, 92, 246, 0);
-        }
-    }
-
     .footer-inner {
         grid-template-columns: 1fr;
         gap: 2rem;
@@ -1431,12 +1468,6 @@ code {
     }
     .price-card.is-featured {
         order: -1;
-    }
-    .mock-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .app-mock {
-        grid-template-columns: 92px 1fr;
     }
     .hero-cta .btn {
         width: 100%;
@@ -1455,11 +1486,6 @@ code {
     .chaos-icon {
         width: 46px;
         height: 46px;
-    }
-    /* At this width the fake search pill is ~65px and the badge no longer fits
-       inside it — the placeholder alone still says what the row is. */
-    .mock-search kbd {
-        display: none;
     }
 }
 

@@ -18,8 +18,12 @@
  * consumed by a route handler at `/api/auth/verify-email`, and `api/auth` is outside the proxy's
  * matcher entirely — listing a page path that does not exist would protect nothing and imply a route
  * someone would later go looking for.
+ *
+ * `/welcome` is the marketing homepage, and it is here for all three of the set's effects at once:
+ * it is reachable without a session, a signed-in visitor is sent to the app instead of being sold
+ * it, and `resolveCallbackUrl` refuses to return anyone to it after they sign in.
  */
-export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-password"]);
+export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-password", "/welcome"]);
 
 /**
  * Reachable with or without a session.

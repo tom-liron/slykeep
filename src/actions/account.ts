@@ -133,6 +133,10 @@ export async function deleteAccount(
 
     // Outside the try: `signOut` leaves by throwing NEXT_REDIRECT, which the catch above would
     // swallow — reporting a failure for a deletion that has already succeeded.
+    //
+    // Still `/sign-in`, where ordinary sign-out now goes to the marketing page: the sign-in page is
+    // what reads `deleted=1` and confirms the account is gone. Landing on the marketing page would
+    // swallow that acknowledgement and leave the user guessing whether it worked.
     await signOut({ redirectTo: "/sign-in?deleted=1" });
 
     return EMPTY_ACCOUNT_STATE;

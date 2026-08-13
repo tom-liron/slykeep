@@ -109,7 +109,17 @@ export async function signInWithGitHub(formData: FormData) {
     await signIn("github", { redirectTo: destinationFrom(formData) });
 }
 
-/** Clears the session and returns to the sign-in page rather than a route the proxy would bounce. */
+/**
+ * Clears the session and returns to the marketing homepage.
+ *
+ * This used to land on `/sign-in`, because `/` was the dashboard and nothing else — signing out
+ * there would only have been bounced straight back by the proxy, so the redirect skipped the round
+ * trip. Now the proxy serves the marketing page at `/` to anyone without a session, which makes it
+ * the right destination on its own terms: it is the one page that still means something to someone
+ * who has just deliberately stopped being a user, and sign-in is one click away on it.
+ *
+ * Account deletion deliberately does not follow — see `deleteAccount` in `actions/account.ts`.
+ */
 export async function signOutAction() {
-    await signOut({ redirectTo: "/sign-in" });
+    await signOut({ redirectTo: "/" });
 }
