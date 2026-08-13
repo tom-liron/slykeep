@@ -97,6 +97,11 @@ export function CreateItemDialog() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
+                {/* `lg`, measured rather than picked. The labelled pair of create buttons needs
+                    ~250px, and with the brand, the search field, and the star beside them the bar
+                    only has that from about 900px — so the labels belong at the next breakpoint
+                    above it, not at `sm`, where they overflowed their track. `aria-label` carries
+                    the name at every width regardless. */}
                 <Button aria-label="New Item">
                     <Plus className="size-4" aria-hidden="true" />
                     <span className="hidden lg:inline">New Item</span>

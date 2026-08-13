@@ -28,6 +28,27 @@ export function SidebarNav({
         <div className="flex h-full flex-col">
             {/* Scrollable nav */}
             <nav className="flex-1 overflow-y-auto p-2">
+                {/* Favorites, above the two collapsible sections and outside both — it is a view
+                    across every type and every collection, so it belongs under neither heading.
+                    It had no nav entry at all until the top bar's star was hidden on phones, which
+                    is what made a page reachable from exactly one 32px control worth noticing. */}
+                <Link
+                    href="/favorites"
+                    onClick={onNavigate}
+                    className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+                        pathname === "/favorites" && "bg-sidebar-accent font-medium",
+                    )}
+                >
+                    <Star
+                        className="size-4 shrink-0 fill-yellow-400 text-yellow-400"
+                        aria-hidden="true"
+                    />
+                    <span className="flex-1 truncate">Favorites</span>
+                </Link>
+
+                <div className="my-2 border-t border-border" />
+
                 {/* Types */}
                 <SectionHeader
                     label="Types"

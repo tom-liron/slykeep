@@ -38,6 +38,8 @@ export function CreateCollectionDialog() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
+                {/* `lg` for the reason `CreateItemDialog`'s label is: the two are measured together,
+                    since they share a track and appear at the same time. */}
                 <Button variant="outline" aria-label="New Collection">
                     <FolderPlus className="size-4" aria-hidden="true" />
                     <span className="hidden lg:inline">New Collection</span>

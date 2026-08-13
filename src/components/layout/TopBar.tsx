@@ -14,13 +14,26 @@ import type { SearchDataViewModel } from "@/types/view-models";
 export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
     const { toggleCollapsed, toggleMobile } = useSidebar();
 
-    // Three tracks, not a row of siblings: the outer groups and the search are all `flex-1`, so the
-    // two sides take an equal share whatever they contain — and once the search hits its own
-    // `max-w`, the space it gives back is split evenly between them. That is what puts the field on
-    // the middle of the page rather than wherever the brand and the toggles happen to end.
+    // Three tracks, not a row of siblings: from `sm` up the outer groups and the search are all
+    // `flex-1`, so the two sides take an equal share whatever they contain — and once the search
+    // hits its own `max-w`, the space it gives back is split evenly between them. That is what puts
+    // the field on the middle of the page rather than wherever the brand and the toggles happen to
+    // end.
+    //
+    // Neither outer track carries `min-w-0`, and that is the whole of what keeps this bar from
+    // colliding with itself. `flex-1` is `flex: 1 1 0%`, so a track is *sized* as a third — but a
+    // flex item's default `min-width: auto` stops it shrinking under its own contents, and the
+    // buttons inside are `shrink-0`. Add `min-w-0` and the track shrinks anyway while its contents
+    // do not, which puts them straight over the search field beside them. That is exactly what
+    // happened, at every width where the create buttons still had their labels. The search is the
+    // one track that *is* `min-w-0`: it has a placeholder it can clip and the others do not.
+    //
+    // Below `sm` the equal-thirds premise is dropped rather than patched. Centring only means
+    // anything while there is slack to divide; narrow, the right-hand group is `shrink-0` and the
+    // search collapses to an icon, which leaves the left track what is actually left over.
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-4">
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex flex-1 items-center gap-2 sm:gap-3">
                 {/* Mobile: hamburger opens the drawer */}
                 <Button
                     id="mobile-menu-button"
@@ -33,7 +46,10 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
                     <Menu className="size-5" aria-hidden="true" />
                 </Button>
 
-                <Brand href="/" />
+                {/* `compact`: the mark alone on a phone. The wordmark is the one thing in this
+                    track with nothing to do at 390px, and hiding it is what a brand does at that
+                    width — clipping it to "DevSt…" would just look broken. */}
+                <Brand href="/" compact />
 
                 {/* Desktop: collapse/expand the rail */}
                 <Button
@@ -52,15 +68,24 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
                 opens. */}
             <CommandPalette data={searchData} />
 
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            {/* `shrink-0` narrow and a third of the bar from `sm` up — and no `min-w-0` at either,
+                for the reason given above: this is the group that was overlapping the search. */}
+            <div className="flex shrink-0 items-center justify-end gap-2 sm:flex-1">
                 {/* `aria-label` as well as `title`: the tooltip is for a pointer, and the star on its
-                    own says nothing to a screen reader. Both, like the two toggles above. */}
+                    own says nothing to a screen reader. Both, like the two toggles above.
+
+                    Hidden below `sm`, where `SidebarNav` carries Favorites instead — it is a
+                    destination rather than an action, so the nav is where it belongs and the bar is
+                    only ever a shortcut to it. The shortcut stays on wider screens because the rail
+                    collapses to nothing there, which would otherwise leave no way to reach the page
+                    at all. */}
                 <Button
                     variant="ghost"
                     size="icon"
                     asChild
                     aria-label="Favorites"
                     title="Favorites"
+                    className="hidden sm:inline-flex"
                 >
                     <Link href="/favorites">
                         <Star className="size-5" aria-hidden="true" />
