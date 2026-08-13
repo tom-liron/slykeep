@@ -36,7 +36,7 @@ export function SidebarNav({
                     href="/favorites"
                     onClick={onNavigate}
                     className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+                        "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors pointer-coarse:py-3 hover:bg-sidebar-accent",
                         pathname === "/favorites" && "bg-sidebar-accent font-medium",
                     )}
                 >
@@ -67,7 +67,7 @@ export function SidebarNav({
                                         href={href}
                                         onClick={onNavigate}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+                                            "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors pointer-coarse:py-3 hover:bg-sidebar-accent",
                                             active && "bg-sidebar-accent font-medium",
                                         )}
                                     >
@@ -162,7 +162,7 @@ export function SidebarNav({
                         <Link
                             href="/collections"
                             onClick={onNavigate}
-                            className="flex items-center gap-3 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+                            className="flex items-center gap-3 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors pointer-coarse:py-3.5 hover:bg-sidebar-accent hover:text-foreground"
                         >
                             <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
                             <span>View all collections</span>
@@ -171,7 +171,7 @@ export function SidebarNav({
                 )}
             </nav>
 
-            <UserMenu user={data.user} />
+            <UserMenu user={data.user} onNavigate={onNavigate} />
         </div>
     );
 }
@@ -191,7 +191,7 @@ function SectionHeader({
         <button
             type="button"
             onClick={onToggle}
-            className="flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+            className="flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-xs pointer-coarse:py-3.5 font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
             aria-expanded={open}
             aria-controls={controls}
         >
@@ -225,7 +225,7 @@ function CollectionLink({
                 href={href}
                 onClick={onNavigate}
                 className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+                    "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors pointer-coarse:py-3 hover:bg-sidebar-accent",
                     active && "bg-sidebar-accent font-medium",
                 )}
             >

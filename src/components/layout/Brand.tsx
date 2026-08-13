@@ -52,7 +52,13 @@ export function Brand({
         <Link
             href={href}
             onClick={onNavigate}
-            className="flex min-w-0 items-center gap-2 rounded-lg transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            // `-m-1.5 p-1.5` on a coarse pointer: the mark is 32px, so the link needs 6px on every
+            // side to be a 44px target, and the negative margin gives that space back to the layout
+            // so nothing moves and the mark stays the size it is drawn at. Padding rather than a
+            // bigger mark, because the mark's size is the logo's design; padding rather than an
+            // `::after` overhang, because the hamburger is 8px away and an overhang would reach into
+            // it. 6px of padding against an 8px gap leaves 2px between the two targets.
+            className="flex min-w-0 items-center gap-2 rounded-lg transition-opacity pointer-coarse:-m-1.5 pointer-coarse:p-1.5 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
             {content}
         </Link>

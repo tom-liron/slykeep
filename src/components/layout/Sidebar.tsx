@@ -35,6 +35,17 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
                             event.preventDefault();
                             document.querySelector<HTMLElement>("#mobile-menu-button")?.focus();
                         }}
+                        // Any link in the drawer closes it, whether or not it remembered to call
+                        // `onNavigate`. That prop is threaded through `SidebarNav` to every row and
+                        // is still what fires first — this is the floor under it, and it exists
+                        // because the account menu at the foot of the drawer did forget, so Profile
+                        // and Settings opened underneath a drawer that stayed put. One delegated
+                        // handler cannot be forgotten by whatever gets added to the nav next.
+                        onClick={(event) => {
+                            if ((event.target as HTMLElement).closest("a[href]")) {
+                                setMobileOpen(false);
+                            }
+                        }}
                     >
                         <Dialog.Title className="sr-only">Navigation</Dialog.Title>
                         <Dialog.Description className="sr-only">

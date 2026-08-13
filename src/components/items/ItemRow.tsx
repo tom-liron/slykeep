@@ -21,7 +21,7 @@ export function ItemRow({ item }: { item: ItemSummaryViewModel }) {
     const accent = item.itemType.color;
 
     return (
-        <div className="flex items-center gap-3 px-3 py-2">
+        <div className="flex items-center gap-3 px-3 py-2 pointer-coarse:py-3">
             <TypeIcon
                 name={item.itemType.icon}
                 className="size-4 shrink-0"
