@@ -34,9 +34,13 @@ export function CollectionRow({ collection }: { collection: FavoriteCollectionVi
             <span className="min-w-0 flex-1 truncate font-mono text-sm">{collection.name}</span>
 
             {/* The same two-column block `ItemRow` ends with, at the same widths — so the dates line
-                up down the whole page and the count sits where an item's type badge does. */}
+                up down the whole page and the count sits where an item's type badge does. Which is
+                also why the count hides below `sm` exactly as that badge does: the two lists are
+                the two halves of `/favorites` and are built to one rhythm, so a phone that dropped a
+                column from one and not the other would break the very thing the shared widths are
+                for. The date stays in both. */}
             <div className="flex shrink-0 items-center gap-3">
-                <span className="w-20 text-right text-xs text-muted-foreground">
+                <span className="hidden w-20 text-right text-xs text-muted-foreground sm:inline">
                     {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
                 </span>
 

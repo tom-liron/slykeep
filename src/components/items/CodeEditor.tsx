@@ -42,7 +42,7 @@ const THEME_NAME: EditorThemeId = "devstash-dark";
  * The scrollbar, shared by every theme registered here.
  *
  * White alphas rather than per-theme colours, so one set works on all three surfaces — and because
- * `.editor-scrollbar` in `globals.css` mirrors exactly these three to paint the *markdown* editor's
+ * `.app-scrollbar` in `globals.css` mirrors exactly these three to paint the *markdown* editor's
  * native scrollbar, which is plain CSS and cannot follow a monaco theme. Change these, change those.
  */
 const SLIDER_COLORS = {

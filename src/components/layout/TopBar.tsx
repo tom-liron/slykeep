@@ -74,18 +74,20 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
                 {/* `aria-label` as well as `title`: the tooltip is for a pointer, and the star on its
                     own says nothing to a screen reader. Both, like the two toggles above.
 
-                    Hidden below `sm`, where `SidebarNav` carries Favorites instead — it is a
-                    destination rather than an action, so the nav is where it belongs and the bar is
-                    only ever a shortcut to it. The shortcut stays on wider screens because the rail
-                    collapses to nothing there, which would otherwise leave no way to reach the page
-                    at all. */}
+                    Shown at every width. It was `hidden sm:inline-flex` for one release, on the
+                    reasoning that Favorites is a destination and `SidebarNav` now carries it — but
+                    the measurement behind that was taken before the search collapsed to an icon and
+                    the wordmark to the mark, and once both landed the room was there. Measured at
+                    320px, the narrowest screen worth designing for: every control plus the mark
+                    comes to 204px inside a 296px box, so there is 92px spare. Hiding it cost a tap
+                    on the phone, where the nav is a drawer behind the hamburger, and saved space
+                    nothing needed. */}
                 <Button
                     variant="ghost"
                     size="icon"
                     asChild
                     aria-label="Favorites"
                     title="Favorites"
-                    className="hidden sm:inline-flex"
                 >
                     <Link href="/favorites">
                         <Star className="size-5" aria-hidden="true" />

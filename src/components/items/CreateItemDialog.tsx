@@ -206,8 +206,16 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     };
 
     return (
-        <form onSubmit={handleSubmit} noValidate>
-            <div className="max-h-[60vh] space-y-5 overflow-y-auto px-1 pb-1">
+        // A flex column, and both it and the scroller carry `min-h-0`, so the fields are what
+        // gives when the window is short. `DialogContent` is a grid whose rows floor at their
+        // min-content height by default: without these the form would refuse to shrink, the dialog
+        // would hit its own `max-h`, and the two would scroll inside one another. With them the
+        // scroller absorbs it and the header and footer stay put — which is the point of having a
+        // body scroller at all.
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-col">
+            {/* `app-scrollbar`: this is a dark panel, and it was showing the platform's bright
+                scrollbar against it — the same mismatch the editors already fixed. */}
+            <div className="app-scrollbar max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-1 pb-1">
                 <fieldset className="space-y-1.5" disabled={isPending}>
                     <legend className="text-xs font-medium text-muted-foreground">Type</legend>
                     <div className="flex flex-wrap gap-2 pt-1.5">

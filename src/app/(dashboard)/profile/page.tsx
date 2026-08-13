@@ -54,9 +54,17 @@ export default async function ProfilePage() {
 
             <Panel id="usage" title="Usage" description="What is in your stash right now.">
                 {/* The two totals, as one band split down the middle rather than two bordered cards
-                    inside a bordered panel — `StatCard` still serves the dashboard, where a card is
-                    the right shape because nothing encloses it. */}
-                <dl className="grid grid-cols-2 divide-x divide-border">
+                    inside a bordered panel. The dashboard's summary has since become a band too,
+                    for a different reason — cards there looked clickable and were not — so the two
+                    pages now agree. This one keeps its own cells rather than importing `Stat` from
+                    `StatBand`: it is already inside a `Panel` that draws the border and the padding,
+                    and the shared cell brings both of its own.
+
+                    One column on a phone, where half of the band is ~145px of content box for an
+                    icon, a label, and a 2xl number. The divider turns with it: `divide-y` stacked
+                    and `divide-x` side by side, because a vertical rule between two rows is a line
+                    drawn between nothing. */}
+                <dl className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
                     <Total
                         label="Items"
                         value={totalItems}

@@ -50,10 +50,24 @@ function DialogContent({
     return (
         <DialogPortal>
             <DialogOverlay />
+            {/* `max-h` is the vertical half of the gutter beside it: centred by `-translate-y-1/2`,
+                a dialog taller than the window hangs off both ends with its footer — and therefore
+                its submit button — off screen entirely. Phone landscape and a short laptop window
+                both land there.
+
+                It is a floor under every dialog rather than the mechanism any of them scrolls by:
+                a form that reaches it should scroll its *fields* and leave its header and footer
+                where they are, which is what `CreateItemDialog` does with its own scroller. This
+                one catches whatever does not.
+
+                `overflow-x-hidden` because `overflow-y: auto` alone computes `overflow-x` to `auto`
+                as well, and `DialogFooter` deliberately breaks the padding with `-mx-4` — which is
+                inline overflow, and would otherwise put a horizontal scrollbar under a dialog that
+                is not too wide for anything. */}
             <DialogPrimitive.Content
                 data-slot="dialog-content"
                 className={cn(
-                    "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+                    "app-scrollbar fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
                     className,
                 )}
                 {...props}

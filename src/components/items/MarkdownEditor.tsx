@@ -10,7 +10,7 @@ import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_THEME_CATALOG } from "@/co
 import { cn } from "@/lib/utils";
 
 /** Shared by both tabs, so a note reads the same however it is being looked at. */
-const PANEL = "editor-scrollbar overflow-y-auto";
+const PANEL = "app-scrollbar overflow-y-auto";
 
 /**
  * The floor and ceiling are `CodeEditor`'s, so switching an item's type does not change how much of

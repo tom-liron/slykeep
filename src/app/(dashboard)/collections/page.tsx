@@ -1,6 +1,7 @@
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
+import { CARD_GRID } from "@/config/dashboard";
 import { parsePageParam } from "@/lib/pagination";
 import { getCollections } from "@/server/collections";
 
@@ -21,7 +22,7 @@ export default async function CollectionsPage({
 
             {collections.length > 0 ? (
                 <>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className={CARD_GRID}>
                         {collections.map((collection) => (
                             <CollectionCard key={collection.id} collection={collection} />
                         ))}

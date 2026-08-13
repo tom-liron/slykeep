@@ -129,11 +129,17 @@
 }
 
 /**
- * Native scrollbars repainted as monaco's, for the editors that are not monaco.
+ * Native scrollbars repainted as monaco's, for everything that scrolls on a dark surface.
  *
  * `CodeEditor` draws its own scrollbar from the theme it registers, so the markdown panel beside it
  * was the only thing in the drawer showing the platform's — a bright macOS slider against monaco's
  * translucent one, on two panels that are otherwise a matched pair.
+ *
+ * It was `.editor-scrollbar` while the two editors were the only things wearing it. The overlays
+ * turned out to have the same problem for the same reason — the New Item dialog's field list and the
+ * item drawer both scroll a dark panel and both showed the platform's bar — so the class is named
+ * for what it does rather than for where it was first needed. The values are still monaco's,
+ * because monaco is what the app's scrollbar looks like.
  *
  * The three values are copied from `scrollbarSlider.{background,hoverBackground,activeBackground}`
  * in `CodeEditor.tsx`, and the 10px from its `verticalScrollbarSize`. That is a duplicated literal,
@@ -146,34 +152,34 @@
  * which would otherwise fall back to the platform bar the moment either overflowed.
  */
 @layer components {
-    .editor-scrollbar,
-    .editor-scrollbar * {
+    .app-scrollbar,
+    .app-scrollbar * {
         /* Firefox, which has no pseudo-elements for this and no hover state either. */
         scrollbar-width: thin;
         scrollbar-color: #ffffff1a transparent;
     }
 
-    .editor-scrollbar::-webkit-scrollbar,
-    .editor-scrollbar *::-webkit-scrollbar {
+    .app-scrollbar::-webkit-scrollbar,
+    .app-scrollbar *::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
-    .editor-scrollbar::-webkit-scrollbar-track,
-    .editor-scrollbar *::-webkit-scrollbar-track,
-    .editor-scrollbar::-webkit-scrollbar-corner,
-    .editor-scrollbar *::-webkit-scrollbar-corner {
+    .app-scrollbar::-webkit-scrollbar-track,
+    .app-scrollbar *::-webkit-scrollbar-track,
+    .app-scrollbar::-webkit-scrollbar-corner,
+    .app-scrollbar *::-webkit-scrollbar-corner {
         background: transparent;
     }
-    .editor-scrollbar::-webkit-scrollbar-thumb,
-    .editor-scrollbar *::-webkit-scrollbar-thumb {
+    .app-scrollbar::-webkit-scrollbar-thumb,
+    .app-scrollbar *::-webkit-scrollbar-thumb {
         background: #ffffff1a;
     }
-    .editor-scrollbar::-webkit-scrollbar-thumb:hover,
-    .editor-scrollbar *::-webkit-scrollbar-thumb:hover {
+    .app-scrollbar::-webkit-scrollbar-thumb:hover,
+    .app-scrollbar *::-webkit-scrollbar-thumb:hover {
         background: #ffffff2e;
     }
-    .editor-scrollbar::-webkit-scrollbar-thumb:active,
-    .editor-scrollbar *::-webkit-scrollbar-thumb:active {
+    .app-scrollbar::-webkit-scrollbar-thumb:active,
+    .app-scrollbar *::-webkit-scrollbar-thumb:active {
         background: #ffffff40;
     }
 }

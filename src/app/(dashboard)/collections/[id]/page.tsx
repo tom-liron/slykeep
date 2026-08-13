@@ -6,6 +6,7 @@ import { ItemList } from "@/components/items/ItemList";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
+import { CARD_GRID } from "@/config/dashboard";
 import { parsePageParam } from "@/lib/pagination";
 import { getCollectionPageData } from "@/server/collections";
 
@@ -28,9 +29,19 @@ export default async function CollectionPage({
     return (
         <div className="mx-auto max-w-6xl space-y-6">
             <header className="space-y-2">
-                <div className="flex items-start justify-between gap-3">
+                {/* The actions drop below the title on a phone rather than sitting beside it. Star,
+                    Edit and Delete need ~200px whatever the screen, and they are `shrink-0`, so
+                    inline they were taking that out of a 350px row and leaving the title to
+                    truncate — "Test Colle…" for a collection called "Test Collection", on the one
+                    page whose whole job is that collection. A heading is the last thing on a page
+                    that should be abbreviated to fit its own controls. */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 items-center gap-2">
-                        <h1 className="truncate text-2xl font-bold">{data.collection.name}</h1>
+                        {/* Wraps instead of truncating, with `break-words` as the floor for a name
+                            that is one long unbroken string. */}
+                        <h1 className="min-w-0 text-2xl font-bold break-words">
+                            {data.collection.name}
+                        </h1>
                         {data.collection.isFavorite && (
                             <>
                                 <Star
@@ -78,10 +89,7 @@ export default async function CollectionPage({
 
             {data.items.length > 0 ? (
                 <>
-                    <ItemList
-                        items={data.items}
-                        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                    />
+                    <ItemList items={data.items} className={CARD_GRID} />
                     <Pagination pagination={data.pagination} basePath={`/collections/${id}`} />
                 </>
             ) : (
