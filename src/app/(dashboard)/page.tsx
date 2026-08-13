@@ -67,9 +67,11 @@ export default async function DashboardPage() {
             <section>
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Recent Collections</h2>
+                    {/* `-mr-2` so the padding that makes this a 44px target on a thumb does not
+                        push the text off the grid the cards below line up on. */}
                     <Link
                         href="/collections"
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-sm text-muted-foreground transition-colors pointer-coarse:-mr-2 pointer-coarse:inline-flex pointer-coarse:h-11 pointer-coarse:items-center pointer-coarse:px-2 hover:text-foreground"
                     >
                         View all
                     </Link>

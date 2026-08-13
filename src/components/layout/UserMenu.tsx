@@ -19,8 +19,13 @@ import type { UserViewModel } from "@/types/view-models";
  *
  * The whole row is the trigger rather than the avatar alone — a 36px circle is a small target on
  * touch, and the name and email next to it look clickable whether or not they are.
+ *
+ * `onNavigate` closes the mobile drawer this is rendered inside. `SidebarContext` already drops the
+ * drawer whenever the path changes, which covers Profile and Settings from anywhere else — this is
+ * for the one case that derives from nothing: tapping Profile while already on `/profile`, where the
+ * route does not change and the drawer would otherwise sit there over the page it was asked for.
  */
-export function UserMenu({ user }: { user: UserViewModel }) {
+export function UserMenu({ user, onNavigate }: { user: UserViewModel; onNavigate?: () => void }) {
     return (
         <div className="shrink-0 border-t border-border p-3">
             <DropdownMenu>
@@ -34,14 +39,14 @@ export function UserMenu({ user }: { user: UserViewModel }) {
 
                 <DropdownMenuContent align="start" side="top" className="w-56">
                     <DropdownMenuItem asChild>
-                        <Link href="/profile">
+                        <Link href="/profile" onClick={onNavigate}>
                             <User className="size-4" aria-hidden="true" />
                             Profile
                         </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild>
-                        <Link href="/settings">
+                        <Link href="/settings" onClick={onNavigate}>
                             <Settings className="size-4" aria-hidden="true" />
                             Settings
                         </Link>
@@ -51,7 +56,7 @@ export function UserMenu({ user }: { user: UserViewModel }) {
 
                     {/* A form, not an onClick: signing out is a mutation, and routing it through the
                         server action means it still works if the client bundle has not hydrated. */}
-                    <form action={signOutAction}>
+                    <form action={signOutAction} onSubmit={onNavigate}>
                         <DropdownMenuItem asChild>
                             <button type="submit" className="w-full">
                                 <LogOut className="size-4" aria-hidden="true" />
