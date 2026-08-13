@@ -135,17 +135,33 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
             {/* A button dressed as the input it replaces, not an input. It opens a dialog rather
                 than accepting text — the palette owns the field you actually type in — and a
                 `readOnly` input that swallows its own focus is a control that lies about what it
-                does to anyone reaching it by keyboard or screen reader. */}
+                does to anyone reaching it by keyboard or screen reader.
+
+                Two shapes, one control. Below `sm` it is a square icon button like the rest of the
+                bar, because a field wide enough to read its own placeholder is wider than a phone
+                has to spare once the brand and the create actions have taken theirs. From `sm` up it
+                is the field again. Collapsing it rather than shrinking it is what keeps the bar off
+                the point where every control is squeezed and none of them fit.
+
+                The dialog behind it is unchanged and already insets itself on a phone, so only the
+                trigger has two shapes.
+
+                `aria-label` because the visible text is one of the things that goes: without it the
+                icon-only state would be a button with no accessible name at all. It repeats the
+                visible label rather than replacing it, so the two agree at the widths where both
+                exist. */}
             <button
                 type="button"
                 onClick={openPalette}
-                className="relative flex h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent pr-2 pl-9 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-md"
+                aria-label="Search items and collections"
+                title="Search items and collections"
+                className="relative flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-left text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9 sm:w-auto sm:min-w-0 sm:flex-1 sm:justify-start sm:gap-2 sm:rounded-md sm:border sm:border-input sm:bg-transparent sm:max-w-md sm:pr-2 sm:pl-9 sm:hover:bg-muted/50"
             >
                 <Search
-                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                    className="size-4 shrink-0 sm:pointer-events-none sm:absolute sm:top-1/2 sm:left-3 sm:-translate-y-1/2"
                     aria-hidden="true"
                 />
-                <span className="truncate">Search items and collections...</span>
+                <span className="hidden truncate sm:block">Search items and collections...</span>
                 <kbd className="ml-auto hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-sans text-xs sm:inline-block">
                     ⌘K
                 </kbd>
