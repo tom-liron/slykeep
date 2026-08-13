@@ -97,7 +97,7 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
  *
  * The floor is about two lines, so a one-line command is not a mostly-empty box; the ceiling is
  * where the editor scrolls itself rather than pushing the rest of the drawer off screen. Past that
- * ceiling is exactly when `editor-scrollbar` matters — see `globals.css`, which repaints the native
+ * ceiling is exactly when `app-scrollbar` matters — see `globals.css`, which repaints the native
  * scrollbar in monaco's colours so the two editors do not sit in one drawer with different
  * furniture.
  */

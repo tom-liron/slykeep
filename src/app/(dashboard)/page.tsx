@@ -4,10 +4,10 @@ import { Boxes, Folder, FolderHeart, Pin, Star } from "lucide-react";
 
 import { WelcomeToast } from "@/components/auth/WelcomeToast";
 import { CollectionCard } from "@/components/collections/CollectionCard";
-import { StatCard } from "@/components/dashboard/StatCard";
+import { Stat, StatBand } from "@/components/dashboard/StatBand";
 import { ItemList } from "@/components/items/ItemList";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { DASHBOARD_STAT_COLORS } from "@/config/dashboard";
+import { CARD_GRID, DASHBOARD_STAT_COLORS } from "@/config/dashboard";
 import { getFirstName } from "@/lib/format";
 import { getDashboardCollections } from "@/server/collections";
 import { getCurrentUser } from "@/server/current-user";
@@ -34,32 +34,35 @@ export default async function DashboardPage() {
                 <p className="text-muted-foreground">Your developer knowledge hub</p>
             </header>
 
-            <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Summary">
-                <StatCard
+            {/* `StatBand` owns its breakpoints, and they are derived from the longest label rather
+                than picked off the scale — see the reasoning there, including why they are the
+                window's width and not this box's. */}
+            <StatBand>
+                <Stat
                     label="Items"
                     value={items.totalItems}
                     icon={Boxes}
                     color={DASHBOARD_STAT_COLORS.items}
                 />
-                <StatCard
+                <Stat
                     label="Collections"
                     value={collections.totalCollections}
                     icon={Folder}
                     color={DASHBOARD_STAT_COLORS.collections}
                 />
-                <StatCard
+                <Stat
                     label="Favorite Items"
                     value={items.favoriteItems}
                     icon={Star}
                     color={DASHBOARD_STAT_COLORS.favoriteItems}
                 />
-                <StatCard
+                <Stat
                     label="Favorite Collections"
                     value={collections.favoriteCollections}
                     icon={FolderHeart}
                     color={DASHBOARD_STAT_COLORS.favoriteCollections}
                 />
-            </section>
+            </StatBand>
 
             <section>
                 <div className="mb-4 flex items-center justify-between">
@@ -72,7 +75,7 @@ export default async function DashboardPage() {
                     </Link>
                 </div>
                 {collections.recentCollections.length > 0 ? (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className={CARD_GRID}>
                         {collections.recentCollections.map((collection) => (
                             <CollectionCard key={collection.id} collection={collection} />
                         ))}

@@ -251,7 +251,7 @@ export function ItemDrawer({
                 whole drawer. Naming the axis says what is actually meant: this panel scrolls one
                 way. Content that needs horizontal room scrolls inside its own box, as monaco and the
                 PDF viewer already do. */}
-            <SheetContent className="gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-[min(92vw,30rem)] data-[side=right]:sm:max-w-none">
+            <SheetContent className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-[min(92vw,30rem)] data-[side=right]:sm:max-w-none">
                 <SheetHeader className="gap-3 p-5">
                     <div className="flex items-start gap-3 pr-8">
                         <span

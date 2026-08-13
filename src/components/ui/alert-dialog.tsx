@@ -48,10 +48,20 @@ function AlertDialogContent({
     return (
         <AlertDialogPrimitive.Portal>
             <AlertDialogOverlay />
+            {/* The width is `max-w-[calc(100%-2rem)] sm:max-w-lg` rather than `max-w-lg`, matching
+                `DialogContent`: without the gutter this reached both edges of a phone, rounded
+                corners and all, since nothing else here stops at the viewport. The order is not
+                cosmetic — `cn` is tailwind-merge, the two `max-w` classes are one conflict group,
+                and the later one wins outright, so the wide value has to be the one behind a
+                variant or it is simply deleted.
+
+                `max-h` with it, for the other axis of the same problem: centred by
+                `-translate-y-1/2`, a dialog taller than the window hangs off both ends and takes its
+                own footer with it. Phone landscape and a short laptop window both reach that. */}
             <AlertDialogPrimitive.Content
                 data-slot="alert-dialog-content"
                 className={cn(
-                    "fixed top-1/2 left-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-background p-6 shadow-lg duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+                    "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl border border-border bg-background p-6 shadow-lg duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
                     className,
                 )}
                 {...props}

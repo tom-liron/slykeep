@@ -41,7 +41,11 @@ export default async function DashboardLayout({
                     <TopBar searchData={searchData} />
                     <div className="flex min-h-0 flex-1">
                         <Sidebar data={sidebarData} />
-                        <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
+                        {/* `p-4` narrow: 24px each side is 48px of a 390px screen spent on margin,
+                            which every list and card inside then does without. */}
+                        <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+                            {children}
+                        </main>
                     </div>
                 </div>
             </EditorPreferencesProvider>

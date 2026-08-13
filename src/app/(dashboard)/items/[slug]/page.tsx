@@ -4,6 +4,7 @@ import { ItemList } from "@/components/items/ItemList";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
+import { CARD_GRID } from "@/config/dashboard";
 import { parsePageParam } from "@/lib/pagination";
 import { getItemTypePageData } from "@/server/items";
 
@@ -53,11 +54,7 @@ export default async function ItemTypePage({
                     <ItemList
                         items={data.items}
                         variant={variant}
-                        className={
-                            variant === "file"
-                                ? "flex flex-col gap-2"
-                                : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                        }
+                        className={variant === "file" ? "flex flex-col gap-2" : CARD_GRID}
                     />
                     <Pagination
                         pagination={data.pagination}
