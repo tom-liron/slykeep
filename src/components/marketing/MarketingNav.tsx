@@ -2,15 +2,63 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { Brand } from "@/components/layout/Brand";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const SECTIONS = [
     { href: "#features", label: "Features" },
     { href: "#ai", label: "AI" },
     { href: "#pricing", label: "Pricing" },
 ];
+
+/**
+ * The two account actions, in bar order. `primary` is the one that stays in the bar at every width;
+ * the other drops into the small-screen menu below 861px.
+ */
+const ACTIONS = [
+    { href: "/sign-in", label: "Sign In", primary: false },
+    { href: "/register", label: "Get Started", primary: true },
+];
+
+/**
+ * One section link, which is two different things depending on where the bar is rendered.
+ *
+ * On the marketing page the href is a bare hash: an in-page jump, animated by the scroll container's
+ * own `scroll-smooth`. From an auth page there is no such section on the page, so it becomes a real
+ * navigation to `/` — and a `<Link>` rather than an `<a>`, so Next drives it and scrolls to the hash
+ * on arrival instead of the browser doing a full document load and hunting for the target inside a
+ * nested scroll container.
+ */
+function SectionLink({
+    href,
+    onAuth,
+    className,
+    onClick,
+    children,
+}: {
+    href: string;
+    onAuth: boolean;
+    className?: string;
+    onClick?: () => void;
+    children: React.ReactNode;
+}) {
+    if (onAuth) {
+        return (
+            <Link href={`/${href}`} onClick={onClick} className={className}>
+                {children}
+            </Link>
+        );
+    }
+
+    return (
+        <a href={href} onClick={onClick} className={className}>
+            {children}
+        </a>
+    );
+}
 
 /**
  * The marketing bar: brand, section links, and the two account actions.
@@ -22,14 +70,36 @@ const SECTIONS = [
  * The scroll listener is bound to the marketing layout's scroll container, not to `window`. The
  * root layout pins the body to the viewport height, so the window never scrolls at all here and a
  * `window` listener would simply never fire.
+ *
+ * `variant="auth"` renders the same bar on the signed-out auth shell, which is not the marketing
+ * page and differs from it in three ways that all have the same cause — there is no marketing page
+ * underneath it:
+ *
+ * - **The section links leave.** `#features` has no section to find on `/sign-in`, so the hrefs
+ *   become absolute and point back at `/`. They also switch from `<a>` to `<Link>`: on the marketing
+ *   page a bare hash is an in-page jump and the container's `scroll-smooth` is what animates it,
+ *   while from an auth page it is a real navigation and Next has to own the scroll to the hash on
+ *   the far side.
+ * - **The bar stops reacting to scroll.** It is pinned to the state the marketing bar reaches after
+ *   8px — bordered and opaque — rather than starting transparent. An auth page has nothing to
+ *   scroll past, so a bar that fades in on scroll would just be a bar that never fades in, floating
+ *   borderless over the card.
+ * - **The current page is not offered as a button on itself.** `/sign-in` keeps Get Started,
+ *   `/register` keeps Sign In, and the two password routes keep both.
  */
-export function MarketingNav() {
+export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" | "auth" }) {
     const navRef = useRef<HTMLElement>(null);
     const toggleRef = useRef<HTMLButtonElement>(null);
     const [scrolled, setScrolled] = useState(false);
     const [open, setOpen] = useState(false);
+    const pathname = usePathname();
+
+    const onAuth = variant === "auth";
+    const actions = onAuth ? ACTIONS.filter((action) => action.href !== pathname) : ACTIONS;
 
     useEffect(() => {
+        if (onAuth) return;
+
         const container = navRef.current?.closest<HTMLElement>("[data-marketing-scroll]");
         if (!container) return;
 
@@ -48,7 +118,7 @@ export function MarketingNav() {
         apply(); // a reload partway down the page must not start transparent
 
         return () => container.removeEventListener("scroll", onScroll);
-    }, []);
+    }, [onAuth]);
 
     // Every way out of the menu, so it can never be left stranded open.
     useEffect(() => {
@@ -87,37 +157,47 @@ export function MarketingNav() {
     return (
         <nav
             ref={navRef}
-            data-scrolled={scrolled || undefined}
+            data-scrolled={scrolled || onAuth || undefined}
             data-open={open || undefined}
-            className="sticky top-0 z-50 h-16 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background/95 data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px]"
+            // `shrink-0` matters only on the auth shell, which is a flex column: `h-16` is a
+            // *basis* to a flex child, not a floor, so a form taller than the space left over
+            // squeezes the bar instead of scrolling — and squeezes it by different amounts on
+            // sign-in and register, which is two bars of two heights across one shell.
+            className="sticky top-0 z-50 h-16 shrink-0 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background/95 data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px]"
         >
             <div className="mx-auto flex h-full w-[min(1180px,calc(100%-2.5rem))] items-center gap-6">
                 <Brand href="/" />
 
                 <div className="ml-auto flex gap-6 text-sm text-muted-foreground max-[860px]:hidden">
                     {SECTIONS.map((section) => (
-                        <a
+                        <SectionLink
                             key={section.href}
                             href={section.href}
+                            onAuth={onAuth}
                             className="transition-colors hover:text-foreground"
                         >
                             {section.label}
-                        </a>
+                        </SectionLink>
                     ))}
                 </div>
 
                 <div className="flex items-center gap-2 max-[860px]:ml-auto">
-                    {/* `secondary`, not `ghost`: a button that is invisible until hovered reads as
-                        nothing at all next to the white CTA. Deliberately a neutral surface rather
-                        than a colour — blue is this page's one call to action and purple is what it
-                        uses to mean Pro, so a tinted Sign In would either compete with Get Started
-                        beside it or promise something it is not. */}
-                    <Button asChild variant="secondary" className="h-9 px-4 max-[860px]:hidden">
-                        <Link href="/sign-in">Sign In</Link>
-                    </Button>
-                    <Button asChild className="h-9 px-4">
-                        <Link href="/register">Get Started</Link>
-                    </Button>
+                    {/* `secondary`, not `ghost`, for the non-primary action: a button that is
+                        invisible until hovered reads as nothing at all next to the white CTA.
+                        Deliberately a neutral surface rather than a colour — blue is this page's one
+                        call to action and purple is what it uses to mean Pro, so a tinted Sign In
+                        would either compete with Get Started beside it or promise something it is
+                        not. */}
+                    {actions.map((action) => (
+                        <Button
+                            key={action.href}
+                            asChild
+                            variant={action.primary ? "default" : "secondary"}
+                            className={cn("h-9 px-4", !action.primary && "max-[860px]:hidden")}
+                        >
+                            <Link href={action.href}>{action.label}</Link>
+                        </Button>
+                    ))}
 
                     <button
                         ref={toggleRef}
@@ -146,20 +226,32 @@ export function MarketingNav() {
                 className="invisible absolute inset-x-0 top-full grid -translate-y-2 border-b border-border bg-background/95 px-5 pt-2 pb-4 opacity-0 backdrop-blur-[14px] transition-[opacity,transform,visibility] duration-200 in-data-[open]:visible in-data-[open]:translate-y-0 in-data-[open]:opacity-100 min-[861px]:hidden"
             >
                 {SECTIONS.map((section) => (
-                    <a
+                    <SectionLink
                         key={section.href}
                         href={section.href}
+                        onAuth={onAuth}
                         onClick={() => setOpen(false)}
                         className="border-b border-border px-0.5 py-2.5 text-[0.95rem] text-muted-foreground transition-colors hover:text-foreground"
                     >
                         {section.label}
-                    </a>
+                    </SectionLink>
                 ))}
-                <Button asChild variant="outline" className="mt-3.5 h-9 w-full">
-                    <Link href="/sign-in" onClick={() => setOpen(false)}>
-                        Sign In
-                    </Link>
-                </Button>
+                {/* Whatever the bar drops below 861px — the non-primary action, when this page
+                    offers it at all. */}
+                {actions
+                    .filter((action) => !action.primary)
+                    .map((action) => (
+                        <Button
+                            key={action.href}
+                            asChild
+                            variant="outline"
+                            className="mt-3.5 h-9 w-full"
+                        >
+                            <Link href={action.href} onClick={() => setOpen(false)}>
+                                {action.label}
+                            </Link>
+                        </Button>
+                    ))}
             </div>
         </nav>
     );

@@ -16,7 +16,19 @@ import { Button } from "@/components/ui/button";
  */
 export function Hero() {
     return (
-        <header className="relative overflow-hidden pt-[clamp(3rem,8vw,6rem)] pb-[clamp(3rem,7vw,6rem)]">
+        <header
+            // `-mt-16` puts the top of this box back under the bar, and the `4rem` added to the top
+            // padding puts the content back where it was — together they restore the prototype's
+            // geometry, where the nav is `fixed` and the hero starts at the top of the document
+            // rather than below the bar.
+            //
+            // That is what makes the bar look like glass. The glow below is clipped by this
+            // element's `overflow-hidden`, so while the hero began at the bar's bottom edge there
+            // was nothing behind the bar to see through it — 30% of the page background over the
+            // page background, which reads as flat black, with a hard horizontal cut where the clip
+            // started. The bar was transparent the whole time; it had nothing to be transparent to.
+            className="relative -mt-16 overflow-hidden pt-[calc(4rem_+_clamp(3rem,8vw,6rem))] pb-[clamp(3rem,7vw,6rem)]"
+        >
             <div
                 aria-hidden="true"
                 className="pointer-events-none absolute -top-64 left-1/2 h-[620px] w-[min(1100px,120vw)] -translate-x-1/2 blur-[90px]"
