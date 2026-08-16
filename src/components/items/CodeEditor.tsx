@@ -4,14 +4,12 @@ import { useState } from "react";
 import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
 
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
-import {
-    EDITOR_MAX_HEIGHT,
-    EDITOR_MIN_HEIGHT,
-    EDITOR_SURFACE,
-    EDITOR_THEME_CATALOG,
-} from "@/config/editor";
+import { EDITOR_MIN_HEIGHT, EDITOR_SURFACE, EDITOR_THEME_CATALOG } from "@/config/editor";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { toMonacoLanguage } from "@/lib/code-language";
+import { editorMaxHeight, renderedFontSize } from "@/lib/editor-metrics";
 import type { EditorThemeId } from "@/types/editor";
+import { ContentTextarea } from "./ContentTextarea";
 
 /**
  * The wrapper ships its own default CDN build, which is a *different* monaco version from the
@@ -26,9 +24,9 @@ loader.config({
 
 // Shared with `MarkdownEditor` through `config/editor.ts`, so the two content surfaces cannot drift
 // apart on how much of the drawer they take — the colour they share now comes from the theme
-// catalog in the same file. Aliased to the short names this file already reads by.
+// catalog in the same file. Aliased to the short name this file already reads by; the ceiling is no
+// longer a constant, since it depends on the viewport (see `editorMaxHeight`).
 const MIN_HEIGHT = EDITOR_MIN_HEIGHT;
-const MAX_HEIGHT = EDITOR_MAX_HEIGHT;
 
 /**
  * The one theme this app owns: chrome from its palette, syntax colours inherited from `vs-dark`.
@@ -166,6 +164,11 @@ const defineTheme: BeforeMount = (monaco) => {
  * is why this costs a few kB here rather than the several megabytes monaco actually weighs; the
  * trade is that the editor needs a network the first time it is shown, and nothing renders offline.
  * That is the one thing to revisit if the app ever has to run air-gapped.
+ *
+ * One exception to "one component for both": under a coarse pointer the *editable* direction is a
+ * plain textarea, because monaco does not support touch. The frame, the header and the language
+ * label are the same either way, so what changes between reading and writing on a phone is the
+ * highlighting and nothing else.
  */
 export function CodeEditor({
     value,
@@ -197,6 +200,15 @@ export function CodeEditor({
     // no provider, and the hook falls back to the same values this file used to hardcode.
     const preferences = useEditorPreferences();
 
+    // Monaco does not support touch. It renders its own DOM and drives a hidden textarea, so the
+    // platform's caret handle, selection grips, magnifier and autocorrect bar have nothing to attach
+    // to — placing a cursor mid-word on a phone is a fight, which is not a state to leave someone in
+    // while they are trying to save a snippet. Writing therefore falls back to the plain textarea
+    // the markdown editor already uses; reading keeps monaco, because the highlighting is the point
+    // of the read-only surface and there is no caret to place.
+    const coarsePointer = useCoarsePointer();
+    const plainText = coarsePointer && !readOnly;
+
     const monacoLanguage = toMonacoLanguage(language);
 
     // The frame is painted here, outside monaco, so it has to be told what the chosen theme is about
@@ -205,13 +217,25 @@ export function CodeEditor({
     const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
 
     // Fluid up to a ceiling: monaco reports how tall its content actually is — wrapped lines
-    // included — and the wrapper follows it until 400px, past which the editor scrolls itself.
+    // included — and the wrapper follows it until the ceiling, past which the editor scrolls itself.
+    //
+    // The ceiling depends on the viewport now, so this also listens for `resize` — rotating a phone
+    // is exactly the case it exists for, and monaco's `automaticLayout` only watches the *width* of
+    // the box it was given. `onDidDispose` rather than an effect cleanup because monaco owns this
+    // listener's lifetime: the editor is what the closure measures.
     const handleMount: OnMount = (editor) => {
         const measure = () =>
-            setHeight(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, editor.getContentHeight())));
+            setHeight(
+                Math.min(
+                    editorMaxHeight(window.innerHeight),
+                    Math.max(MIN_HEIGHT, editor.getContentHeight()),
+                ),
+            );
 
         measure();
         editor.onDidContentSizeChange(measure);
+        window.addEventListener("resize", measure);
+        editor.onDidDispose(() => window.removeEventListener("resize", measure));
 
         if (id) {
             // Monaco owns the textarea it renders, so this is the only way to give the `Field`
@@ -244,62 +268,85 @@ export function CodeEditor({
                 </span>
             </div>
 
-            <Editor
-                height={height}
-                language={monacoLanguage}
-                value={value}
-                // The preference *is* the monaco theme name: `devstash-dark` is the one registered
-                // above, and the rest are built in.
-                theme={preferences.theme}
-                beforeMount={defineTheme}
-                onMount={handleMount}
-                onChange={(next) => onChange?.(next ?? "")}
-                loading={<div className="size-full animate-pulse bg-muted/40" />}
-                options={{
-                    readOnly,
-                    domReadOnly: readOnly,
-                    ariaLabel: label,
-                    placeholder,
-                    automaticLayout: true,
-                    scrollBeyondLastLine: false,
-                    // The editor lives inside a scrolling drawer and a scrolling dialog. Consuming
-                    // the wheel would trap the page's scroll the moment the pointer crossed it.
-                    scrollbar: {
-                        alwaysConsumeMouseWheel: false,
-                        verticalScrollbarSize: 10,
-                        horizontalScrollbarSize: 10,
-                        useShadows: false,
-                    },
-                    // A stash, not an IDE: nothing here has a project or a type-checker behind it,
-                    // so suggestions and hovers would only ever be noise over stored text.
-                    quickSuggestions: false,
-                    suggestOnTriggerCharacters: false,
-                    parameterHints: { enabled: false },
-                    hover: { enabled: "off" },
-                    occurrencesHighlight: "off",
-                    renderLineHighlight: readOnly ? "none" : "line",
-                    minimap: { enabled: preferences.minimap },
-                    overviewRulerLanes: 0,
-                    overviewRulerBorder: false,
-                    hideCursorInOverviewRuler: true,
-                    folding: false,
-                    glyphMargin: false,
-                    lineNumbersMinChars: 3,
-                    lineDecorationsWidth: 8,
-                    // Wrapping rather than a horizontal scrollbar is the default, because the drawer
-                    // is narrow and a long line scrolled sideways is worse than a wrapped one — but
-                    // it is a preference now, since that trade is the user's to make for their own
-                    // content. Turning it off also shortens the measured content height, which is
-                    // the height of the box: the editor gets smaller, not just narrower in reach.
-                    wordWrap: preferences.wordWrap ? "on" : "off",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: preferences.fontSize,
-                    tabSize: preferences.tabSize,
-                    padding: { top: 12, bottom: 12 },
-                    contextmenu: !readOnly,
-                    stickyScroll: { enabled: false },
-                }}
-            />
+            {/* The fallback keeps the frame, the header and the language label — everything except
+                the highlighting, which is what a plain textarea cannot do. It stays honest about
+                what the content is: the label above still says `typescript`, and the item reads back
+                highlighted the moment it is saved and viewed.
+
+                Rendering it *instead of* `<Editor>`, rather than hiding one of the two, is also what
+                keeps monaco off the phone: `@monaco-editor/react` fetches several megabytes from a
+                CDN when the editor mounts, and a surface that never mounts never asks. */}
+            {plainText ? (
+                <ContentTextarea
+                    id={id}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    label={label}
+                    code
+                />
+            ) : (
+                <Editor
+                    height={height}
+                    language={monacoLanguage}
+                    value={value}
+                    // The preference *is* the monaco theme name: `devstash-dark` is the one registered
+                    // above, and the rest are built in.
+                    theme={preferences.theme}
+                    beforeMount={defineTheme}
+                    onMount={handleMount}
+                    onChange={(next) => onChange?.(next ?? "")}
+                    loading={<div className="size-full animate-pulse bg-muted/40" />}
+                    options={{
+                        readOnly,
+                        domReadOnly: readOnly,
+                        ariaLabel: label,
+                        placeholder,
+                        automaticLayout: true,
+                        scrollBeyondLastLine: false,
+                        // The editor lives inside a scrolling drawer and a scrolling dialog. Consuming
+                        // the wheel would trap the page's scroll the moment the pointer crossed it.
+                        scrollbar: {
+                            alwaysConsumeMouseWheel: false,
+                            verticalScrollbarSize: 10,
+                            horizontalScrollbarSize: 10,
+                            useShadows: false,
+                        },
+                        // A stash, not an IDE: nothing here has a project or a type-checker behind it,
+                        // so suggestions and hovers would only ever be noise over stored text.
+                        quickSuggestions: false,
+                        suggestOnTriggerCharacters: false,
+                        parameterHints: { enabled: false },
+                        hover: { enabled: "off" },
+                        occurrencesHighlight: "off",
+                        renderLineHighlight: readOnly ? "none" : "line",
+                        minimap: { enabled: preferences.minimap },
+                        overviewRulerLanes: 0,
+                        overviewRulerBorder: false,
+                        hideCursorInOverviewRuler: true,
+                        folding: false,
+                        glyphMargin: false,
+                        lineNumbersMinChars: 3,
+                        lineDecorationsWidth: 8,
+                        // Wrapping rather than a horizontal scrollbar is the default, because the drawer
+                        // is narrow and a long line scrolled sideways is worse than a wrapped one — but
+                        // it is a preference now, since that trade is the user's to make for their own
+                        // content. Turning it off also shortens the measured content height, which is
+                        // the height of the box: the editor gets smaller, not just narrower in reach.
+                        wordWrap: preferences.wordWrap ? "on" : "off",
+                        fontFamily: "var(--font-mono)",
+                        // Floored under a finger, which here is the read-only drawer: monaco's textarea
+                        // is focusable even when it is read-only, and iOS zooms the page in on focus at
+                        // anything under 16px. The stored preference is untouched — see
+                        // `renderedFontSize`.
+                        fontSize: renderedFontSize(preferences.fontSize, coarsePointer),
+                        tabSize: preferences.tabSize,
+                        padding: { top: 12, bottom: 12 },
+                        contextmenu: !readOnly,
+                        stickyScroll: { enabled: false },
+                    }}
+                />
+            )}
         </div>
     );
 }

@@ -6,19 +6,16 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
-import { EDITOR_MAX_HEIGHT, EDITOR_MIN_HEIGHT, EDITOR_THEME_CATALOG } from "@/config/editor";
+import { EDITOR_THEME_CATALOG } from "@/config/editor";
 import { cn } from "@/lib/utils";
-
-/** Shared by both tabs, so a note reads the same however it is being looked at. */
-const PANEL = "app-scrollbar overflow-y-auto";
+import { ContentTextarea, EDITOR_PANEL, EDITOR_PANEL_BOUNDS } from "./ContentTextarea";
 
 /**
- * The floor and ceiling are `CodeEditor`'s, so switching an item's type does not change how much of
- * the drawer its content takes. Inline rather than Tailwind's `min-h-[76px]`, because the value now
- * comes from a module and Tailwind cannot generate a class from one — the documented exception in
- * `coding-standards.md`, and the same reason it stops being a number written twice.
+ * Both the panel class and its bounds are `ContentTextarea`'s now — the Write tab moved there when
+ * `CodeEditor` needed the same surface, and the Preview tab has to keep matching it. The floor and
+ * ceiling are still monaco's too, so switching an item's type does not change how much of the drawer
+ * its content takes.
  */
-const PANEL_BOUNDS = { minHeight: EDITOR_MIN_HEIGHT, maxHeight: EDITOR_MAX_HEIGHT };
 
 /**
  * A markdown editor for the item types whose content is prose — notes and prompts.
@@ -63,10 +60,11 @@ export function MarkdownEditor({
     // and is later made read-only cannot be left showing a textarea it will not accept input into.
     const active = readOnly ? "preview" : tab;
 
-    // The three preferences that mean something for prose. The minimap and the theme's token colours
-    // are monaco's alone — there is no syntax to colour here and nothing to overview — but the
-    // theme's *surface* still applies, or a note would sit on a different panel from a snippet the
-    // moment the theme changed. Same fallback as `CodeEditor` when no provider is mounted.
+    // Only the theme is read here now; the three preferences that shape the text itself moved into
+    // `ContentTextarea` with the textarea. The minimap and the theme's token colours are monaco's
+    // alone — there is no syntax to colour here and nothing to overview — but the theme's *surface*
+    // still applies, or a note would sit on a different panel from a snippet the moment the theme
+    // changed. Same fallback as `CodeEditor` when no provider is mounted.
     const preferences = useEditorPreferences();
     const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
 
@@ -101,31 +99,12 @@ export function MarkdownEditor({
                     forceMount
                     className="data-[state=inactive]:hidden"
                 >
-                    <textarea
+                    <ContentTextarea
                         id={id}
                         value={value}
-                        onChange={(event) => onChange?.(event.target.value)}
+                        onChange={onChange}
                         placeholder={placeholder}
-                        aria-label={label}
-                        spellCheck={false}
-                        // The native way to stop soft wrapping; monaco's `wordWrap: "off"` reaches
-                        // the same place from the other side. Both then scroll sideways instead.
-                        wrap={preferences.wordWrap ? "soft" : "off"}
-                        // `fontSize` replaces the `text-[13px]` this used to carry, and `tabSize` is
-                        // what a literal tab in a note is rendered as — the same two numbers monaco
-                        // is given, so a snippet and a note are set in the same type.
-                        style={{
-                            ...PANEL_BOUNDS,
-                            fontSize: preferences.fontSize,
-                            tabSize: preferences.tabSize,
-                        }}
-                        className={cn(
-                            PANEL,
-                            "block w-full resize-none bg-transparent px-3 py-3 font-mono leading-relaxed outline-none placeholder:text-muted-foreground",
-                            // Grows with what is typed, the same way the code editor follows its
-                            // content height. `Textarea` in `ui/` already relies on this.
-                            "field-sizing-content",
-                        )}
+                        label={label}
                     />
                 </TabsPrimitive.Content>
             )}
@@ -137,8 +116,8 @@ export function MarkdownEditor({
                 preference is about the source you write; this half is rendered prose. */}
             <TabsPrimitive.Content
                 value="preview"
-                style={PANEL_BOUNDS}
-                className={cn(PANEL, "px-3 py-3")}
+                style={EDITOR_PANEL_BOUNDS}
+                className={cn(EDITOR_PANEL, "px-3 py-3")}
             >
                 {value.trim() ? (
                     <div className="markdown-preview">
