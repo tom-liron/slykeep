@@ -39,7 +39,10 @@ export function PricingPlans() {
                                     type="button"
                                     aria-pressed={cycle === option.value}
                                     onClick={() => setCycle(option.value)}
-                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.85rem] text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-muted aria-pressed:text-foreground"
+                                    // 32px under a mouse; the coarse-pointer padding takes it to the
+                                    // 44px floor `buttonVariants` applies everywhere else. Padding
+                                    // rather than a height, so the pressed pill grows with it.
+                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.85rem] text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-muted aria-pressed:text-foreground pointer-coarse:py-3"
                                 >
                                     {option.label}
                                     {option.badge ? (
@@ -90,7 +93,7 @@ export function PricingPlans() {
                                         <span className="text-[2.9rem] leading-none font-bold tracking-[-0.04em]">
                                             {price.amount}
                                         </span>
-                                        <span className="text-[0.88rem] text-zinc-500">
+                                        <span className="text-[0.88rem] text-zinc-400">
                                             {price.period}
                                         </span>
                                     </p>
@@ -106,9 +109,16 @@ export function PricingPlans() {
                                         however many lines the feature lists run to. */}
                                     <ul className="my-6 grid flex-1 content-start gap-2.5 border-t border-border pt-6 text-[0.9rem] text-muted-foreground">
                                         {plan.features.map((feature) => (
+                                            // Excluded rows used to be dimmed to `zinc-500`, which
+                                            // read at 4.1:1. The passing tone above it is
+                                            // `zinc-400`, which is `--muted-foreground` to the eye —
+                                            // so "dim it legibly" and "don't dim it" are the same
+                                            // pixels, and the ✕ carries the distinction alone. It
+                                            // always did the real work; the 10% lightness step was
+                                            // never what told you a plan lacked a feature.
                                             <li
                                                 key={feature.label}
-                                                className={`flex items-start gap-2.5 ${feature.included ? "" : "text-zinc-500"}`}
+                                                className="flex items-start gap-2.5"
                                             >
                                                 {feature.included ? (
                                                     <span
@@ -123,7 +133,7 @@ export function PricingPlans() {
                                                 ) : (
                                                     <span
                                                         aria-hidden="true"
-                                                        className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border border-border bg-white/5 text-zinc-500"
+                                                        className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border border-border bg-white/5 text-zinc-400"
                                                     >
                                                         <X className="size-2.5" strokeWidth={3} />
                                                     </span>

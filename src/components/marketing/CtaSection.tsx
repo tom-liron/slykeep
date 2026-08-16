@@ -15,7 +15,7 @@ export function CtaSection() {
                 <CtaButton href="/register" className="mt-7">
                     Get Started Free
                 </CtaButton>
-                <p className="mt-4 text-[0.82rem] text-zinc-500">
+                <p className="mt-4 text-[0.82rem] text-zinc-400">
                     No card required · Your first 50 items are on us
                 </p>
             </Reveal>
