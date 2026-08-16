@@ -37,7 +37,9 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
                     </>
                 )}
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">{collection.itemCount} items</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+                {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
+            </p>
             {/* Guarded rather than always rendered: the view model normalizes a null description to
                 "", and until collections could be created there was no way to have one — every
                 seeded collection carries a description. The create dialog makes the field optional,

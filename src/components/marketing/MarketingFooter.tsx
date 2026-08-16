@@ -22,7 +22,7 @@ export function MarketingFooter() {
             <div className="mx-auto grid w-[min(1180px,calc(100%-2.5rem))] grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)] gap-10 max-[860px]:grid-cols-1 max-[860px]:gap-8">
                 <div>
                     <Brand href="/" />
-                    <p className="mt-3.5 max-w-[320px] text-[0.88rem] text-zinc-500">
+                    <p className="mt-3.5 max-w-[320px] text-[0.88rem] text-zinc-400">
                         One fast, searchable hub for everything a developer needs to stash.
                     </p>
                 </div>
@@ -36,7 +36,11 @@ export function MarketingFooter() {
                             <a
                                 key={link.href}
                                 href={link.href}
-                                className="text-[0.88rem] text-muted-foreground transition-colors hover:text-foreground"
+                                // 21px tall with 8px between them: the tightest touch targets on the
+                                // page, and three links stacked close enough that the wrong one is
+                                // easy to hit. The floor only applies on a coarse pointer, so the
+                                // desktop footer keeps its density.
+                                className="flex items-center text-[0.88rem] text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
                             >
                                 {link.label}
                             </a>
@@ -49,7 +53,7 @@ export function MarketingFooter() {
                                 {column.heading}
                             </p>
                             {column.labels.map((label) => (
-                                <span key={label} className="text-[0.88rem] text-zinc-500">
+                                <span key={label} className="text-[0.88rem] text-zinc-400">
                                     {label}
                                 </span>
                             ))}
@@ -58,7 +62,7 @@ export function MarketingFooter() {
                 </nav>
             </div>
 
-            <div className="mx-auto mt-10 flex w-[min(1180px,calc(100%-2.5rem))] flex-wrap justify-between gap-2 border-t border-border pt-6 text-[0.82rem] text-zinc-500">
+            <div className="mx-auto mt-10 flex w-[min(1180px,calc(100%-2.5rem))] flex-wrap justify-between gap-2 border-t border-border pt-6 text-[0.82rem] text-zinc-400">
                 {/* Rendered on the server: a `new Date()` in the browser would disagree with the
                     markup that was sent, and this is a number nobody needs to the minute. */}
                 <p>© {new Date().getFullYear()} DevStash. All rights reserved.</p>

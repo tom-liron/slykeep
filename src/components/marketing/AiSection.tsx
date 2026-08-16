@@ -127,7 +127,7 @@ export function AiSection() {
                             <span className="size-2.5 rounded-full bg-[#ff5f57]" />
                             <span className="size-2.5 rounded-full bg-[#febc2e]" />
                             <span className="size-2.5 rounded-full bg-[#28c840]" />
-                            <span className="ml-2.5 font-mono text-xs text-zinc-500">
+                            <span className="ml-2.5 font-mono text-xs text-zinc-400">
                                 useDebounce.ts
                             </span>
                         </div>

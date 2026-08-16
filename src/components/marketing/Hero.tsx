@@ -77,7 +77,7 @@ export function Hero() {
                         </Button>
                     </div>
 
-                    <p className="mt-4 text-[0.82rem] text-zinc-500">
+                    <p className="mt-4 text-[0.82rem] text-zinc-400">
                         Free forever for your first 50 items · No card required
                     </p>
                 </Reveal>
@@ -94,7 +94,7 @@ export function Hero() {
                             Your knowledge today…
                         </p>
                         <ChaosField />
-                        <p className="mt-3.5 text-xs text-zinc-500">
+                        <p className="mt-3.5 text-xs text-zinc-400">
                             8 places. None of them searchable together.
                         </p>
                     </section>
@@ -117,7 +117,7 @@ export function Hero() {
                             …with DevStash
                         </p>
                         <AppPreview />
-                        <p className="mt-3.5 text-xs text-zinc-500">
+                        <p className="mt-3.5 text-xs text-zinc-400">
                             One place. Searchable in a keystroke.
                         </p>
                     </section>

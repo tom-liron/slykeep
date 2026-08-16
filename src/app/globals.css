@@ -47,7 +47,18 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/**
+ * `color-scheme` is the only handle CSS has on UI the browser draws for itself: native scrollbars,
+ * autofill backgrounds, form control chrome, and the paint before the first stylesheet lands. It is
+ * declared alongside the palettes rather than once on `html`, so it follows the theme class when the
+ * light-mode toggle finally exists instead of having to be remembered separately.
+ *
+ * `.app-scrollbar` below repaints the scrollbars we own; this is what stops the ones we do not —
+ * the sidebar drawer's, and anything that overflows without the class — from rendering light
+ * against a dark panel.
+ */
 :root {
+    color-scheme: light;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -83,6 +94,7 @@
 }
 
 .dark {
+    color-scheme: dark;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

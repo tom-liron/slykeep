@@ -163,7 +163,9 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
             // *basis* to a flex child, not a floor, so a form taller than the space left over
             // squeezes the bar instead of scrolling — and squeezes it by different amounts on
             // sign-in and register, which is two bars of two heights across one shell.
-            className="sticky top-0 z-50 h-16 shrink-0 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background/95 data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px]"
+            // Opaque while the menu is open, translucent otherwise. The glass is the point of the
+            // bar on its own; behind an open menu it is just the hero legible through the nav.
+            className="sticky top-0 z-50 h-16 shrink-0 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px]"
         >
             <div className="mx-auto flex h-full w-[min(1180px,calc(100%-2.5rem))] items-center gap-6">
                 <Brand href="/" />
@@ -206,7 +208,12 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
                         aria-expanded={open}
                         aria-controls="marketing-menu"
                         onClick={() => setOpen((current) => !current)}
-                        className="grid size-9.5 cursor-pointer place-items-center rounded-lg border border-border transition-colors hover:bg-muted min-[861px]:hidden"
+                        // 38px is comfortable under a mouse and short of the 44px WCAG 2.5.5 floor
+                        // under a finger — and on a phone this is the only way into the nav. Sized
+                        // off pointer type rather than viewport width, matching `buttonVariants`;
+                        // this toggle draws its own morphing bars, so it is not a `Button` and
+                        // inherits none of that.
+                        className="grid size-9.5 cursor-pointer place-items-center rounded-lg border border-border transition-colors hover:bg-muted pointer-coarse:size-11 min-[861px]:hidden"
                     >
                         {/* The prototype's morph: the outer bars meet in the middle and cross, the
                             middle one goes. */}
@@ -223,7 +230,7 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
                 the open and close still animate. */}
             <div
                 id="marketing-menu"
-                className="invisible absolute inset-x-0 top-full grid -translate-y-2 border-b border-border bg-background/95 px-5 pt-2 pb-4 opacity-0 backdrop-blur-[14px] transition-[opacity,transform,visibility] duration-200 in-data-[open]:visible in-data-[open]:translate-y-0 in-data-[open]:opacity-100 min-[861px]:hidden"
+                className="invisible absolute inset-x-0 top-full grid -translate-y-2 border-b border-border bg-background px-5 pt-2 pb-4 opacity-0 transition-[opacity,transform,visibility] duration-200 in-data-[open]:visible in-data-[open]:translate-y-0 in-data-[open]:opacity-100 min-[861px]:hidden"
             >
                 {SECTIONS.map((section) => (
                     <SectionLink
@@ -231,7 +238,7 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
                         href={section.href}
                         onAuth={onAuth}
                         onClick={() => setOpen(false)}
-                        className="border-b border-border px-0.5 py-2.5 text-[0.95rem] text-muted-foreground transition-colors hover:text-foreground"
+                        className="flex items-center border-b border-border px-0.5 py-2.5 text-[0.95rem] text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
                     >
                         {section.label}
                     </SectionLink>
