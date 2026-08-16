@@ -7,17 +7,21 @@ import { cn } from "@/lib/utils";
  * DevStash wordmark + logo. Lives in the top bar, the mobile drawer header, and the signed-out
  * auth shell.
  *
- * `href` is opt-in rather than always "/" because the auth shell renders this to visitors who are
- * not signed in, and "/" does not mean the app for them — the proxy serves the marketing page
- * there instead, so a wordmark over a sign-in form would be a link back out to the sales page. The
- * signed-in call sites pass it, as does the marketing page itself; `onNavigate` lets the mobile
- * drawer close itself on the way, the same way its nav links do.
+ * `href` is opt-in, and no call site currently declines it. It was the auth shell that did: "/" does
+ * not mean the app for a signed-out visitor — the proxy serves the marketing page there — so a
+ * wordmark over a sign-in form was a link back out to the sales page, and it rendered inert. That
+ * shell now renders the marketing bar instead, which links the brand to "/" deliberately, because
+ * going back to the marketing page is the point of putting a bar there. The unlinked branch is kept
+ * rather than made required: it is the right rendering for any future surface where the brand is a
+ * label rather than a way out. `onNavigate` lets the mobile drawer close itself on the way, the same
+ * way its nav links do.
  *
  * `compact` drops the wordmark below `sm` and leaves the mark alone. That is what a brand does on a
  * phone — the mark stays, the word goes — and it is deliberately not the same thing as letting the
  * word truncate: "DevSt…" reads as a broken layout rather than a compact one. Only the top bar sets
- * it. The drawer header, the auth shell, and the marketing bar all have room for the full lockup at
- * every width they are rendered at.
+ * it. The drawer header, the footer, and the marketing bar all have room for the full lockup at
+ * every width they are rendered at — including the bar in its auth variant, which carries fewer
+ * buttons than the marketing one, never more.
  *
  * `min-w-0` and `truncate` stay regardless, as the floor under both: no call site controls the width
  * of the row it is dropped into, and a wordmark that clips is still better than one that paints over
