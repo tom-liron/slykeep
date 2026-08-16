@@ -91,22 +91,38 @@ const PLACEHOLDERS: Record<CreatableItemTypeName, { title: string; content: stri
  * The form is a separate component on purpose — Radix unmounts the dialog's content when it closes,
  * so every field resets itself and there is no teardown to remember when a new item is started.
  */
-export function CreateItemDialog() {
-    const [open, setOpen] = useState(false);
+export function CreateItemDialog({
+    open: controlledOpen,
+    onOpenChange,
+}: {
+    /**
+     * Omit both and the dialog keeps its own state and its own trigger button. Pass them and the
+     * trigger is dropped, so whoever is driving it owns the button — which is what the top bar does
+     * below `sm`, where one create menu stands in for two buttons that no longer fit.
+     */
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+} = {}) {
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const isControlled = controlledOpen !== undefined;
+    const open = isControlled ? controlledOpen : uncontrolledOpen;
+    const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setUncontrolledOpen;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {/* `lg`, measured rather than picked. The labelled pair of create buttons needs
-                    ~250px, and with the brand, the search field, and the star beside them the bar
-                    only has that from about 900px — so the labels belong at the next breakpoint
-                    above it, not at `sm`, where they overflowed their track. `aria-label` carries
-                    the name at every width regardless. */}
-                <Button aria-label="New Item">
-                    <Plus className="size-4" aria-hidden="true" />
-                    <span className="hidden lg:inline">New Item</span>
-                </Button>
-            </DialogTrigger>
+            {!isControlled && (
+                <DialogTrigger asChild>
+                    {/* `lg`, measured rather than picked. The labelled pair of create buttons needs
+                        ~250px, and with the brand, the search field, and the star beside them the
+                        bar only has that from about 900px — so the labels belong at the next
+                        breakpoint above it, not at `sm`, where they overflowed their track.
+                        `aria-label` carries the name at every width regardless. */}
+                    <Button aria-label="New Item">
+                        <Plus className="size-4" aria-hidden="true" />
+                        <span className="hidden lg:inline">New Item</span>
+                    </Button>
+                </DialogTrigger>
+            )}
 
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
@@ -206,16 +222,24 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     };
 
     return (
-        // A flex column, and both it and the scroller carry `min-h-0`, so the fields are what
-        // gives when the window is short. `DialogContent` is a grid whose rows floor at their
-        // min-content height by default: without these the form would refuse to shrink, the dialog
-        // would hit its own `max-h`, and the two would scroll inside one another. With them the
-        // scroller absorbs it and the header and footer stay put — which is the point of having a
-        // body scroller at all.
-        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-col">
-            {/* `app-scrollbar`: this is a dark panel, and it was showing the platform's bright
-                scrollbar against it — the same mismatch the editors already fixed. */}
-            <div className="app-scrollbar max-h-[60vh] min-h-0 flex-1 space-y-5 overflow-y-auto px-1 pb-1">
+        // One scroller, and it is `DialogContent`'s. This form used to add a second one — a body
+        // `div` capped at `60vh` with its own `overflow-y-auto` — so the dialog and the form each
+        // clipped independently, against caps that knew nothing about each other (`100dvh - 2rem`
+        // here, `60vh` there). The result was a dialog whose `scrollHeight` counted content its
+        // child had already clipped: on a 375x667 phone the box measured 621px tall and reported
+        // 885px of scroll, so the last ~264px scrolled to nothing but background. Measured, with
+        // the footer sitting at the top of the screen and a screen of empty below it.
+        //
+        // Sizing the inner scroller from the dialog instead of from the viewport does not fix it —
+        // a compressible grid row and a `minmax(0,1fr)` track were both tried and both still leak.
+        // Removing the second scroller does: scrolled fully down, the element under the pointer is
+        // the footer, which is the last real thing in the form.
+        //
+        // What this costs is a footer that no longer stays pinned while a long form scrolls. On a
+        // phone that is the better trade — the whole form is reachable and nothing scrolls into
+        // emptiness — and it is what every other dialog in the app already does.
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col">
+            <div className="space-y-5 px-1 pb-1">
                 <fieldset className="space-y-1.5" disabled={isPending}>
                     <legend className="text-xs font-medium text-muted-foreground">Type</legend>
                     <div className="flex flex-wrap gap-2 pt-1.5">
