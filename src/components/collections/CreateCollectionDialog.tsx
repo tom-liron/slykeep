@@ -32,19 +32,31 @@ import type { CreateCollectionField, CreateCollectionInput } from "@/lib/collect
  * so every field resets itself and there is no teardown to remember when a new collection is
  * started.
  */
-export function CreateCollectionDialog() {
-    const [open, setOpen] = useState(false);
+export function CreateCollectionDialog({
+    open: controlledOpen,
+    onOpenChange,
+}: {
+    /** As `CreateItemDialog`: omit both to keep the built-in trigger, pass them to drive it. */
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+} = {}) {
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const isControlled = controlledOpen !== undefined;
+    const open = isControlled ? controlledOpen : uncontrolledOpen;
+    const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setUncontrolledOpen;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {/* `lg` for the reason `CreateItemDialog`'s label is: the two are measured together,
-                    since they share a track and appear at the same time. */}
-                <Button variant="outline" aria-label="New Collection">
-                    <FolderPlus className="size-4" aria-hidden="true" />
-                    <span className="hidden lg:inline">New Collection</span>
-                </Button>
-            </DialogTrigger>
+            {!isControlled && (
+                <DialogTrigger asChild>
+                    {/* `lg` for the reason `CreateItemDialog`'s label is: the two are measured
+                        together, since they share a track and appear at the same time. */}
+                    <Button variant="outline" aria-label="New Collection">
+                        <FolderPlus className="size-4" aria-hidden="true" />
+                        <span className="hidden lg:inline">New Collection</span>
+                    </Button>
+                </DialogTrigger>
+            )}
 
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>

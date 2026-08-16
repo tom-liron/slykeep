@@ -16,23 +16,30 @@ import { cn, withAlpha } from "@/lib/utils";
  * destinations, and Items has none, since there is no all-items route, only `/items/[slug]` per
  * type. Three live cards and one dead one is worse than four honest numbers.
  *
- * **The widths are the window's, sized for the worst case, and this was a container query first.**
- * Container queries are the more accurate tool and they are the wrong one here. What constrains the
- * grid is its own width, so `@container` measured that — correctly — and the shape then followed the
- * space it actually had. The trouble is that this page's space does not grow with the window:
- * `Sidebar` is `hidden md:block w-64`, so at 768px a 256px rail appears and the content area is
- * ~319px *narrower* at 768 than at 767. Reacting honestly to that produced a layout that went band,
- * cards, band again, cards again on the way up, which is unreadable as a rule even though every step
- * was locally right.
+ * **The widths are this element's own, via `@container/app`.** They were the window's for one
+ * release, sized for the worst case, and that is worth recording because it looked like the safe
+ * choice and was not. The reasoning ran: `Sidebar` was `hidden md:block w-64`, so a 256px rail
+ * appeared at 768px and the content area was ~319px *narrower* at 768 than at 767; a container query
+ * reported that honestly and the shape went band, cards, band, cards on the way up, which is
+ * unreadable as a rule even though every step was locally right. So the question was changed from
+ * "does it fit right now" to "does it fit with the rail open" — one answer per window width, 848 and
+ * 1184 being the content widths below plus the 319px the rail and the padding take.
  *
- * So the question changed from "does it fit right now" to "does it fit with the rail open", which
- * has one answer per window width. 848 and 1184 are the two content widths below — 520 and 860 —
- * plus the 319px the sidebar and the page padding take when it is showing. Toggling the rail now
- * changes how roomy the summary looks and never what shape it is.
+ * That traded a discontinuity nobody meets outside a resize handle for two costs everybody pays.
+ * Four cards were held back to 1184px although they fit at 865, so every laptop between the two ran
+ * the phone layout. And the rail's collapse toggle stopped meaning anything: it hands the page 256px,
+ * the window does not move, so no worst-case rule can notice, and the summary sat in the narrow shape
+ * with a third of the row empty.
  *
- * The content widths come from the longest label rather than from the scale: 520px is where two band
- * cells still hold "Favorite Collections" on one line, 860px is where four cards do. Change the
- * labels and all four numbers change with them.
+ * The discontinuity was the shell's to fix, and it was — the rail now defaults to collapsed below
+ * `xl`, so content width no longer falls as the window grows (see `Sidebar`). With that gone the
+ * accurate tool is also the safe one, and these are plain "how much room do I have" stops again.
+ *
+ * 520 and 860 come from the longest label rather than from any scale. A card needs the label's 127px,
+ * its 8px gap, its 32px icon and 32px of padding — 199px — so four with three 16px gutters need 844;
+ * it is 860 because 844 put each card on exactly 199.25px and the label wrapped there on sub-pixel
+ * rounding. 520 is the same sum for two band cells, each wanting ~259px because the number shares the
+ * label's line. Change the labels and both numbers change with them.
  */
 export function StatBand({
     className,
@@ -49,19 +56,15 @@ export function StatBand({
                 // container rather than `divide-x`/`divide-y`, which border every child after the
                 // first — right in a single row, and a rule down the left edge of the second the
                 // moment the grid wraps.
-                "grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border min-[848px]:grid-cols-2",
-                // Desktop: the band's own chrome is dropped and each cell becomes a card again.
+                "grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border @min-[520px]/app:grid-cols-2",
+                // Roomy: the band's own chrome is dropped and each cell becomes a card again.
                 //
-                // 1184 = 860 + 319. A card needs the label's 127px, its 8px gap, its 32px icon and
-                // 32px of padding — 199px — so four with three 16px gutters need 844; it is 860
-                // because 844 exactly put each card on 199.25px and the label wrapped there on
-                // sub-pixel rounding. 848 = 520 + 319 the same way, a band cell wanting ~259px
-                // because the number shares the label's line.
-                //
-                // Arbitrary rather than off the scale: the nearest named stop above 1184 is `xl`
-                // at 1280, and ~100px of laptop in the wrong shape is exactly the bug this already
-                // shipped once.
-                "min-[1184px]:grid-cols-4 min-[1184px]:gap-4 min-[1184px]:overflow-visible min-[1184px]:rounded-none min-[1184px]:border-0 min-[1184px]:bg-transparent",
+                // Arbitrary stops on both, deliberately, and never one arbitrary beside one named.
+                // Tailwind emits an arbitrary container variant ahead of a named one whatever order
+                // the class list is written in, so `@min-[860px]` lost to `@md` and this rendered
+                // half of each layout — the desktop card upside down, number above label. Two
+                // arbitrary stops sort against each other correctly. That is the whole rule.
+                "@min-[860px]/app:grid-cols-4 @min-[860px]/app:gap-4 @min-[860px]/app:overflow-visible @min-[860px]/app:rounded-none @min-[860px]/app:border-0 @min-[860px]/app:bg-transparent",
                 className,
             )}
         >
@@ -97,35 +100,36 @@ export function Stat({
 }) {
     return (
         // One shape per display mode, rather than one grid placed two ways. Placing both states on
-        // a single grid gave every rule a counterpart at the other breakpoint, and while these were
-        // container variants Tailwind did not order them the way the class list reads — the narrower
-        // stop won and rendered the desktop card upside down, number above label. Flex for the band
-        // and grid for the card share no properties, so there is nothing left to win a fight:
-        // `flex-1` and `shrink-0` are inert once the box is a grid, the placements are inert while
-        // it is a flex row, and every rule here overrides an unvariant base rather than another
-        // variant. Worth keeping even now the variants are ordinary media queries.
+        // a single grid gave every rule a counterpart at the other stop, and Tailwind did not order
+        // them the way the class list reads — the narrower stop won and rendered the card upside
+        // down, number above label. Flex for the band and grid for the card share no properties, so
+        // there is nothing left to win a fight: `flex-1` and `shrink-0` are inert once the box is a
+        // grid, the placements are inert while it is a flex row, and every rule here overrides an
+        // unvariant base rather than another variant. That is what makes the ordering irrelevant
+        // rather than merely currently-correct, which matters again now these are container
+        // variants — the shape that exposed the ordering bug in the first place.
         <div
             className={cn(
                 // Band: a row. The number sits at the right edge, which is what keeps a 400px cell
                 // from being a small block of ink with a void beside it.
                 "flex items-center gap-3 bg-card p-4",
                 // Card: label and icon on the top row, number underneath — the original layout.
-                "min-[1184px]:grid min-[1184px]:h-full min-[1184px]:grid-cols-[1fr_auto] min-[1184px]:items-start min-[1184px]:gap-2 min-[1184px]:rounded-xl min-[1184px]:border min-[1184px]:border-border",
+                "@min-[860px]/app:grid @min-[860px]/app:h-full @min-[860px]/app:grid-cols-[1fr_auto] @min-[860px]/app:items-start @min-[860px]/app:gap-2 @min-[860px]/app:rounded-xl @min-[860px]/app:border @min-[860px]/app:border-border",
             )}
         >
             <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg min-[1184px]:col-start-2 min-[1184px]:row-start-1 min-[1184px]:size-8"
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg @min-[860px]/app:col-start-2 @min-[860px]/app:row-start-1 @min-[860px]/app:size-8"
                 style={{ backgroundColor: withAlpha(color), color }}
             >
                 <Icon className="size-4" aria-hidden="true" />
             </span>
 
             {/* `min-w-0` so the label may shrink, `break-words` as the floor under one too long for
-                its cell — which the band's breakpoints should keep out of reach. */}
-            <dt className="min-w-0 flex-1 text-sm break-words text-muted-foreground min-[1184px]:col-start-1 min-[1184px]:row-start-1">
+                its cell — which the band's stops should keep out of reach. */}
+            <dt className="min-w-0 flex-1 text-sm break-words text-muted-foreground @min-[860px]/app:col-start-1 @min-[860px]/app:row-start-1">
                 {label}
             </dt>
-            <dd className="shrink-0 text-2xl font-semibold min-[1184px]:col-start-1 min-[1184px]:row-start-2 min-[1184px]:mt-2">
+            <dd className="shrink-0 text-2xl font-semibold @min-[860px]/app:col-start-1 @min-[860px]/app:row-start-2 @min-[860px]/app:mt-2">
                 {value}
             </dd>
         </div>

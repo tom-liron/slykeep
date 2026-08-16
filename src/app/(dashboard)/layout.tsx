@@ -35,15 +35,36 @@ export default async function DashboardLayout({
     return (
         <SidebarProvider>
             <EditorPreferencesProvider preferences={editorPreferences}>
-                {/* h-full fills the body; h-screen (100vh) would overshoot the visible viewport on
-                    mobile, where browser chrome is excluded from vh. */}
-                <div className="flex h-full flex-col">
+                {/* Two shapes. From `md` up this is a frame pinned to the viewport: the bar and the
+                    rail hold still and `main` scrolls inside them. Below `md` the frame is dropped
+                    and the whole thing is an ordinary page — `min-h-dvh` so it fills the screen, and
+                    the document does the scrolling.
+
+                    `dvh` rather than `vh`: `vh` is the *largest* viewport, chrome excluded, so a
+                    pinned frame measured in it hangs its last row behind the browser's own bars.
+                    `dvh` tracks what is actually visible. */}
+                <div className="flex min-h-dvh flex-col md:h-dvh">
                     <TopBar searchData={searchData} />
                     <div className="flex min-h-0 flex-1">
                         <Sidebar data={sidebarData} />
-                        {/* `p-4` narrow: 24px each side is 48px of a 390px screen spent on margin,
-                            which every list and card inside then does without. */}
-                        <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+                        {/* The container everything inside measures itself against.
+                            `container-type: inline-size` makes this the query container, so a
+                            component asks "how much room do I have" instead of asking the viewport
+                            how wide it is and subtracting a guessed sidebar. Named `app` so a
+                            component states which box it meant; an anonymous container would silently
+                            re-target if anything between here and the component ever declared one.
+
+                            An inline-size query measures the *content* box, so the padding below is
+                            already excluded from every stop written against it — `@min-[860px]/app`
+                            means 860px to lay out in, not 860px minus whatever the chrome takes.
+
+                            `p-4` narrow: 24px each side is 48px of a 390px screen spent on margin,
+                            which every list and card inside then does without.
+
+                            `overflow-y-auto` only from `md`, where this is a pane inside a pinned
+                            frame. Below that the document scrolls and a second scroller here would
+                            trap the page inside a box the size of the screen. */}
+                        <main className="@container/app min-w-0 flex-1 p-4 sm:p-6 md:overflow-y-auto">
                             {children}
                         </main>
                     </div>

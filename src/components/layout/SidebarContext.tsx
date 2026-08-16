@@ -3,20 +3,43 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 interface SidebarContextValue {
-    collapsed: boolean;
+    /**
+     * `null` means nobody has touched the toggle, so the rail follows the width-aware default `Sidebar`
+     * expresses in CSS — closed below `xl`, open from `xl`. A boolean is an explicit choice, and an
+     * explicit choice holds at every width until it is made again.
+     */
+    collapsed: boolean | null;
     toggleCollapsed: () => void;
     mobileOpen: boolean;
     setMobileOpen: (open: boolean) => void;
     toggleMobile: () => void;
 }
 
+/**
+ * `xl`, as a media query — the width at which the rail is open on arrival.
+ *
+ * The default itself is CSS, in `Sidebar`, and has to be: the server renders this markup without
+ * knowing the window width, so a default computed in JavaScript would paint the wrong rail and then
+ * correct itself. This is the same threshold in the one place JavaScript genuinely needs it, which
+ * is deciding which way a never-touched toggle should flip. Read at click time rather than
+ * subscribed to, because it is only ever a question about right now.
+ */
+const RAIL_OPEN_BY_DEFAULT = "(min-width: 80rem)";
+
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState<boolean | null>(null);
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    const toggleCollapsed = useCallback(() => setCollapsed((previous) => !previous), []);
+    // From `null`, the flip is away from whatever the CSS default currently is: the rail is open
+    // above the threshold, so the first click closes it, and closed below, so the first click opens
+    // it. `matches` is that default, which is why it is returned rather than negated.
+    const toggleCollapsed = useCallback(() => {
+        setCollapsed((previous) =>
+            previous === null ? window.matchMedia(RAIL_OPEN_BY_DEFAULT).matches : !previous,
+        );
+    }, []);
     const toggleMobile = useCallback(() => setMobileOpen((previous) => !previous), []);
 
     // Back and forward close the drawer. Nothing else notices them: a link inside the drawer closes

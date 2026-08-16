@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Menu, PanelLeft, Star } from "lucide-react";
+import { FolderPlus, Menu, PanelLeft, Plus, Star } from "lucide-react";
 
 import { CreateCollectionDialog } from "@/components/collections/CreateCollectionDialog";
 import { CreateItemDialog } from "@/components/items/CreateItemDialog";
@@ -9,10 +10,22 @@ import { Brand } from "@/components/layout/Brand";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { useSidebar } from "@/components/layout/SidebarContext";
 import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { SearchDataViewModel } from "@/types/view-models";
 
 export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
     const { toggleCollapsed, toggleMobile } = useSidebar();
+
+    // The bar owns the create buttons now, rather than each dialog carrying its own trigger. It has
+    // to: below `sm` the two buttons are one menu, and a menu item cannot be a dialog's trigger and
+    // a menu item at once.
+    const [newItemOpen, setNewItemOpen] = useState(false);
+    const [newCollectionOpen, setNewCollectionOpen] = useState(false);
 
     // Three tracks, not a row of siblings: from `sm` up the outer groups and the search are all
     // `flex-1`, so the two sides take an equal share whatever they contain — and once the search
@@ -32,7 +45,12 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
     // anything while there is slack to divide; narrow, the right-hand group is `shrink-0` and the
     // search collapses to an icon, which leaves the left track what is actually left over.
     return (
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-4">
+        // `sticky` below `md`, static above it. From `md` up the bar is a row of a pinned frame and
+        // already cannot move, so sticky would be inert; below that the document scrolls underneath
+        // it and this is what keeps search and the create actions reachable without scrolling back
+        // up. `bg-background` comes with it — the bar was transparent over a body that never moved,
+        // and content sliding under a transparent bar is the one way this change can look broken.
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:gap-3 sm:px-4 md:static">
             <div className="flex flex-1 items-center gap-2 sm:gap-3">
                 {/* Mobile: hamburger opens the drawer */}
                 <Button
@@ -93,9 +111,62 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
                         <Star className="size-5" aria-hidden="true" />
                     </Link>
                 </Button>
-                <CreateCollectionDialog />
-                <CreateItemDialog />
+                {/* Below `sm`, one create control instead of two.
+
+                    Measured at 360px with touch-sized targets: the hamburger, the brand mark, the
+                    search icon, the star and both create buttons came to 345px of a 345px bar —
+                    zero slack — and on a 375px iPhone the primary "+" was clipped by the right
+                    edge. Six 44px targets do not fit a phone, and the two create buttons are the
+                    right pair to merge: they are the only two that mean the same verb, and
+                    icon-only they were already two unlabelled buttons that both read as "new".
+                    One menu is 52px cheaper and says which is which.
+
+                    From `sm` up nothing changes — both buttons are back, in the same order, with
+                    the same labels appearing at `lg`. */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button aria-label="Create" title="Create" className="sm:hidden">
+                            <Plus className="size-4" aria-hidden="true" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setNewItemOpen(true)}>
+                            <Plus className="size-4" aria-hidden="true" />
+                            New item
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setNewCollectionOpen(true)}>
+                            <FolderPlus className="size-4" aria-hidden="true" />
+                            New collection
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                    variant="outline"
+                    aria-label="New Collection"
+                    onClick={() => setNewCollectionOpen(true)}
+                    className="hidden sm:inline-flex"
+                >
+                    <FolderPlus className="size-4" aria-hidden="true" />
+                    {/* `lg`, measured: the labelled pair needs ~250px, and with the brand, the
+                        search field and the star beside them the bar only has that from ~900px. */}
+                    <span className="hidden lg:inline">New Collection</span>
+                </Button>
+                <Button
+                    aria-label="New Item"
+                    onClick={() => setNewItemOpen(true)}
+                    className="hidden sm:inline-flex"
+                >
+                    <Plus className="size-4" aria-hidden="true" />
+                    <span className="hidden lg:inline">New Item</span>
+                </Button>
             </div>
+
+            {/* Driven rather than self-triggering, so one dialog serves both the menu and the
+                button. Outside the flex row: they portal to the body, but a `hidden sm:inline-flex`
+                ancestor would still be the wrong home for them. */}
+            <CreateCollectionDialog open={newCollectionOpen} onOpenChange={setNewCollectionOpen} />
+            <CreateItemDialog open={newItemOpen} onOpenChange={setNewItemOpen} />
         </header>
     );
 }
