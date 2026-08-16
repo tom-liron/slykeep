@@ -23,16 +23,12 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
                     // CSS rather than measured in an effect, so the first paint is already right and
                     // the server and the client agree on it.
                     //
-                    // Why the rail is mounted from `md` but shut until `xl`: it is mounted so no
+                    // Why the rail is mounted from `md` but shut until `lg`: it is mounted so no
                     // width loses persistent navigation — the top bar's toggle is one click, at
                     // every width, and there is no hamburger-and-overlay above `md`. It is shut
-                    // because 256px of a 900px window is a quarter of the page spent on a rail, and
-                    // because content width then stops falling as the window grows. That second one
-                    // is what let every component in the main pane go back to measuring its own box
-                    // (see `StatBand`): across the 1279 -> 1280 step content goes 1216 -> 961, which
-                    // is still above the widest layout threshold anything uses, so nothing changes
-                    // shape while the window is being dragged. Width now only jumps when the user
-                    // clicks the toggle, which is cause and effect rather than a glitch.
+                    // below `lg` because 256px of a 900px window is a quarter of the page spent on a
+                    // rail. `lg` rather than `xl` because a laptop should arrive with its navigation
+                    // showing, and a good many laptop windows are not 1280px wide.
                     //
                     // `invisible` rather than relying on `w-0` and `overflow-hidden`: a zero-width
                     // clipped box still holds its links in the tab order and reads them out to a
@@ -41,7 +37,7 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
                     // property that takes them out of both, and it animates as discretely as the
                     // width does.
                     collapsed === null
-                        ? "invisible w-0 border-r-0 xl:visible xl:w-64 xl:border-r"
+                        ? "invisible w-0 border-r-0 lg:visible lg:w-64 lg:border-r"
                         : collapsed
                           ? "invisible w-0 border-r-0"
                           : "w-64",

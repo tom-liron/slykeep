@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 interface SidebarContextValue {
     /**
      * `null` means nobody has touched the toggle, so the rail follows the width-aware default `Sidebar`
-     * expresses in CSS — closed below `xl`, open from `xl`. A boolean is an explicit choice, and an
+     * expresses in CSS — closed below `lg`, open from `lg`. A boolean is an explicit choice, and an
      * explicit choice holds at every width until it is made again.
      */
     collapsed: boolean | null;
@@ -16,7 +16,7 @@ interface SidebarContextValue {
 }
 
 /**
- * `xl`, as a media query — the width at which the rail is open on arrival.
+ * `lg`, as a media query — the width at which the rail is open on arrival.
  *
  * The default itself is CSS, in `Sidebar`, and has to be: the server renders this markup without
  * knowing the window width, so a default computed in JavaScript would paint the wrong rail and then
@@ -24,7 +24,7 @@ interface SidebarContextValue {
  * is deciding which way a never-touched toggle should flip. Read at click time rather than
  * subscribed to, because it is only ever a question about right now.
  */
-const RAIL_OPEN_BY_DEFAULT = "(min-width: 80rem)";
+const RAIL_OPEN_BY_DEFAULT = "(min-width: 64rem)";
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
