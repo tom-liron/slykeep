@@ -103,3 +103,34 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
  */
 export const EDITOR_MIN_HEIGHT = 76;
 export const EDITOR_MAX_HEIGHT = 400;
+
+/**
+ * The ceiling again, as a share of the viewport, for screens shorter than it.
+ *
+ * 400px is most of a landscape phone: an iPhone SE turned sideways has ~330px of visible viewport
+ * once the browser chrome is out, so the editor alone would be taller than the screen it is being
+ * typed into — its own label scrolled away above and the Save button somewhere below. The lower of
+ * the two applies, which means nothing changes on a desktop (60% of a 900px window is 540) or on a
+ * phone held upright (60% of 667 is exactly 400). Only short viewports move.
+ *
+ * A whole number of `dvh` rather than a `0.6` ratio because `0.6 * 100` is `60.00000000000001` in
+ * binary floating point, and that would be the number in the stylesheet.
+ */
+export const EDITOR_MAX_HEIGHT_DVH = 60;
+
+/**
+ * The same rule as a CSS length, for the surfaces the stylesheet sizes — the markdown panels and the
+ * plain-textarea editor. Monaco cannot use it: it has to be *told* a pixel height or it will not
+ * scroll itself, so `editorMaxHeight()` in `lib/editor-metrics.ts` computes the same value in
+ * JavaScript. The two are one rule written twice; they move together.
+ */
+export const EDITOR_MAX_HEIGHT_CSS = `min(${EDITOR_MAX_HEIGHT}px, ${EDITOR_MAX_HEIGHT_DVH}dvh)`;
+
+/**
+ * The size below which iOS Safari zooms the page in on a focused control — and does not zoom back
+ * out afterwards, leaving the user pinching their way back to a form they were halfway through.
+ *
+ * It applies to every editable control, so it is a floor on what is *rendered* under a finger, not a
+ * change to what is stored: `EDITOR_FONT_SIZES` still offers 12, and 12 is still 12 on a mouse.
+ */
+export const MIN_TOUCH_FONT_SIZE = 16;
