@@ -56,7 +56,16 @@ export const proxy = auth((req) => {
  * from* when a signed-in user lands on it.
  *
  * `api/auth` must stay open or the sign-in flow would redirect to itself.
+ *
+ * `api/stripe/webhook` must stay open for the same shape of reason: Stripe's `POST` carries no
+ * session cookie, so the proxy would answer it with a 302 to `/sign-in`. Stripe records that as a
+ * failed delivery, retries with backoff for days, and eventually disables the endpoint — while the
+ * route handler is never invoked, so nothing is logged on this side either. Its own authentication
+ * is the `stripe-signature` header, verified in the handler against `STRIPE_WEBHOOK_SECRET`.
+ *
+ * The webhook path only, deliberately — **not** `api/stripe`. Checkout and the customer portal are
+ * session-authenticated and have to stay behind the proxy.
  */
 export const config = {
-    matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+    matcher: ["/((?!api/auth|api/stripe/webhook|_next/static|_next/image|favicon.ico).*)"],
 };

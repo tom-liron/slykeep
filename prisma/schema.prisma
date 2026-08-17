@@ -33,6 +33,15 @@ model User {
   stripeCustomerId     String? @unique
   stripeSubscriptionId String? @unique
 
+  // A local copy of the two facts the billing panel renders — which price the subscription is on,
+  // and when the current period ends. Neither is needed to *grant* Pro (`isPro` is), and neither is
+  // authoritative: Stripe is, and the webhook is what keeps these in step with it. They exist only
+  // so "Pro — annual, renews on 3 September" costs no Stripe round trip on a page view.
+  //
+  // Both nullable, so no backfill: an account that has never subscribed has neither.
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
   // How the content editors are rendered for this account: font size, tab size, word wrap, minimap,
   // theme. One JSON column rather than five scalar ones — none of it is ever queried, filtered, or
   // joined on, and every future preference would otherwise be another migration.

@@ -1,3 +1,5 @@
+import type { BillingCycle } from "@/config/marketing";
+
 import type { ContentType, IconName, ItemTypeName } from "./item-type";
 
 /**
@@ -283,4 +285,18 @@ export interface CollectionPageViewModel {
      * visible.
      */
     itemTypeCounts: ItemTypeCountViewModel[];
+}
+
+/**
+ * The settings page's billing panel, prepared at the server boundary from the columns the webhook
+ * keeps in step with Stripe — so rendering it costs no Stripe round trip.
+ */
+export interface BillingViewModel {
+    isPro: boolean;
+    /** `null` on a free account, or when the stored price matches neither configured Price id. */
+    cycle: BillingCycle | null;
+    /** ISO string, like every other date here, or `null` on a free account. */
+    currentPeriodEnd: string | null;
+    /** Whether a Stripe customer exists — the portal button has nothing to open without one. */
+    hasCustomer: boolean;
 }

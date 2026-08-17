@@ -44,7 +44,7 @@ const LIMITS = {
     forgotPassword: { tokens: 3, window: "1 h", keyBy: "ip" },
     resetPassword: { tokens: 5, window: "15 m", keyBy: "ip" },
     resendVerification: { tokens: 3, window: "15 m", keyBy: "ip+email" },
-    // The one limit here that is not about an unauthenticated caller. `POST /api/upload` is behind
+    // The first of the limits that are not about an unauthenticated caller. `POST /api/upload` is behind
     // the session, so nothing anonymous can reach it — what it bounds is cost: it accepts up to
     // 10 MB per request and writes to paid storage, and it stores the object *before* the item row
     // exists, so a loop that never finishes creating an item leaves objects nothing points at.
@@ -54,6 +54,12 @@ const LIMITS = {
     // would bill one office NAT for everyone behind it. Set well above a person adding a batch of
     // files by hand and well below what a script can spend.
     upload: { tokens: 30, window: "10 m", keyBy: "user" },
+    // Follows `upload` rather than the auth limits, for the same reason: the caller is behind the
+    // session, so what this bounds is cost, not anonymity. Every attempt is a Stripe API call, and
+    // the first one for an account also creates a Customer — so a loop leaves a trail of records in
+    // someone else's system that nothing here can tidy up. Ten in ten minutes is far more than a
+    // person deciding between monthly and yearly, and far less than a script is worth.
+    checkout: { tokens: 10, window: "10 m", keyBy: "user" },
 } as const satisfies Record<
     string,
     { tokens: number; window: `${number} ${"m" | "h"}`; keyBy: "ip" | "ip+email" | "user" }
@@ -207,7 +213,7 @@ async function withTimeout<T>(check: Promise<T>): Promise<T> {
  * Spends one token against `name` for this caller and reports what is left.
  *
  * `caller` is whatever this limit is keyed on: the client IP for the endpoints reachable while
- * signed out, and the **user id** for `upload`, which is the one limit behind the session. `LIMITS`
+ * signed out, and the **user id** for the limits behind the session (`upload`, `checkout`). `LIMITS`
  * declares which, and the parameter is deliberately not named `ip` for that reason — an authenticated
  * endpoint has a better identifier available than the address it happened to arrive from.
  *
