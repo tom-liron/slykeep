@@ -4,7 +4,7 @@ import { Check, Folder } from "lucide-react";
 
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { CodeEditor } from "./CodeEditor";
 import { MarkdownEditor } from "./MarkdownEditor";
 
@@ -201,31 +201,22 @@ export function CollectionsField({
                         const selected = selectedIds.includes(collection.id);
 
                         return (
-                            <label
+                            <ToggleChip
                                 key={collection.id}
-                                className={cn(
-                                    "flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
-                                    "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-                                    selected
-                                        ? "border-primary bg-primary/10 text-foreground"
-                                        : "border-border text-muted-foreground hover:text-foreground",
-                                )}
+                                type="checkbox"
+                                name={id}
+                                value={collection.id}
+                                checked={selected}
+                                onChange={() => toggle(collection.id)}
+                                className={selected ? "border-primary bg-primary/10" : undefined}
                             >
-                                <input
-                                    type="checkbox"
-                                    name={id}
-                                    value={collection.id}
-                                    checked={selected}
-                                    onChange={() => toggle(collection.id)}
-                                    className="sr-only"
-                                />
                                 {selected ? (
                                     <Check className="size-3.5 shrink-0" aria-hidden="true" />
                                 ) : (
                                     <Folder className="size-3.5 shrink-0" aria-hidden="true" />
                                 )}
                                 <span className="truncate">{collection.name}</span>
-                            </label>
+                            </ToggleChip>
                         );
                     })}
                 </div>

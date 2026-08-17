@@ -33,12 +33,24 @@ const CARDS = [
  * Container units keep type, padding, and boxes in one ratio, so what fits at one width fits at all
  * of them. The width of the sidebar lives on the sidebar for the same reason — an element cannot
  * query itself, so `cqw` in the grid template would resolve against an ancestor instead.
+ *
+ * That fluidity is also why there is no `min-height` here, unlike `ChaosField` next to it. Every
+ * box inside is a fraction of this one's width, so the natural height is about 0.41× the width —
+ * and a fixed floor is a floor the content outgrows in one direction and falls through in the
+ * other. It fell through below roughly 730px of viewport, and the gap between the short mock and
+ * the tall floor rendered as dead space inside the panel: about 150px of it on a 430px phone.
+ *
+ * Nothing is lost at desktop. Above 1024px the hero's two panels are grid columns under
+ * `items-stretch`, so the row is as tall as `ChaosField` — which needs its own floor, being an
+ * empty canvas of absolutely positioned icons with no intrinsic height at all — and `flex-1` here
+ * takes up the slack. Below 1024px the grid is one column, each row sizes to its own content, and
+ * the two are no longer linked.
  */
 export function AppPreview() {
     return (
         <div
             aria-hidden="true"
-            className="@container grid min-h-[300px] flex-1 grid-cols-[auto_1fr] overflow-hidden rounded-md border border-border bg-background"
+            className="@container grid flex-1 grid-cols-[auto_1fr] overflow-hidden rounded-md border border-border bg-background"
         >
             <aside className="w-[27cqw] border-r border-border bg-white/[0.015] px-[2cqw] py-[2.2cqw]">
                 <div className="mb-[2.9cqw] flex items-center gap-[1.3cqw]">

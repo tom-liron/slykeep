@@ -28,6 +28,7 @@ import {
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
 import { useCollectionOptions } from "@/hooks/use-collection-options";
 import type { UploadedFile } from "@/hooks/use-file-upload";
@@ -39,7 +40,6 @@ import {
     type CreateItemField,
     type CreateItemInput,
 } from "@/lib/item-schemas";
-import { cn } from "@/lib/utils";
 
 const DEFAULT_TYPE: CreatableItemTypeName = "snippet";
 
@@ -248,15 +248,14 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                             const selected = name === type;
 
                             return (
-                                <label
+                                <ToggleChip
                                     key={name}
-                                    className={cn(
-                                        "flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium capitalize transition-colors",
-                                        "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-                                        selected
-                                            ? "text-foreground"
-                                            : "border-border text-muted-foreground hover:text-foreground",
-                                    )}
+                                    type="radio"
+                                    name="new-item-type"
+                                    value={name}
+                                    checked={selected}
+                                    onChange={() => setType(name)}
+                                    className="capitalize"
                                     // Type colours are user-facing data, not theme tokens, so they
                                     // cannot be Tailwind classes — the same exception the cards take.
                                     style={
@@ -265,22 +264,14 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                                             : undefined
                                     }
                                 >
-                                    <input
-                                        type="radio"
-                                        name="new-item-type"
-                                        value={name}
-                                        checked={selected}
-                                        onChange={() => setType(name)}
-                                        className="sr-only"
-                                    />
                                     <TypeIcon
                                         name={icon}
-                                        className="size-3.5"
+                                        className="size-3.5 shrink-0"
                                         style={{ color }}
                                         aria-hidden="true"
                                     />
                                     {name}
-                                </label>
+                                </ToggleChip>
                             );
                         })}
                     </div>
