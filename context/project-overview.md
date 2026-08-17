@@ -323,7 +323,7 @@ devstash/
 │   │   ├── rate-limit.ts        # sliding windows on the auth entry points; `server-only`
 │   │   ├── email.ts             # Resend client, link building, transactional templates
 │   │   ├── item-schemas.ts      # Zod contracts for item writes, and what each type owns
-│   │   ├── limits.ts            # item-type entitlement policy
+│   │   ├── limits.ts            # entitlement policy: item types, and the free item/collection caps
 │   │   ├── format.ts            # dates and file sizes, formatted for display
 │   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
 │   │   ├── code-language.ts     # free-text `Item.language` → a Monaco language id
@@ -335,7 +335,7 @@ devstash/
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
 │   │   ├── file-preview.ts      # which viewer a file opens in, and what may be served inline
 │   │   ├── openai.ts            # (planned) AI client + prompt helpers
-│   │   └── stripe.ts            # (planned) Stripe client
+│   │   └── stripe.ts            # lazy Stripe client, pinned API version, billing return origin
 │   ├── actions/                 # Server Actions for mutations
 │   │   ├── auth.ts              # sign-in / sign-out
 │   │   ├── account.ts           # change password, delete account
@@ -358,9 +358,11 @@ devstash/
 │   │   ├── view-models.ts       # persistence-independent UI models
 │   │   ├── auth.ts              # auth Server Action result shape
 │   │   ├── account.ts           # account Server Action result shape
+│   │   ├── billing.ts           # billing Server Action result shape (failure arm only)
 │   │   └── next-auth.d.ts       # session/JWT augmentation carrying `user.id`
 │   └── config/
 │       ├── access.ts            # temporary feature-entitlement configuration
+│       ├── billing.ts           # Stripe price ids by cycle, and which statuses entitle Pro
 │       ├── dashboard.ts         # dashboard presentation values
 │       ├── editor.ts            # the surface and height bounds both content editors share
 │       ├── item-type-catalog.ts # built-in item types: colors, icons, routes
@@ -431,7 +433,7 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 
 - **Search depth, free vs Pro.** The spec lists "Basic search" for free and the same search engine elsewhere. Decide what actually differs — e.g. free gets title/tag search, Pro gets full-content or AI-semantic search — or drop the distinction.
 - **Tag scoping.** Tags are global in the current model. Scope them per-user with `@@unique([userId, name])` to avoid cross-user collisions and noisy autocomplete.
-- **Free-tier limit enforcement.** Decide where limits are checked (server-side, in the data layer) and what the UX is when a user hits the cap — upgrade prompt vs hard block.
+- ~~**Free-tier limit enforcement.**~~ **Decided 2026-08-17.** Limits are checked at the *write boundary* — the Server Action, not the data layer — which is the same division `contentType` follows: the UI may show the cap, the action is the authority. Hitting the cap is a **hard block** with an upgrade-flavoured error toast, because the pricing page already promises "Up to 50 items" and a 51st that succeeds turns the number into decoration. The rules themselves are pure functions in `src/lib/limits.ts` beside `canAccessItemType`, taking the count rather than querying, so they stay unit-testable without a database. See `context/features/stripe-phase-1-spec.md` (the rules) and `stripe-phase-2-spec.md` (the call sites). Two things stay open and are noted there: the accepted race where two concurrent creates both read 49, and the fact that `ENFORCE_PRO_LIMITS` stays `false` until launch, so none of this refuses anyone yet.
 - **File handling.** Max file size, allowed MIME types, and whether deleting an item also deletes the R2 object (orphan cleanup).
 - **R2 objects outlive a deleted account.** `deleteAccount()` deletes the `User` row and Postgres cascades every item with it, but `deleteObject` is only ever called by `deleteItem` — so the bytes stay in the bucket with nothing left in the database pointing at them. This is the same orphan the item-delete path accepts deliberately, except unbounded and unrecoverable: after the cascade there is no row left to read a key from, so a later sweep has to list the bucket by key prefix (`users/<id>/…`) rather than query for what to remove. Harmless while the only accounts are test ones; it becomes a retention promise the moment real users can delete an account, since "delete my account" then does not delete their files. Decide before launch between deleting the objects up front (read the keys, delete the row, then delete the bytes — accepting that a crash between the two leaves the same orphans) and a scheduled prefix sweep.
 - **OAuth emails are not normalized, credentials emails are.** `auth-schemas.ts` lowercases and trims every address that arrives through registration or sign-in; the GitHub profile's email goes to the adapter untouched, so `Tom@example.com` from GitHub and `tom@example.com` from registration are two `User` rows for one person. Nothing is broken today — each account works on its own — but this lands squarely in the account-linking work: linking asks "is this the same person?", and a case-sensitive comparison answers no. Deciding it means picking where normalization belongs (a `signIn` callback, the adapter, or a citext/lowercase column plus a backfill), and it should be settled *with* linking rather than before it, since the two answers have to agree.
