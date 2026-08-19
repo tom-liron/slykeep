@@ -377,7 +377,10 @@ devstash/
 │       └── pagination.ts        # how many rows one page of a listing renders
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed
-├── vitest.config.ts             # unit tests; tests sit beside the module as `*.test.ts`
+├── vitest.config.ts             # unit tests; tests sit beside the module as `*.test.ts`.
+│                                # Excludes `*.integration.test.ts`, so `npm test` stays offline
+├── vitest.integration.config.ts # tests that talk to real services (`npm run billing:test`):
+│                                # credentials, seconds not milliseconds, a real Stripe account
 └── package.json
 ```
 

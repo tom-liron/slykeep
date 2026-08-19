@@ -9,6 +9,7 @@
         "lint": "eslint",
         "format": "prettier --write .",
         "test": "vitest run",
+        "billing:test": "vitest run --config vitest.integration.config.ts",
         "postinstall": "prisma generate",
         "db:migrate": "prisma migrate dev",
         "db:seed": "prisma db seed",

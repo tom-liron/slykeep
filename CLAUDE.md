@@ -17,7 +17,11 @@ Read the following to get the full context of the project:
 - `npm start` — serve the production build (run `build` first)
 - `npm run lint` — ESLint over the project
 - `npm run format` — format the whole project with Prettier (not for routine work — see `context/ai-interaction.md`)
-- `npm test` — run unit tests
+- `npm test` — run unit tests (offline; the integration suite is excluded)
+- `npm run billing:test` — drive a real test-mode Stripe subscription through its whole life and
+  assert what our own code writes at each step. Needs `STRIPE_SECRET_KEY` to be an `sk_test_` key
+  and refuses otherwise; creates and deletes its own throwaway user and customer, so no existing
+  account is touched. Run it before and after any change to billing.
 
 ## Neon MCP
 
