@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { deleteAccount } from "@/actions/account";
+import { openBillingPortal } from "@/actions/billing";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -29,19 +31,35 @@ import { EMPTY_ACCOUNT_STATE } from "@/types/account";
  * The confirm is a plain submit button rather than `AlertDialogAction`, which closes the dialog on
  * click: the action can fail, and a dialog that has already dismissed itself has nowhere to report
  * that.
+ *
+ * A subscriber is not offered the confirmation at all — the account cannot be deleted while a
+ * subscription would still bill, so the dialog explains that and hands them the portal instead. The
+ * refusal has to be a route rather than a wall: a dialog that says "you can't do this" and stops is
+ * the dark pattern the typed confirmation is otherwise avoiding. `isPro` here is the local column,
+ * which is enough to *draw* the choice; `deleteAccount` asks Stripe, and that is the control.
  */
 export function DeleteAccountDialog({
     email,
+    isPro,
     itemCount,
     collectionCount,
 }: {
     email: string;
+    isPro: boolean;
     itemCount: number;
     collectionCount: number;
 }) {
     const [state, formAction, isPending] = useActionState(deleteAccount, EMPTY_ACCOUNT_STATE);
     const [open, setOpen] = useState(false);
     const [confirmation, setConfirmation] = useState("");
+    const [portalPending, startPortal] = useTransition();
+
+    // Only ever returns on failure — success is a redirect to Stripe — so any value is an error.
+    const cancelSubscription = () =>
+        startPortal(async () => {
+            const result = await openBillingPortal();
+            if (result) toast.error(result.error);
+        });
 
     // Matches the server's comparison. Case and padding are not what makes this deliberate.
     const confirmed = confirmation.trim().toLowerCase() === email.toLowerCase();
@@ -66,59 +84,91 @@ export function DeleteAccountDialog({
 
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Delete account</AlertDialogTitle>
+                    <AlertDialogTitle>
+                        {isPro ? "Cancel your subscription first" : "Delete account"}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account,
-                        along with {itemCount === 1 ? "1 item" : `${itemCount} items`} and{" "}
-                        {collectionCount === 1 ? "1 collection" : `${collectionCount} collections`}.
+                        {isPro ? (
+                            <>
+                                Your Pro subscription has to be cancelled before the account can be
+                                deleted — otherwise your card would keep being charged for an
+                                account that no longer exists. Cancelling is done in Stripe, and you
+                                keep Pro until the period you have already paid for runs out. Come
+                                back here afterwards to delete the account.
+                            </>
+                        ) : (
+                            <>
+                                This action cannot be undone. This will permanently delete your
+                                account, along with{" "}
+                                {itemCount === 1 ? "1 item" : `${itemCount} items`} and{" "}
+                                {collectionCount === 1
+                                    ? "1 collection"
+                                    : `${collectionCount} collections`}
+                                .
+                            </>
+                        )}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                <form action={formAction} className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label htmlFor="confirmation" className="text-sm font-medium">
-                            To confirm, type <span className="font-mono">{email}</span>
-                        </label>
-                        <Input
-                            id="confirmation"
-                            name="confirmation"
-                            value={confirmation}
-                            onChange={(event) => setConfirmation(event.target.value)}
-                            autoComplete="off"
-                            // A password manager offering to fill the address here would undo the
-                            // deliberateness the field exists to create.
-                            data-1p-ignore
-                            aria-invalid={state.fields?.confirmation ? true : undefined}
-                            aria-describedby={
-                                state.fields?.confirmation ? "confirmation-error" : undefined
-                            }
-                        />
-                        {state.fields?.confirmation && (
-                            <p id="confirmation-error" className="text-sm text-destructive">
-                                {state.fields.confirmation}
-                            </p>
-                        )}
-                    </div>
-
-                    {state.error && (
-                        <p role="alert" className="text-sm text-destructive">
-                            {state.error}
-                        </p>
-                    )}
-
+                {isPro ? (
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={portalPending}>Close</AlertDialogCancel>
                         <Button
-                            type="submit"
-                            variant="destructive"
+                            onClick={cancelSubscription}
+                            disabled={portalPending}
                             size="lg"
-                            disabled={isPending || !confirmed}
                             className="w-full sm:w-auto"
                         >
-                            {isPending ? "Deleting…" : "I understand, delete my account"}
+                            {portalPending ? "Opening…" : "Cancel subscription"}
                         </Button>
                     </AlertDialogFooter>
-                </form>
+                ) : (
+                    <form action={formAction} className="space-y-4">
+                        <div className="space-y-1.5">
+                            <label htmlFor="confirmation" className="text-sm font-medium">
+                                To confirm, type <span className="font-mono">{email}</span>
+                            </label>
+                            <Input
+                                id="confirmation"
+                                name="confirmation"
+                                value={confirmation}
+                                onChange={(event) => setConfirmation(event.target.value)}
+                                autoComplete="off"
+                                // A password manager offering to fill the address here would undo the
+                                // deliberateness the field exists to create.
+                                data-1p-ignore
+                                aria-invalid={state.fields?.confirmation ? true : undefined}
+                                aria-describedby={
+                                    state.fields?.confirmation ? "confirmation-error" : undefined
+                                }
+                            />
+                            {state.fields?.confirmation && (
+                                <p id="confirmation-error" className="text-sm text-destructive">
+                                    {state.fields.confirmation}
+                                </p>
+                            )}
+                        </div>
+
+                        {state.error && (
+                            <p role="alert" className="text-sm text-destructive">
+                                {state.error}
+                            </p>
+                        )}
+
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                size="lg"
+                                disabled={isPending || !confirmed}
+                                className="w-full sm:w-auto"
+                            >
+                                {isPending ? "Deleting…" : "I understand, delete my account"}
+                            </Button>
+                        </AlertDialogFooter>
+                    </form>
+                )}
             </AlertDialogContent>
         </AlertDialog>
     );

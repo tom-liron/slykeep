@@ -35,6 +35,17 @@ export const DEMO_USER = {
     isPro: false,
 } as const;
 
+/**
+ * **Three collections, and that is a limit rather than a coincidence.** The demo account is a free
+ * account (`isPro: false` above), and the free tier holds three collections and fifty items
+ * (`src/lib/limits.ts`). Seeding a fourth would put the demo user over a cap the app now enforces,
+ * so the account would open already in a state its own plan does not allow — and "create a
+ * collection" would fail for a reason that looks like a bug rather than the tier working.
+ *
+ * Sitting exactly *at* the collection cap is deliberate: the usage meter reads 3 / 3 on first load
+ * and the next create is refused, which is the behaviour worth seeing without having to build up to
+ * it. The item count is well under fifty, so items are the half that still has room.
+ */
 export const SEED_COLLECTIONS: SeedCollection[] = [
     {
         name: "React Patterns",
@@ -182,9 +193,9 @@ CODE:
         ],
     },
     {
-        name: "DevOps",
-        description: "Infrastructure and deployment resources",
-        defaultType: "snippet",
+        name: "Toolbox",
+        description: "Commands, infrastructure snippets and the references worth keeping",
+        defaultType: "command",
         items: [
             {
                 title: "Multi-stage Dockerfile for Next.js",
@@ -242,13 +253,6 @@ docker push "$IMAGE:latest"`,
                 tags: ["ci", "github", "reference"],
                 body: "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
             },
-        ],
-    },
-    {
-        name: "Terminal Commands",
-        description: "Useful shell commands for everyday development",
-        defaultType: "command",
-        items: [
             {
                 title: "Undo the last commit, keep the changes",
                 type: "command",
@@ -288,13 +292,6 @@ kill -9 $(lsof -ti :3000)`,
 npm audit fix
 npm dedupe`,
             },
-        ],
-    },
-    {
-        name: "Design Resources",
-        description: "UI/UX resources and references",
-        defaultType: "link",
-        items: [
             {
                 title: "Tailwind CSS documentation",
                 type: "link",

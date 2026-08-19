@@ -69,7 +69,7 @@ All of them route through `canAccessItemType`, which is short-circuited by
 ### 1.4 What does *not* exist yet
 
 - No `stripe` package (`package.json` has no Stripe dependency of any kind).
-- No `src/lib/stripe.ts`, no `src/app/api/stripe/`, no `src/actions/billing.ts`,
+- No `src/lib/stripe.ts`, no `src/app/api/webhook/`, no `src/actions/billing.ts`,
   no `src/server/billing.ts`, no billing UI.
 - No count-based limits. `src/actions/collections.ts:44-47` says so explicitly in a comment:
   *"Nothing here caps how many collections an account may hold. The free tier's limit of three is
@@ -95,17 +95,18 @@ export const config = {
 };
 ```
 
-`POST /api/stripe/webhook` arrives from Stripe with no session cookie. It is not in
+`POST /api/webhook/stripe` arrives from Stripe with no session cookie. It is not in
 `SIGNED_OUT_ROUTES`, not in `OPEN_ROUTES`, and not `/` — so the proxy answers
 `Response.redirect("/sign-in")`. Stripe sees a 3xx, records the delivery as failed, retries with
 backoff for days, and **eventually disables the endpoint**. The route handler is never invoked, so
 this fails completely silently from the app's side.
 
-The fix is one string, and it must be **the webhook path only** — not `api/stripe`. `checkout` and
-`portal` are session-authenticated and must stay behind the proxy:
+The fix is one string, and it must be **the webhook path only** — not `api/webhook`, which would
+open every webhook endpoint added after it. Each one earns its exclusion by having its own request
+authentication, so each is named separately:
 
 ```ts
-matcher: ["/((?!api/auth|api/stripe/webhook|_next/static|_next/image|favicon.ico).*)"],
+matcher: ["/((?!api/auth|api/webhook/stripe|_next/static|_next/image|favicon.ico).*)"],
 ```
 
 This is the same reasoning the file's own comment already gives for `api/auth`, and it deserves a
@@ -514,7 +515,7 @@ export async function openBillingPortal(): Promise<BillingActionResult> {
 
 ---
 
-### 3.6 `src/app/api/stripe/webhook/route.ts`
+### 3.6 `src/app/api/webhook/stripe/route.ts`
 
 A route handler because it is a webhook — named explicitly in `coding-standards.md`'s list of what
 route handlers are for.
@@ -746,7 +747,7 @@ export function BillingPanelRows({ billing }: { billing: BillingViewModel }) {
 
 | # | File | Change | Why |
 |---|---|---|---|
-| 1 | `src/proxy.ts:61` | add `api/stripe/webhook` to the matcher's negative lookahead | **Blocking.** §2.1 — otherwise the webhook is never invoked at all. |
+| 1 | `src/proxy.ts:61` | add `api/webhook/stripe` to the matcher's negative lookahead | **Blocking.** §2.1 — otherwise the webhook is never invoked at all. |
 | 2 | `package.json` | `npm install stripe` | Not currently a dependency. |
 | 3 | `prisma/schema.prisma` | `stripePriceId`, `stripeCurrentPeriodEnd` on `User` + migration | Optional; §3.1. |
 | 4 | `src/lib/rate-limit.ts:41` | add `checkout: { tokens: 10, window: "10 m", keyBy: "user" }` to `LIMITS` | Follows the `upload` precedent — behind the session, bounding cost not anonymity. |
@@ -1148,7 +1149,7 @@ a second or two, but not always. Handle it in the UI, not the session: on `?chec
    `billingPortal.sessions.create` fails outright with a configuration error. Turn on:
    cancel subscription, update payment method, switch plan (list both prices), invoice history.
 5. **Webhook endpoint** (Developers → Webhooks → Add endpoint):
-   - URL `https://<your-domain>/api/stripe/webhook`
+   - URL `https://<your-domain>/api/webhook/stripe`
    - Events: `checkout.session.completed`, `customer.subscription.created`,
      `customer.subscription.updated`, `customer.subscription.deleted`
    - Copy the signing secret → `STRIPE_WEBHOOK_SECRET`
@@ -1156,7 +1157,7 @@ a second or two, but not always. Handle it in the UI, not the session: on `?chec
    is not the dashboard endpoint's — this is a routine hour-long confusion:
    ```bash
    stripe login
-   stripe listen --forward-to localhost:3000/api/stripe/webhook
+   stripe listen --forward-to localhost:3000/api/webhook/stripe
    ```
 7. **Repeat 1–5 in live mode** before launch. Price ids, keys, and webhook secrets are all
    mode-specific; none of the test values work in production.
@@ -1173,7 +1174,7 @@ Each step leaves the app working.
 | 2 | Migration for `stripePriceId` / `stripeCurrentPeriodEnd` (if taking §3.1) | `npm run db:status` |
 | 3 | `src/lib/stripe.ts`, `src/config/billing.ts` + unit test for `cycleForPriceId` | `npm test` |
 | 4 | **`src/proxy.ts` matcher** — do this before the webhook, not after | — |
-| 5 | `src/server/billing.ts`, `src/app/api/stripe/webhook/route.ts` | `stripe trigger customer.subscription.deleted`; check for a 200 and no `isPro` change on an unknown customer |
+| 5 | `src/server/billing.ts`, `src/app/api/webhook/stripe/route.ts` | `stripe trigger customer.subscription.deleted`; check for a 200 and no `isPro` change on an unknown customer |
 | 6 | `src/actions/billing.ts` + `checkout` rate limit | — |
 | 7 | Settings billing panel + `src/types/billing.ts` | full checkout round trip against test cards |
 | 8 | **Account deletion is gated on billing** (§6) — `hasBillableSubscription`, `endBillingRelationship`, the `deleteAccount` refusal, and the dialog's portal route | §10.3 |
@@ -1268,9 +1269,9 @@ unit tests and tedious to reproduce by hand.
 - [ ] Two accounts: A's `stripeCustomerId` cannot be reached from B's portal action.
 - [ ] `grep -r "STRIPE_SECRET" .next/static` after a build → no hits. (`import "server-only"` should
       make this impossible, but it is a two-second check on a secret worth money.)
-- [ ] The webhook route is the *only* thing excluded from the proxy — `/api/stripe/checkout` should
-      not exist as a route at all under this plan, but confirm nothing else slipped into the
-      lookahead.
+- [ ] The webhook route is the *only* thing excluded from the proxy — checkout and the portal are
+      Server Actions rather than routes under this plan, so there is nothing else under
+      `/api/webhook/` to confuse it with, but confirm nothing else slipped into the lookahead.
 
 ---
 

@@ -65,6 +65,9 @@ const db = vi.hoisted(() => ({
 // who is asking.
 vi.mock("@/server/current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
+    // `createCollection` reads `isPro` for the free-tier cap. Pro here so the cap is never what
+    // these tests are measuring — the cap has its own tests in `lib/limits.test.ts`.
+    getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true }),
 }));
 
 // The real one throws outside a request, and what matters here is only that it was called with the
@@ -115,6 +118,12 @@ vi.mock("@/lib/prisma", async () => {
                 },
             },
             collection: {
+                // The free-tier cap's count, scoped to the caller like every other matcher here.
+                count: ({ where }: { where: { userId: string } }) =>
+                    Promise.resolve(
+                        db.collections.filter((candidate) => candidate.userId === where.userId)
+                            .length,
+                    ),
                 create: ({ data }: { data: CreateData }) => {
                     db.lastCreateData = data as unknown as Record<string, unknown>;
 

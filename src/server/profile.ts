@@ -75,6 +75,8 @@ export async function getAccountSettings(): Promise<AccountSettingsViewModel> {
     return {
         email: user.email,
         hasPassword: account.password !== null,
+        // No extra query: `getCurrentUser()` already selects `isPro`.
+        isPro: user.isPro,
         totalItems,
         totalCollections,
     };

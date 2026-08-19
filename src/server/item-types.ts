@@ -3,7 +3,6 @@ import "server-only";
 import { cache } from "react";
 
 import { SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
-import { canAccessItemType } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import type {
     ItemTypeCountViewModel,
@@ -35,8 +34,12 @@ export const getItemTypesById = cache(
 );
 
 /**
- * The system item types a user can access, in catalog order, each with a live item count. Custom
- * types are intentionally excluded — both callers list system types only.
+ * Every system item type, in catalog order, each with a live item count. Custom types are
+ * intentionally excluded — both callers list system types only.
+ *
+ * Deliberately *not* filtered by entitlement: a Pro-gated type stays in the list, carrying `isPro`
+ * so its caller can mark it. What a locked type does when opened is the page's business, not this
+ * query's.
  *
  * One `groupBy` rather than a count per type, and the `?? 0` is what keeps a type the user has no
  * items of in the list: `groupBy` returns no row for an empty group, so the zero has to come from
@@ -63,20 +66,25 @@ export async function getItemTypeCounts(user: UserViewModel): Promise<ItemTypeCo
     const countByTypeId = new Map(counts.map((row) => [row.itemTypeId, row._count._all]));
     const rowByName = new Map(typeRows.map((row) => [row.name, row]));
 
+    // Every system type, including the ones this account cannot open. Hiding the Pro types was the
+    // earlier behaviour and it made the product worse at the one moment it matters: a free user
+    // never learns that files and images exist, so nothing ever prompts an upgrade. They are listed
+    // with a PRO badge instead, and the page behind them explains itself (`ProTypeUpgrade`).
+    //
+    // Nothing is leaked by listing them — the labels are on the public pricing page, and the count
+    // beside a locked type is this user's own, which is zero until they subscribe.
     return SYSTEM_ITEM_TYPE_NAMES.flatMap((name) => {
         const row = rowByName.get(name);
         return row ? [toItemTypeViewModel(row)] : [];
-    })
-        .filter((itemType) => canAccessItemType(user.isPro, itemType.isPro))
-        .map((itemType) => ({
-            id: itemType.id,
-            label: itemType.label,
-            icon: itemType.icon,
-            color: itemType.color,
-            slug: itemType.slug,
-            itemCount: countByTypeId.get(itemType.id) ?? 0,
-            isPro: itemType.isPro,
-        }));
+    }).map((itemType) => ({
+        id: itemType.id,
+        label: itemType.label,
+        icon: itemType.icon,
+        color: itemType.color,
+        slug: itemType.slug,
+        itemCount: countByTypeId.get(itemType.id) ?? 0,
+        isPro: itemType.isPro,
+    }));
 }
 
 /** The sidebar nav: the accessible system item types with their counts, plus the signed-in user. */

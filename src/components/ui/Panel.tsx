@@ -72,7 +72,12 @@ export function PanelRow({
     tone = "default",
     children,
 }: {
-    title: string;
+    /**
+     * Usually a string. Widened to a node for the billing row, whose heading carries the plan badge
+     * beside its text — the badge belongs *in* the heading rather than out at the control edge,
+     * where it would read as something to click.
+     */
+    title: React.ReactNode;
     description: string;
     tone?: "default" | "destructive";
     children?: React.ReactNode;

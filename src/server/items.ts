@@ -225,7 +225,10 @@ export async function getItemFile(id: string): Promise<{ key: string; name: stri
  * An item-type page (`/items/snippets`, ...): the type and one page of the user's items of that
  * type, most recently updated first. The slug resolves to a system type only, so it is looked up
  * with `userId: null` — a user's custom type could share the name (see `project-overview.md` §5).
- * Returns undefined for an unknown slug or a type the user cannot access, so the page can 404.
+ *
+ * Returns undefined only for a slug that names no system type, which is the one case that is
+ * genuinely a 404. A Pro-gated type comes back `locked` instead, for the page to render as an
+ * upgrade prompt.
  */
 export async function getItemTypePageData(
     slug: string,
@@ -247,8 +250,13 @@ export async function getItemTypePageData(
     }
 
     const itemType = toItemTypeViewModel(typeRow);
+
+    // Locked rather than absent. A 404 here told a free user that `/items/files` does not exist,
+    // which is both untrue and the opposite of useful — the page is the best chance the product has
+    // to explain what Pro buys. The reads below are skipped: nothing is rendered from them, and an
+    // account that cannot open the type has no business paying for the queries.
     if (!canAccessItemType(user.isPro, itemType.isPro)) {
-        return undefined;
+        return { locked: true, itemType };
     }
 
     const where = { userId: user.id, itemTypeId: itemType.id };
@@ -280,6 +288,7 @@ export async function getItemTypePageData(
     const itemTypesById = new Map([[itemType.id, itemType]]);
 
     return {
+        locked: false,
         itemType,
         pagination,
         items: rows.map((row) =>

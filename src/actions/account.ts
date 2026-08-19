@@ -6,6 +6,7 @@ import { z } from "zod";
 import { signOut } from "@/auth";
 import { changePasswordSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/lib/prisma";
+import { endBillingRelationship, hasBillableSubscription } from "@/server/billing";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import { hashPassword } from "@/server/passwords";
 import { EMPTY_ACCOUNT_STATE, type AccountActionState } from "@/types/account";
@@ -100,6 +101,12 @@ export async function changePassword(
  *
  * Nothing invalidates a JWT held elsewhere, but nothing needs to: the row is gone, so
  * `getCurrentUser` throws for any surviving token and every authenticated read fails closed.
+ *
+ * Refused, however, while a subscription would still bill. Cancelling and deleting are two separate
+ * controls: the row holding `stripeCustomerId` is the only pointer to the subscription, so deleting
+ * it first would leave a card being charged for an account that no longer exists and nothing left in
+ * the system able to find it. The app does not end a paid subscription on someone's behalf either —
+ * the person who bought it ends it in Stripe's own UI, where it is confirmed on screen and by email.
  */
 export async function deleteAccount(
     _previous: AccountActionState,
@@ -123,7 +130,31 @@ export async function deleteAccount(
         };
     }
 
+    // Asked of Stripe rather than of `user.isPro`, and that is the whole point: `isPro` is only as
+    // current as the last webhook that landed, so a missed delivery leaves the row saying "free" for
+    // an account Stripe is still billing — which is precisely the case this gate exists to catch.
+    //
+    // Refused rather than cancelled on the user's behalf. The account is still here afterwards, so
+    // this is a route to the portal rather than a dead end, and the dialog offers that route
+    // directly for anyone whose local state already says Pro.
+    if (await hasBillableSubscription(user.id)) {
+        return {
+            error: "You still have an active Pro subscription. Cancel it first — the button is in Settings → Billing — and then you can delete your account.",
+        };
+    }
+
     try {
+        // Best-effort, and deliberately not load-bearing: the gate above has already established
+        // that nothing is going to bill this customer, so a failure here costs no money. It removes
+        // the stored card and the customer record belonging to someone who will have no account,
+        // which is worth doing and is not worth blocking a deletion over — a Stripe outage must not
+        // stop someone leaving.
+        //
+        // Before the row delete, because the cascade destroys the only copy of `stripeCustomerId`.
+        await endBillingRelationship(user.id).catch((error) => {
+            console.error("Stripe cleanup failed during account deletion:", error);
+        });
+
         await prisma.user.delete({ where: { id: user.id } });
     } catch (error) {
         console.error("Account deletion failed:", error);

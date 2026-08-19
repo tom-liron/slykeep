@@ -10,8 +10,9 @@ import {
     type UpdateCollectionInput,
 } from "@/lib/collection-schemas";
 import { fieldErrorsOf } from "@/lib/field-errors";
+import { FREE_COLLECTION_LIMIT, canCreateCollection } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/server/current-user";
+import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import type {
     CreateCollectionResult,
     DeleteCollectionResult,
@@ -42,9 +43,9 @@ const RECORD_NOT_FOUND = "P2025";
  * `getCurrentUserId()`. It is resolved before the parse, so an unauthenticated caller is turned away
  * without the input being looked at.
  *
- * Nothing here caps how many collections an account may hold. The free tier's limit of three is
- * Phase 6 work and `ENFORCE_PRO_LIMITS` is still false, so a check added now would be one that
- * enforces nothing — `canAccessItemType` is the pattern to follow when that switch is flipped.
+ * The free tier's cap of three is checked below, at the write boundary — the UI may show the cap,
+ * but this is the authority. It refuses nothing yet: `canCreateCollection` short-circuits on
+ * `ENFORCE_PRO_LIMITS`, which stays false until launch.
  */
 export async function createCollection(
     input: CreateCollectionInput,
@@ -60,6 +61,18 @@ export async function createCollection(
             success: false,
             error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
             fields,
+        };
+    }
+
+    // The same shape `createItem` uses, and the same accepted race: the count is read outside a
+    // transaction, so two concurrent creates can both see two and both write.
+    const { isPro } = await getCurrentUser();
+    const collectionCount = await prisma.collection.count({ where: { userId } });
+
+    if (!canCreateCollection(isPro, collectionCount)) {
+        return {
+            success: false,
+            error: `Free accounts can have ${FREE_COLLECTION_LIMIT} collections. Upgrade to Pro in Settings for unlimited.`,
         };
     }
 

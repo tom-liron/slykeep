@@ -13,6 +13,7 @@
         "db:migrate": "prisma migrate dev",
         "db:seed": "prisma db seed",
         "db:seed:types": "tsx prisma/seed.ts --types-only",
+        "db:reset": "tsx scripts/clear-users.ts && prisma db seed",
         "db:test": "tsx scripts/test-db.ts",
         "email:test": "tsx scripts/test-email.ts",
         "user:verify": "tsx scripts/verify-user.ts",

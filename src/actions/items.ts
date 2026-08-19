@@ -11,7 +11,7 @@ import {
     type CreateItemInput,
     type UpdateItemInput,
 } from "@/lib/item-schemas";
-import { canAccessItemType } from "@/lib/limits";
+import { FREE_ITEM_LIMIT, canAccessItemType, canCreateItem } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { deleteObject, isOwnedKey } from "@/lib/r2";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
@@ -87,6 +87,24 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
 
     const { type, tags, collectionIds, ...columns } = parsed.data;
 
+    // The free tier's cap, enforced at the write boundary — the same division `contentType` follows:
+    // the UI may *show* the cap (the profile page renders both totals), but the action is the
+    // authority. A hard block rather than a nag, because the pricing page promises "Up to 50 items"
+    // and a 51st that succeeds turns the number into decoration.
+    //
+    // A race is accepted here: two concurrent creates can both read 49 and both write. Closing it
+    // needs a transaction with a re-count on the hottest write path in the app, which is not worth
+    // it for a soft cap — but it is a decision rather than an oversight.
+    const { isPro } = await getCurrentUser();
+    const itemCount = await prisma.item.count({ where: { userId } });
+
+    if (!canCreateItem(isPro, itemCount)) {
+        return {
+            success: false,
+            error: `Free accounts can hold ${FREE_ITEM_LIMIT} items. Upgrade to Pro in Settings for unlimited.`,
+        };
+    }
+
     if (collectionIds?.length && !(await ownsEveryCollection(collectionIds, userId))) {
         return { success: false, ...UNKNOWN_COLLECTION };
     }
@@ -94,8 +112,8 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
     if (columns.fileKey) {
         // The same entitlement the upload route checked, re-checked at the write: an upload and a
         // create are two requests, and only this one decides what the account ends up holding.
-        const { isPro } = await getCurrentUser();
-
+        // `isPro` is already in hand from the cap check above — `getCurrentUser` is request-cached,
+        // so it was one query either way.
         if (!canAccessItemType(isPro, ITEM_TYPE_CATALOG[type].isPro)) {
             return { success: false, error: "File items require a Pro subscription." };
         }
