@@ -227,23 +227,29 @@ export async function hasBillableSubscription(userId: string): Promise<boolean> 
 }
 
 /**
- * Removes the Stripe customer for an account being deleted.
+ * Winds down the billing relationship for an account being deleted: cancels whatever is still
+ * running and removes the stored card, while **keeping the customer**.
  *
- * `customers.del` rather than `subscriptions.cancel`: it removes the stored card, which a bare
- * cancellation leaves behind attached to someone who no longer has an account, and it catches any
- * subscription on the customer rather than only the one the local row was tracking.
+ * The first version of this deleted the customer outright, which is the blunt version of the same
+ * idea and the wrong default. `customers.del()` destroys the name and email — a deleted customer
+ * retrieves as `{ id, deleted: true }` and nothing else — so invoices survive with no one attached
+ * to them. That loses three things a real business needs: the ability to reconcile a charge to a
+ * person for tax (records that must typically be kept for years), an answer for "I was charged and
+ * my account is gone", and any view of who churned.
  *
- * Callers treat a failure as non-fatal — see `deleteAccount`. `hasBillableSubscription` has already
- * confirmed nothing is going to charge by the time this runs, so this is hygiene rather than the
- * thing preventing a bill, and a Stripe outage must not stop someone leaving.
+ * The concern that motivated deletion was a stored card left attached to someone with no account.
+ * That is solved by detaching the card, which is what happens below — the customer record is not the
+ * thing holding payment credentials.
  *
- * An already-deleted customer is the outcome this function exists to produce, so `resource_missing`
- * is success rather than an error.
+ * Deleting the customer is the response to a **GDPR/CCPA erasure request**, and even then Stripe's
+ * own recommendation is a redaction job rather than `customers.del()`, because redaction knows which
+ * records must be preserved. That stays the escalation path; it is not what self-service account
+ * deletion means.
  *
- * Not a redaction job. Stripe recommends those for *consumer data deletion requests*, which is a
- * different event with different retention rules — asynchronous, and scrubbing personal data out of
- * invoices and events that may need to stay readable for tax. `customers.del()` on self-service
- * deletion; a redaction job only on an explicit GDPR/CCPA erasure request.
+ * Best-effort throughout, and each step independent: the caller treats a failure as non-fatal
+ * (`deleteAccount` logs and continues), because `hasBillableSubscription` has already established
+ * that nothing will be charged. A Stripe outage must not stop someone leaving. `resource_missing` is
+ * success everywhere — it is the state this function exists to produce.
  */
 export async function endBillingRelationship(userId: string): Promise<void> {
     const row = await prisma.user.findUnique({
@@ -253,10 +259,56 @@ export async function endBillingRelationship(userId: string): Promise<void> {
 
     if (!row?.stripeCustomerId) return;
 
+    const customerId = row.stripeCustomerId;
+
+    // Cancelled *now*, not at period end. The gate has already established nothing further will be
+    // charged, but a subscription scheduled to lapse next month would otherwise sit there live
+    // against an account that no longer exists.
+    const subscriptions = await forgiving(() =>
+        stripe().subscriptions.list({ customer: customerId, status: "all", limit: 100 }),
+    );
+
+    for (const subscription of subscriptions?.data ?? []) {
+        if (subscription.status === "canceled" || subscription.status === "incomplete_expired") {
+            continue;
+        }
+
+        await forgiving(() => stripe().subscriptions.cancel(subscription.id));
+    }
+
+    // The actual reason this function exists: no card should stay on file for someone who has no
+    // account. Detaching is what removes it — deleting the customer was only ever a way to achieve
+    // this, at the cost of everything else on the record.
+    const paymentMethods = await forgiving(() =>
+        stripe().customers.listPaymentMethods(customerId, { limit: 100 }),
+    );
+
+    for (const paymentMethod of paymentMethods?.data ?? []) {
+        await forgiving(() => stripe().paymentMethods.detach(paymentMethod.id));
+    }
+
+    // Metadata rather than deletion, so the dashboard shows what became of the account. Stripe
+    // merges metadata on update, so the `userId` written at creation survives — which is what still
+    // ties an invoice back to a row that no longer exists.
+    await forgiving(() =>
+        stripe().customers.update(customerId, {
+            metadata: { accountDeletedAt: new Date().toISOString() },
+        }),
+    );
+}
+
+/**
+ * Runs one Stripe call, treating "it is already gone" as success.
+ *
+ * Returns `undefined` on that path so callers can carry on with the next step rather than abandon
+ * the rest of the cleanup — the steps above are independent, and a customer whose subscription has
+ * vanished still wants its card detached.
+ */
+async function forgiving<T>(call: () => Promise<T>): Promise<T | undefined> {
     try {
-        await stripe().customers.del(row.stripeCustomerId);
+        return await call();
     } catch (error) {
-        if ((error as Stripe.errors.StripeError)?.code === "resource_missing") return;
+        if ((error as Stripe.errors.StripeError)?.code === "resource_missing") return undefined;
 
         throw error;
     }

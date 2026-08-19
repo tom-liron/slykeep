@@ -279,18 +279,58 @@ describe("a customer this database has never heard of", () => {
 });
 
 describe("ending the billing relationship", () => {
-    it("deletes the Stripe customer, card and all", async () => {
+    beforeAll(async () => {
+        // A live subscription again, cancelled the way the portal does it. This is the realistic
+        // shape at deletion time: the gate lets a *cancelling* subscriber through, so the cleanup
+        // has something still scheduled to wind down rather than something already dead.
+        const subscription = await stripe().subscriptions.create({
+            customer: customerId,
+            items: [{ price: priceIdFor("monthly") }],
+        });
+        subscriptionId = subscription.id;
+
+        await stripe().subscriptions.update(subscriptionId, {
+            cancel_at: subscription.items.data[0]!.current_period_end,
+        });
+
         await endBillingRelationship(userId);
-
-        const customer = await stripe().customers.retrieve(customerId);
-
-        // A deleted customer still retrieves; it comes back flagged rather than missing.
-        expect("deleted" in customer && customer.deleted).toBe(true);
     });
 
-    it("treats an already-deleted customer as success", async () => {
-        // The cleanup runs before `prisma.user.delete` and is best-effort. Running it twice is the
-        // shape of a retry, and `resource_missing` is the outcome it exists to produce.
+    it("KEEPS the customer, with its name and email intact", async () => {
+        // The whole point of the rework. `customers.del()` leaves `{ id, deleted: true }` and
+        // nothing else, which strands every invoice with nobody attached to it — no reconciling a
+        // charge to a person for tax, no answering "I was charged", no view of who churned.
+        const customer = await stripe().customers.retrieve(customerId);
+
+        expect("deleted" in customer && customer.deleted).toBeFalsy();
+        expect((customer as Stripe.Customer).email).toBe(`${RUN_ID}@devstash.test`);
+    });
+
+    it("cancels the subscription outright rather than leaving it scheduled", async () => {
+        const subscription = await stripe().subscriptions.retrieve(subscriptionId);
+
+        expect(subscription.status).toBe("canceled");
+    });
+
+    it("detaches the card, which is the thing that must not outlive the account", async () => {
+        const paymentMethods = await stripe().customers.listPaymentMethods(customerId);
+
+        expect(paymentMethods.data).toHaveLength(0);
+    });
+
+    it("records what became of the account, keeping the id written at creation", async () => {
+        const customer = (await stripe().customers.retrieve(customerId)) as Stripe.Customer;
+
+        expect(customer.metadata.accountDeletedAt).toBeTruthy();
+        // Stripe *merges* metadata on update rather than replacing it, which is what the cleanup
+        // relies on: in the app the key written at creation is `userId`, and it is what still ties
+        // an invoice back to a row that no longer exists. This suite builds its customer directly
+        // rather than through `getOrCreateCustomerId` (that needs a session), so the key it can
+        // prove the merge with is its own.
+        expect(customer.metadata.runId).toBe(RUN_ID);
+    });
+
+    it("is safe to run twice, which is the shape of a retry", async () => {
         await expect(endBillingRelationship(userId)).resolves.toBeUndefined();
     });
 

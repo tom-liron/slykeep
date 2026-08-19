@@ -1036,6 +1036,15 @@ export async function endBillingRelationship(userId: string): Promise<void> {
 }
 ```
 
+> **Superseded 2026-08-19.** `customers.del()` was the wrong default and no longer what the code
+> does. It destroys the customer's name and email — a deleted customer retrieves as
+> `{ id, deleted: true }` — which strands every invoice with nobody attached to it: no reconciling a
+> charge to a person for tax, no answering "I was charged and my account is gone", no view of who
+> churned. The concern that motivated it, a stored card outliving the account, is solved by
+> *detaching the card*. `endBillingRelationship` now cancels any running subscription, detaches every
+> payment method, and updates the customer with an `accountDeletedAt` metadata key, keeping the
+> record. The paragraph below still holds for the escalation path.
+
 **Not redaction.** Stripe recommends [redaction jobs](https://docs.stripe.com/privacy/redaction) for
 *consumer data deletion requests*, which is a different event from account closure: redaction is
 asynchronous, and it scrubs personal data out of invoices, events, and request logs — including

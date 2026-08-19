@@ -9,8 +9,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * 2. **Where the period end is read from.** Stripe moved `current_period_end` off the Subscription
  *    and onto its items in `2025-03-31.basil`. Reading the old location yields `undefined`, which
  *    silently becomes a null column and a panel that cannot say when anything renews.
- * 3. **`resource_missing` is success.** Deleting an already-deleted customer is the outcome the
- *    cleanup exists to produce, and treating it as a failure would log noise on the ordinary path.
+ * 3. **The cleanup keeps the customer.** It cancels and detaches the card; it does not delete the
+ *    record, because destroying the name and email strands every invoice with nobody attached.
+ *    `resource_missing` is success throughout — it is the state the cleanup exists to produce.
  *
  * Stripe and Prisma are both replaced with in-memory stand-ins, the same way `items.test.ts` does
  * it: the question is which arguments go out and which values come back, not how either service
@@ -27,6 +28,10 @@ const api = vi.hoisted(() => ({
     list: vi.fn(),
     del: vi.fn(),
     create: vi.fn(),
+    cancel: vi.fn(),
+    listPaymentMethods: vi.fn(),
+    detach: vi.fn(),
+    update: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -41,8 +46,14 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/stripe", () => ({
     stripe: () => ({
-        subscriptions: { list: api.list },
-        customers: { del: api.del, create: api.create },
+        subscriptions: { list: api.list, cancel: api.cancel },
+        customers: {
+            del: api.del,
+            create: api.create,
+            update: api.update,
+            listPaymentMethods: api.listPaymentMethods,
+        },
+        paymentMethods: { detach: api.detach },
     }),
     billingOrigin: () => "https://devstash.test",
 }));
@@ -247,37 +258,66 @@ describe("syncSubscriptionState", () => {
 });
 
 describe("endBillingRelationship", () => {
+    beforeEach(() => {
+        api.list.mockResolvedValue({ data: [] });
+        api.listPaymentMethods.mockResolvedValue({ data: [] });
+    });
+
     it("does nothing when there is no customer to remove", async () => {
         db.findUnique.mockResolvedValue({ stripeCustomerId: null });
 
         await endBillingRelationship("user_1");
 
-        expect(api.del).not.toHaveBeenCalled();
+        expect(api.list).not.toHaveBeenCalled();
+        expect(api.update).not.toHaveBeenCalled();
     });
 
-    it("deletes the customer, card and all", async () => {
+    it("cancels what is still running and detaches the card, but KEEPS the customer", async () => {
         db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
-        api.del.mockResolvedValue({ deleted: true });
+        api.list.mockResolvedValue({ data: [subscription({ id: "sub_live" })] });
+        api.listPaymentMethods.mockResolvedValue({ data: [{ id: "pm_1" }] });
 
         await endBillingRelationship("user_1");
 
-        expect(api.del).toHaveBeenCalledWith("cus_1");
-    });
-
-    it("treats an already-deleted customer as success", async () => {
-        db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
-        api.del.mockRejectedValue(
-            Object.assign(new Error("No such customer"), {
-                code: "resource_missing",
+        expect(api.cancel).toHaveBeenCalledWith("sub_live");
+        expect(api.detach).toHaveBeenCalledWith("pm_1");
+        // The rework in one assertion: the record survives, so its invoices keep an owner.
+        expect(api.del).not.toHaveBeenCalled();
+        expect(api.update).toHaveBeenCalledWith(
+            "cus_1",
+            expect.objectContaining({
+                metadata: expect.objectContaining({ accountDeletedAt: expect.any(String) }),
             }),
         );
+    });
+
+    it("leaves an already-dead subscription alone", async () => {
+        db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
+        api.list.mockResolvedValue({ data: [subscription({ status: "canceled" })] });
+
+        await endBillingRelationship("user_1");
+
+        expect(api.cancel).not.toHaveBeenCalled();
+    });
+
+    it("carries on detaching when the subscription has already vanished", async () => {
+        // Each step is independent: a customer whose subscription is gone still wants its card
+        // removed, so `resource_missing` on one call must not abandon the rest of the cleanup.
+        db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
+        api.list.mockResolvedValue({ data: [subscription({ id: "sub_gone" })] });
+        api.cancel.mockRejectedValue(
+            Object.assign(new Error("No such subscription"), { code: "resource_missing" }),
+        );
+        api.listPaymentMethods.mockResolvedValue({ data: [{ id: "pm_1" }] });
 
         await expect(endBillingRelationship("user_1")).resolves.toBeUndefined();
+
+        expect(api.detach).toHaveBeenCalledWith("pm_1");
     });
 
     it("rethrows anything else, so the caller can log it", async () => {
         db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
-        api.del.mockRejectedValue(Object.assign(new Error("API down"), { code: "api_error" }));
+        api.list.mockRejectedValue(Object.assign(new Error("API down"), { code: "api_error" }));
 
         await expect(endBillingRelationship("user_1")).rejects.toThrow("API down");
     });
