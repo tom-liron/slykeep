@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FolderPlus, Menu, PanelLeft, Plus, Star } from "lucide-react";
+import { FolderPlus, Menu, PanelLeft, Plus, Star, Zap } from "lucide-react";
 
 import { CreateCollectionDialog } from "@/components/collections/CreateCollectionDialog";
 import { CreateItemDialog } from "@/components/items/CreateItemDialog";
@@ -18,7 +18,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { SearchDataViewModel } from "@/types/view-models";
 
-export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
+export function TopBar({
+    searchData,
+    isPro,
+}: {
+    searchData: SearchDataViewModel;
+    /** Free accounts get an Upgrade control; a subscriber has nothing to upgrade to. */
+    isPro: boolean;
+}) {
     const { toggleCollapsed, toggleMobile } = useSidebar();
 
     // The bar owns the create buttons now, rather than each dialog carrying its own trigger. It has
@@ -89,6 +96,37 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
             {/* `shrink-0` narrow and a third of the bar from `sm` up — and no `min-w-0` at either,
                 for the reason given above: this is the group that was overlapping the search. */}
             <div className="flex shrink-0 items-center justify-end gap-2 sm:flex-1">
+                {/* The one route to checkout from inside the app that is not Settings or a locked
+                    item type. Ghost, and first in the group, so it stays clear of the two create
+                    buttons — those are what this bar is *for*, and an upgrade prompt that competes
+                    with them is an advertisement in a workspace.
+
+                    `hidden sm:inline-flex`, and that is not a style choice: the measurements below
+                    record this group at zero slack on a 360px phone with six targets already in it.
+                    A seventh would clip the primary "+" off the edge. Free accounts on a phone
+                    reach checkout from Settings or by opening a Pro item type, both of which lead
+                    to the same place. */}
+                {!isPro && (
+                    <Button
+                        variant="ghost"
+                        asChild
+                        // `purple-300` is the tone the pricing cards already use for Pro, so the
+                        // one coloured control in this bar is coloured out of the palette Pro is
+                        // presented in everywhere else. It is also the *only* colour here: the star
+                        // beside it stays neutral, because two tinted controls side by side read as
+                        // decoration rather than as one thing being different.
+                        //
+                        // `Zap` rather than a sparkle: sparkles have come to mean AI specifically,
+                        // and this leads to a price list.
+                        className="hidden shrink-0 gap-1.5 text-purple-300 hover:bg-purple-500/15 hover:text-purple-200 sm:inline-flex"
+                    >
+                        <Link href="/upgrade">
+                            <Zap className="size-4" aria-hidden="true" />
+                            Upgrade
+                        </Link>
+                    </Button>
+                )}
+
                 {/* `aria-label` as well as `title`: the tooltip is for a pointer, and the star on its
                     own says nothing to a screen reader. Both, like the two toggles above.
 
@@ -106,11 +144,25 @@ export function TopBar({ searchData }: { searchData: SearchDataViewModel }) {
                     asChild
                     aria-label="Favorites"
                     title="Favorites"
+                    // Neutral, but *visible*. The ghost variant's hover is `muted/50`, which
+                    // against this background is very nearly the background — the control looked
+                    // inert until the cursor was already on it. Full `muted` is the whole fix; no
+                    // tint, because Upgrade beside it is the one control meant to carry colour.
+                    className="hover:bg-muted hover:text-foreground dark:hover:bg-muted"
                 >
                     <Link href="/favorites">
                         <Star className="size-5" aria-hidden="true" />
                     </Link>
                 </Button>
+
+                {/* The divider is the point of this group's ordering: navigation on the left of it,
+                    the two things that create something on the right. Without it Upgrade and
+                    Favorites read as part of the same set as New Collection and New Item, which is
+                    what made four controls in a row feel undifferentiated. */}
+                <span
+                    aria-hidden="true"
+                    className="mx-1 hidden h-5 w-px shrink-0 bg-border sm:block"
+                />
                 {/* Below `sm`, one create control instead of two.
 
                     Measured at 360px with touch-sized targets: the hamburger, the brand mark, the

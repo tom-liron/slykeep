@@ -1,20 +1,6 @@
-import type { CSSProperties } from "react";
-
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
-import { ITEM_TYPE_COLORS } from "@/config/item-type-catalog";
-
-/**
- * The item-type palette, handed to the page as custom properties.
- *
- * The marketing page is built out of these colours — the headline gradient, the hero glow, the
- * accents on the panels and cards — and they are runtime values from the catalog, which Tailwind
- * cannot generate classes for. Declaring them once here is what keeps every section referencing
- * `var(--type-prompt)` instead of retyping `#8b5cf6`.
- */
-const typeColorVars = Object.fromEntries(
-    Object.entries(ITEM_TYPE_COLORS).map(([name, color]) => [`--type-${name}`, color]),
-) as CSSProperties;
+import { TYPE_COLOR_VARS } from "@/lib/type-color-vars";
 
 /**
  * The signed-out marketing shell: no sidebar, no app chrome.
@@ -38,7 +24,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     return (
         <div
             data-marketing-scroll
-            style={typeColorVars}
+            style={TYPE_COLOR_VARS}
             className="h-dvh overflow-y-auto scroll-smooth bg-background motion-reduce:scroll-auto"
         >
             <a

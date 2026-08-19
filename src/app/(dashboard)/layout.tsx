@@ -44,7 +44,8 @@ export default async function DashboardLayout({
                     pinned frame measured in it hangs its last row behind the browser's own bars.
                     `dvh` tracks what is actually visible. */}
                 <div className="flex min-h-dvh flex-col md:h-dvh">
-                    <TopBar searchData={searchData} />
+                    {/* `nav.user` is already read for the sidebar, so the bar costs no query of its own. */}
+                    <TopBar searchData={searchData} isPro={nav.user.isPro} />
                     <div className="flex min-h-0 flex-1">
                         <Sidebar data={sidebarData} />
                         {/* The container everything inside measures itself against.

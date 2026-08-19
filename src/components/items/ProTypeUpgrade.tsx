@@ -17,8 +17,14 @@ import type { ItemTypeViewModel } from "@/types/view-models";
  * same reason `DeleteAccountDialog` routes a subscriber to the portal instead of stopping at "you
  * can't".
  *
- * The only control is a link to the billing panel. Checkout itself stays a Server Action behind a
- * rate limit in one place, rather than being reachable from every locked page in the app.
+ * The only control is a link to `/upgrade`, not to checkout and not to the billing panel. The split
+ * is what each page is for: this one answers "what would files give me", `/upgrade` answers "what
+ * does it cost and which cycle", and Stripe takes the money. Sending this button straight to the
+ * billing panel skipped the comparison for someone who has just started wondering whether Pro is
+ * worth it, and sending it straight to checkout would ask them to pay before they had seen a price.
+ *
+ * Checkout itself stays a Server Action behind a rate limit in one place, rather than being
+ * reachable from every locked page in the app.
  */
 export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
     const isImages = itemType.name === "image";
@@ -68,7 +74,7 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
 
             <div className="space-y-3">
                 <Button asChild size="lg">
-                    <Link href="/settings#billing">Upgrade to Pro</Link>
+                    <Link href="/upgrade">See plans</Link>
                 </Button>
                 <p className="text-sm text-muted-foreground">
                     $8 a month, or $72 a year — two months free. Cancel any time.
