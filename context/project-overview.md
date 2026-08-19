@@ -282,6 +282,8 @@ devstash/
 │   │   │   │   └── [id]/
 │   │   │   ├── favorites/       # /favorites — starred items and collections, one dense list
 │   │   │   ├── profile/         # account page, read-only: identity and usage
+│   │   │   ├── upgrade/         # the plan comparison for a signed-in free account; Pro is
+│   │   │   │                    # redirected to /settings#billing
 │   │   │   ├── search/          # (planned)
 │   │   │   └── settings/        # billing panel, then account actions: change password,
 │   │   │                        # delete account (export lands here later)
@@ -305,6 +307,7 @@ devstash/
 │   ├── components/
 │   │   ├── ui/                  # shared UI primitives and presentational components (incl. the account Panel)
 │   │   ├── auth/                # sign-in, register, reset, and verification forms
+│   │   ├── billing/             # the /upgrade plan cards and their cycle switch
 │   │   ├── items/               # item card, row, list, detail drawer, edit form, create dialog, upload
 │   │   ├── collections/         # collection card, row, actions, and page composition
 │   │   ├── dashboard/           # stat card
