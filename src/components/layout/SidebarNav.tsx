@@ -8,6 +8,10 @@ import { ArrowRight, ChevronDown, Star } from "lucide-react";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { Badge } from "@/components/ui/badge";
+// The one entitlement rule, shared with the server rather than restated: the badge marks what this
+// account cannot open, so it must disappear the moment they subscribe — and stay away entirely
+// while `ENFORCE_PRO_LIMITS` is off, when nothing is actually locked.
+import { canAccessItemType } from "@/lib/limits";
 import { cn } from "@/lib/utils";
 import type { SidebarCollectionViewModel, SidebarViewModel } from "@/types/view-models";
 
@@ -78,7 +82,9 @@ export function SidebarNav({
                                             aria-hidden="true"
                                         />
                                         <span className="flex-1 truncate">{itemType.label}</span>
-                                        {itemType.isPro && <ProBadge />}
+                                        {!canAccessItemType(data.user.isPro, itemType.isPro) && (
+                                            <ProBadge />
+                                        )}
                                         <span className="text-xs text-muted-foreground">
                                             {itemType.itemCount}
                                         </span>

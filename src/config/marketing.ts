@@ -142,8 +142,8 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             { label: "File & image uploads", included: false },
             { label: "AI features", included: false },
         ],
-        // No checkout exists yet (Phase 6), and a signed-out visitor needs an account either way, so
-        // both plans lead to registration.
+        // Registration, for the plain reason that the free plan *is* an account and nothing else.
+        // Pro's call to action goes to the billing panel instead — see below.
         cta: { label: "Get Started Free", href: "/register" },
         featured: false,
     },
@@ -170,7 +170,18 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             { label: "Export to JSON or ZIP", included: true },
             { label: "Priority support", included: true },
         ],
-        cta: { label: "Go Pro", href: "/register" },
+        // The billing panel, which is where checkout actually starts.
+        //
+        // The marketing page is only ever served without a session, so a visitor following this is
+        // bounced by the proxy to `/sign-in?callbackUrl=%2Fsettings` and arrives after signing in —
+        // the same number of steps as `/register` was, and strictly better for the free user who
+        // came back to upgrade, who would otherwise be sent to register a second account.
+        //
+        // The fragment does not survive that round trip: it never reaches the server, so it is not
+        // in `callbackUrl`. It does not need to — billing is the first panel on the page, so the
+        // fragment only matters for the signed-in user following this link directly, which is the
+        // one case where it does survive.
+        cta: { label: "Go Pro", href: "/settings#billing" },
         featured: true,
     },
 ];

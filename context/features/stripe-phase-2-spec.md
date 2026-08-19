@@ -29,7 +29,7 @@ error until step 4, which is a confusing way to discover it. Full steps in the p
    `STRIPE_SECRET_KEY`.
 3. Configure the **Customer portal**: cancel subscription, update payment method, switch plan (list
    both prices), invoice history.
-4. `stripe listen --forward-to localhost:3000/api/stripe/webhook` — its `whsec_…` is a *different*
+4. `stripe listen --forward-to localhost:3000/api/webhook/stripe` — its `whsec_…` is a *different*
    secret from the dashboard endpoint's, and it is the one that goes in local `.env`.
 5. Repeat in live mode before launch. Price ids, keys, and webhook secrets are all mode-specific.
 
@@ -66,7 +66,7 @@ answer.
 - `hasBillableSubscription(userId)` and `endBillingRelationship(userId)` — see the deletion gate
   below.
 
-### `src/app/api/stripe/webhook/route.ts`
+### `src/app/api/webhook/stripe/route.ts`
 
 A route handler because it is a webhook — named explicitly in `coding-standards.md`'s list.
 

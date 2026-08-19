@@ -215,6 +215,13 @@ export interface ProfileViewModel {
 export interface AccountSettingsViewModel {
     email: string;
     hasPassword: boolean;
+    /**
+     * Whether to offer the delete confirmation at all, or the route to cancelling first. Local state
+     * is enough to *draw* that choice — being wrong is cheap in both directions: a stale `true`
+     * shows a portal that reports no subscription, and a stale `false` lets the user through to the
+     * server-side gate, which asks Stripe and is the thing that actually decides.
+     */
+    isPro: boolean;
     totalItems: number;
     totalCollections: number;
 }
@@ -261,11 +268,27 @@ export interface PaginationViewModel {
     perPage: number;
 }
 
-export interface ItemTypePageViewModel {
-    itemType: ItemTypeViewModel;
-    items: ItemSummaryViewModel[];
-    pagination: PaginationViewModel;
-}
+/**
+ * An item-type page, which has two shapes rather than one.
+ *
+ * A Pro-gated type opened by an account without Pro is not a missing page and not an empty one — it
+ * is a page about a feature, so it carries the type and nothing else. A union rather than an
+ * `items: []` with a `locked` flag beside it, because the alternative is a `pagination` describing a
+ * query that was never run: the locked arm reads no items and counts none, and saying "0 items"
+ * would be a claim about this account's data rather than about its plan. The compiler enforces the
+ * difference at the one place that renders it.
+ */
+export type ItemTypePageViewModel =
+    | {
+          locked: false;
+          itemType: ItemTypeViewModel;
+          items: ItemSummaryViewModel[];
+          pagination: PaginationViewModel;
+      }
+    | {
+          locked: true;
+          itemType: ItemTypeViewModel;
+      };
 
 /** The collections grid: one page of cards, and where that page sits. */
 export interface CollectionsPageViewModel {
@@ -297,6 +320,12 @@ export interface BillingViewModel {
     cycle: BillingCycle | null;
     /** ISO string, like every other date here, or `null` on a free account. */
     currentPeriodEnd: string | null;
+    /**
+     * Whether `currentPeriodEnd` is an expiry rather than a renewal. The portal cancels at period
+     * end by default, so a cancelled subscription stays entitling — and keeps a date — until it runs
+     * out; without this the panel would promise a renewal to someone who has already left.
+     */
+    cancelAtPeriodEnd: boolean;
     /** Whether a Stripe customer exists — the portal button has nothing to open without one. */
     hasCustomer: boolean;
 }

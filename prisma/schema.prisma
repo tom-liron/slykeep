@@ -33,14 +33,19 @@ model User {
   stripeCustomerId     String? @unique
   stripeSubscriptionId String? @unique
 
-  // A local copy of the two facts the billing panel renders — which price the subscription is on,
-  // and when the current period ends. Neither is needed to *grant* Pro (`isPro` is), and neither is
-  // authoritative: Stripe is, and the webhook is what keeps these in step with it. They exist only
-  // so "Pro — annual, renews on 3 September" costs no Stripe round trip on a page view.
+  // A local copy of the three facts the billing panel renders — which price the subscription is on,
+  // when the current period ends, and whether it ends there rather than renewing. None is needed to
+  // *grant* Pro (`isPro` is), and none is authoritative: Stripe is, and the webhook is what keeps
+  // these in step with it. They exist only so "Pro — annual, renews on 3 September" costs no Stripe
+  // round trip on a page view.
   //
-  // Both nullable, so no backfill: an account that has never subscribed has neither.
-  stripePriceId          String?
-  stripeCurrentPeriodEnd DateTime?
+  // The first two are nullable, so no backfill: an account that has never subscribed has neither.
+  // `stripeCancelAtPeriodEnd` is the one that decides between "Renews on" and "Ends on", and it
+  // defaults to false because a subscription that is not cancelling is the ordinary case — a
+  // nullable boolean here would have three states for a question with two answers.
+  stripePriceId           String?
+  stripeCurrentPeriodEnd  DateTime?
+  stripeCancelAtPeriodEnd Boolean   @default(false)
 
   // How the content editors are rendered for this account: font size, tab size, word wrap, minimap,
   // theme. One JSON column rather than five scalar ones — none of it is ever queried, filtered, or

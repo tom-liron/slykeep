@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ItemList } from "@/components/items/ItemList";
+import { ProTypeUpgrade } from "@/components/items/ProTypeUpgrade";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
@@ -18,8 +19,14 @@ export default async function ItemTypePage({
     const [{ slug }, { page }] = await Promise.all([params, searchParams]);
     const data = await getItemTypePageData(slug, parsePageParam(page));
 
+    // Only an unknown slug is a 404 now. A Pro-gated type the account cannot open is a page about
+    // the feature instead, which is the one place a free user meets it at the moment they want it.
     if (!data) {
         notFound();
+    }
+
+    if (data.locked) {
+        return <ProTypeUpgrade itemType={data.itemType} />;
     }
 
     const { totalCount } = data.pagination;

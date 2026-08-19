@@ -114,6 +114,13 @@ vi.mock("@/lib/prisma", async () => {
                     ),
             },
             item: {
+                // The free-tier cap's count. Scoped to the caller for the same reason every other
+                // matcher here is: a count that ignored `userId` would let one account's items push
+                // another account over the limit.
+                count: ({ where }: { where: { userId: string } }) =>
+                    Promise.resolve(
+                        db.items.filter((candidate) => candidate.userId === where.userId).length,
+                    ),
                 create: ({ data }: { data: CreateData }) => {
                     db.lastCreateCollections = data.collections;
 
