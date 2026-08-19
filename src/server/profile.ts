@@ -60,7 +60,7 @@ export async function getAccountSettings(): Promise<AccountSettingsViewModel> {
     const [account, totalItems, totalCollections] = await Promise.all([
         prisma.user.findUnique({
             where: { id: user.id },
-            select: { password: true },
+            select: { password: true, stripeCancelAtPeriodEnd: true },
         }),
         prisma.item.count({ where: { userId: user.id } }),
         prisma.collection.count({ where: { userId: user.id } }),
@@ -75,8 +75,17 @@ export async function getAccountSettings(): Promise<AccountSettingsViewModel> {
     return {
         email: user.email,
         hasPassword: account.password !== null,
-        // No extra query: `getCurrentUser()` already selects `isPro`.
-        isPro: user.isPro,
+        // Deliberately **not** `user.isPro`. Someone who cancelled through the portal keeps Pro
+        // until the period they paid for runs out — they are `isPro: true` and their account is
+        // perfectly deletable, because nothing further will be charged. Branching the dialog on
+        // `isPro` trapped exactly that person: told to cancel first, they cancel, and are then told
+        // to cancel again, with no way out.
+        //
+        // This mirrors `hasBillableSubscription` from the local columns. It does not replace it —
+        // that one asks Stripe and is the control. Being wrong here is cheap in both directions: a
+        // stale `true` shows a portal reporting nothing to cancel, and a stale `false` lets someone
+        // through to the server check that actually decides.
+        subscriptionBlocksDeletion: user.isPro && !account.stripeCancelAtPeriodEnd,
         totalItems,
         totalCollections,
     };

@@ -10,5 +10,9 @@ export default defineConfig({
     },
     test: {
         environment: "node",
+        // The integration suite is a separate command (`npm run billing:test`) with its own config:
+        // it needs credentials, talks to real Stripe, and mutates a real database. Excluded here so
+        // `npm test` stays offline, fast, and safe to run on every change.
+        exclude: ["**/node_modules/**", "**/dist/**", "src/**/*.integration.test.ts"],
     },
 });

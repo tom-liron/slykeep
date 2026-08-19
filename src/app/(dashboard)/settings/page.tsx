@@ -35,8 +35,11 @@ export default async function SettingsPage({
     // rather than showing the account as still free.
     searchParams: Promise<{ checkout?: string }>;
 }) {
-    const [{ email, hasPassword, isPro, totalItems, totalCollections }, billing, { checkout }] =
-        await Promise.all([getAccountSettings(), getBillingSummary(), searchParams]);
+    const [
+        { email, hasPassword, subscriptionBlocksDeletion, totalItems, totalCollections },
+        billing,
+        { checkout },
+    ] = await Promise.all([getAccountSettings(), getBillingSummary(), searchParams]);
 
     return (
         <div className="mx-auto max-w-3xl space-y-8">
@@ -88,7 +91,7 @@ export default async function SettingsPage({
                 >
                     <DeleteAccountDialog
                         email={email}
-                        isPro={isPro}
+                        subscriptionBlocksDeletion={subscriptionBlocksDeletion}
                         itemCount={totalItems}
                         collectionCount={totalCollections}
                     />

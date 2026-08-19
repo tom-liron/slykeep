@@ -85,10 +85,9 @@ export async function syncSubscriptionState(customerId: string): Promise<void> {
     const periodEnd = active?.items.data[0]?.current_period_end;
     const priceId = active?.items.data[0]?.price.id ?? null;
 
-    // Whether that period end is a renewal date or an expiry date. The portal cancels at period end
-    // by default, so this is what stops the panel promising a renewal to someone who has already
-    // cancelled and is simply serving out what they paid for.
-    const cancelAtPeriodEnd = active?.cancel_at_period_end ?? false;
+    // Whether that date is an expiry rather than a renewal — what stops the panel promising a
+    // renewal to someone who has already cancelled and is serving out what they paid for.
+    const cancelAtPeriodEnd = active ? endsWithoutRenewing(active) : false;
 
     await prisma.user.updateMany({
         // `updateMany` rather than `update`: a webhook can name a customer this database has never
@@ -138,20 +137,64 @@ export async function getBillingSummary(): Promise<BillingViewModel> {
 }
 
 /**
+ * When a subscription is scheduled to stop, in Stripe's unix seconds, or `null` if it is not.
+ *
+ * **There are two shapes for this and they are not interchangeable.** Setting `cancel_at_period_end:
+ * true` through the API leaves `cancel_at` null; the *customer portal* does the opposite — it writes
+ * `cancel_at` with the period-end timestamp and leaves `cancel_at_period_end` **false**. Reading
+ * only the flag, which every example does, therefore misses every cancellation a real user makes,
+ * because the portal is the only place they can make one.
+ *
+ * This was found the hard way: the panel kept saying "Renews on" for a cancelled subscription, and
+ * the deletion gate would have refused the user who had just done as they were asked.
+ */
+function scheduledEnd(subscription: Stripe.Subscription): number | null {
+    if (subscription.cancel_at_period_end) {
+        return subscription.items.data[0]?.current_period_end ?? null;
+    }
+
+    return subscription.cancel_at ?? null;
+}
+
+/**
+ * Whether this subscription runs out at the end of the period it is in, rather than renewing.
+ *
+ * Not simply "is a stop scheduled": `cancel_at` may be set to a date several periods away, and a
+ * subscription that renews twice before stopping *is* going to bill again in the meantime. Comparing
+ * against the current period's end is what separates "cancelled, serving out what was paid for" from
+ * "will keep charging for a while yet".
+ */
+function endsWithoutRenewing(subscription: Stripe.Subscription): boolean {
+    const end = scheduledEnd(subscription);
+
+    if (end === null) return false;
+
+    const periodEnd = subscription.items.data[0]?.current_period_end;
+
+    // No period to compare against — an unusual subscription with no items. A scheduled stop is the
+    // more specific fact of the two, so it wins.
+    if (periodEnd === undefined) return true;
+
+    return end <= periodEnd;
+}
+
+/**
  * Whether this subscription still has a charge ahead of it.
  *
  * Deliberately not `ENTITLING_STATUSES.has(status)` alone. The Stripe customer portal cancels at
  * *period end* by default, so a subscription cancelled on 20 March with a billing date of the 5th
- * stays `active` with `cancel_at_period_end: true` until 5 April. That user has cancelled and no
- * further charge is coming; refusing their account deletion for another sixteen days would be
- * punishing them for doing exactly what they were told.
+ * stays `active` until 5 April. That user has cancelled and no further charge is coming; refusing
+ * their account deletion for another sixteen days would be punishing them for doing exactly what
+ * they were told.
+ *
+ * Which field says so is `endsWithoutRenewing`'s problem, and it is not the obvious one — see there.
  *
  * `trialing` counts, because a trial converts to a paid charge unless it is cancelled.
  *
  * Read plainly: block only if money is still going to move.
  */
 function willBillAgain(subscription: Stripe.Subscription): boolean {
-    return ENTITLING_STATUSES.has(subscription.status) && !subscription.cancel_at_period_end;
+    return ENTITLING_STATUSES.has(subscription.status) && !endsWithoutRenewing(subscription);
 }
 
 /**

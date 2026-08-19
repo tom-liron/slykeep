@@ -61,6 +61,7 @@ function subscription(overrides: Record<string, unknown> = {}) {
         id: "sub_1",
         status: "active",
         cancel_at_period_end: false,
+        cancel_at: null,
         items: { data: [{ current_period_end: 1_800_000_000, price: { id: "price_monthly" } }] },
         ...overrides,
     };
@@ -97,6 +98,27 @@ describe("hasBillableSubscription", () => {
         api.list.mockResolvedValue({ data: [subscription({ cancel_at_period_end: true })] });
 
         expect(await hasBillableSubscription("user_1")).toBe(false);
+    });
+
+    it("is FALSE when the PORTAL cancelled it — cancel_at set, the flag left false", async () => {
+        // The shape a real user actually produces, and the one that got this wrong in production:
+        // the customer portal writes `cancel_at` and leaves `cancel_at_period_end` false. Reading
+        // only the flag refuses account deletion to everyone who cancels the normal way.
+        db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
+        api.list.mockResolvedValue({
+            data: [subscription({ cancel_at: 1_800_000_000, cancel_at_period_end: false })],
+        });
+
+        expect(await hasBillableSubscription("user_1")).toBe(false);
+    });
+
+    it("is TRUE when cancel_at is beyond this period, because it renews first", async () => {
+        // A stop scheduled two periods out still bills at the end of this one. "Cancelled" is not
+        // the same question as "will not be charged again".
+        db.findUnique.mockResolvedValue({ stripeCustomerId: "cus_1" });
+        api.list.mockResolvedValue({ data: [subscription({ cancel_at: 1_900_000_000 })] });
+
+        expect(await hasBillableSubscription("user_1")).toBe(true);
     });
 
     it("is true while trialing, because a trial converts to a charge", async () => {
@@ -157,6 +179,32 @@ describe("syncSubscriptionState", () => {
         expect(db.updateMany.mock.calls[0][0].data).toMatchObject({
             isPro: true,
             stripeCancelAtPeriodEnd: true,
+        });
+    });
+
+    it("records a PORTAL cancellation, which sets cancel_at rather than the flag", async () => {
+        api.list.mockResolvedValue({
+            data: [subscription({ cancel_at: 1_800_000_000, cancel_at_period_end: false })],
+        });
+
+        await syncSubscriptionState("cus_1");
+
+        // Still entitling — they keep Pro until the period runs out — but the panel must say
+        // "ends on", not "renews on".
+        expect(db.updateMany.mock.calls[0][0].data).toMatchObject({
+            isPro: true,
+            stripeCancelAtPeriodEnd: true,
+        });
+    });
+
+    it("does not call a far-future cancel_at a cancellation", async () => {
+        api.list.mockResolvedValue({ data: [subscription({ cancel_at: 1_900_000_000 })] });
+
+        await syncSubscriptionState("cus_1");
+
+        expect(db.updateMany.mock.calls[0][0].data).toMatchObject({
+            isPro: true,
+            stripeCancelAtPeriodEnd: false,
         });
     });
 

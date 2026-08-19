@@ -216,12 +216,16 @@ export interface AccountSettingsViewModel {
     email: string;
     hasPassword: boolean;
     /**
-     * Whether to offer the delete confirmation at all, or the route to cancelling first. Local state
-     * is enough to *draw* that choice — being wrong is cheap in both directions: a stale `true`
-     * shows a portal that reports no subscription, and a stale `false` lets the user through to the
-     * server-side gate, which asks Stripe and is the thing that actually decides.
+     * Whether a subscription stands in the way of deleting this account — the question the delete
+     * dialog actually asks. **Not** "is this account Pro": a subscriber who has cancelled keeps Pro
+     * until the period ends and can delete their account throughout, since no further charge is
+     * coming. Conflating the two locks that user in a loop that tells them to do what they have
+     * already done.
+     *
+     * Local state is enough to *draw* the choice; `hasBillableSubscription` asks Stripe and is the
+     * control.
      */
-    isPro: boolean;
+    subscriptionBlocksDeletion: boolean;
     totalItems: number;
     totalCollections: number;
 }

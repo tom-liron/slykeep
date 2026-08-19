@@ -32,20 +32,24 @@ import { EMPTY_ACCOUNT_STATE } from "@/types/account";
  * click: the action can fail, and a dialog that has already dismissed itself has nowhere to report
  * that.
  *
- * A subscriber is not offered the confirmation at all — the account cannot be deleted while a
- * subscription would still bill, so the dialog explains that and hands them the portal instead. The
- * refusal has to be a route rather than a wall: a dialog that says "you can't do this" and stops is
- * the dark pattern the typed confirmation is otherwise avoiding. `isPro` here is the local column,
- * which is enough to *draw* the choice; `deleteAccount` asks Stripe, and that is the control.
+ * A subscriber whose card would be charged again is not offered the confirmation at all — the
+ * account cannot be deleted while that is true, so the dialog explains it and hands them the portal
+ * instead. The refusal has to be a route rather than a wall: a dialog that says "you can't do this"
+ * and stops is the dark pattern the typed confirmation is otherwise avoiding.
+ *
+ * The prop is deliberately not `isPro`. Someone who has already cancelled is still Pro until their
+ * period ends and *can* delete their account — branching on `isPro` told them to cancel, and then
+ * told them again after they had, with no way out. `deleteAccount` asks Stripe, and that is the
+ * control; this only decides which body to draw.
  */
 export function DeleteAccountDialog({
     email,
-    isPro,
+    subscriptionBlocksDeletion,
     itemCount,
     collectionCount,
 }: {
     email: string;
-    isPro: boolean;
+    subscriptionBlocksDeletion: boolean;
     itemCount: number;
     collectionCount: number;
 }) {
@@ -85,10 +89,12 @@ export function DeleteAccountDialog({
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        {isPro ? "Cancel your subscription first" : "Delete account"}
+                        {subscriptionBlocksDeletion
+                            ? "Cancel your subscription first"
+                            : "Delete account"}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        {isPro ? (
+                        {subscriptionBlocksDeletion ? (
                             <>
                                 Your Pro subscription has to be cancelled before the account can be
                                 deleted — otherwise your card would keep being charged for an
@@ -110,7 +116,7 @@ export function DeleteAccountDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                {isPro ? (
+                {subscriptionBlocksDeletion ? (
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={portalPending}>Close</AlertDialogCancel>
                         <Button
