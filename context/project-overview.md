@@ -267,6 +267,9 @@ devstash/
 │                                # opened directly in a browser. Outside the Next.js app entirely.
 ├── src/
 │   ├── app/
+│   │   ├── (marketing)/         # signed-out shell: no app chrome, its own scroll container,
+│   │   │                        # and the item-type palette handed down as CSS variables
+│   │   │   └── welcome/         # /welcome — the landing page, served without a session
 │   │   ├── (auth)/              # signed-out routes, no sidebar
 │   │   │   ├── layout.tsx       # centered card shell
 │   │   │   ├── sign-in/         # /sign-in — credentials form + GitHub
@@ -312,6 +315,9 @@ devstash/
 │   │   ├── collections/         # collection card, row, actions, and page composition
 │   │   ├── dashboard/           # stat card
 │   │   ├── favorites/           # the starred lists and their client-side sort control
+│   │   ├── marketing/           # the landing page's sections: hero, features, AI, pricing, CTA
+│   │   ├── pricing/             # the plan card and cycle switch, shared by the landing page
+│   │   │                        # and /upgrade so the two cannot drift apart
 │   │   ├── settings/            # billing rows, change-password dialog, delete-account dialog
 │   │   └── layout/              # sidebar, topbar, command palette, mobile drawer, account menu
 │   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
@@ -329,6 +335,8 @@ devstash/
 │   │   ├── rate-limit.ts        # sliding windows on the auth entry points; `server-only`
 │   │   ├── email.ts             # Resend client, link building, transactional templates
 │   │   ├── item-schemas.ts      # Zod contracts for item writes, and what each type owns
+│   │   ├── collection-schemas.ts# the same, for collection writes
+│   │   ├── field-errors.ts      # one Zod parse → the toast's sentence and the inputs' messages
 │   │   ├── limits.ts            # entitlement policy: item types, and the free item/collection caps
 │   │   ├── format.ts            # dates and file sizes, formatted for display
 │   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
@@ -336,6 +344,9 @@ devstash/
 │   │   ├── favorites-sort.ts    # how `/favorites` orders its two lists, client-side
 │   │   ├── fuzzy-search.ts      # the command palette's match and ranking rule
 │   │   ├── pagination.ts        # `?page=` parsing, page clamping, skip, and the page-number window
+│   │   ├── editor-metrics.ts    # the two editor numbers that are not simply the stored preference
+│   │   ├── type-color-vars.ts   # the item-type palette as CSS variables, for the surfaces
+│   │   │                        # designed out of it (the landing page and /upgrade)
 │   │   ├── utils.ts             # `cn` class merging
 │   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
@@ -378,6 +389,7 @@ devstash/
 │       ├── dashboard.ts         # dashboard presentation values
 │       ├── editor.ts            # the surface and height bounds both content editors share
 │       ├── item-type-catalog.ts # built-in item types: colors, icons, routes
+│       ├── marketing.ts         # the landing page's copy, and the two pricing plans
 │       └── pagination.ts        # how many rows one page of a listing renders
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed
