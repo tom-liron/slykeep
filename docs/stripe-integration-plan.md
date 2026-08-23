@@ -725,7 +725,7 @@ export function BillingPanelRows({ billing }: { billing: BillingViewModel }) {
             />
             <PanelRow
                 title="Upgrade to Pro"
-                description="$8 a month, or $72 a year — two months free. Cancel any time."
+                description="$8 a month, or $72 a year — save 25%. Cancel any time."
             >
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => upgrade("monthly")} disabled={pending}>

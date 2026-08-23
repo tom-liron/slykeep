@@ -42,7 +42,7 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
           ];
 
     return (
-        <div className="mx-auto max-w-2xl space-y-8 py-8 text-center">
+        <div className="mx-auto max-w-2xl space-y-6 py-2 text-center">
             <div className="space-y-4">
                 {/* Tinted with the type's own colour, so the page still reads as *this* type's page
                     rather than as a generic paywall that could belong to anything. */}
@@ -55,10 +55,15 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
 
                 <div className="space-y-2">
                     <h1 className="text-2xl font-bold">{itemType.label} are a Pro feature</h1>
+                    {/* No reserved second line here, unlike `PricingPlanCard`'s price note. That
+                        card swaps its own text as the cycle switch is touched, so a floor stops it
+                        resizing under the pointer; these two strings are on two different pages that
+                        are never seen at once, and both fit one line at this width — so a floor only
+                        bought a band of empty space under every subtitle. */}
                     <p className="text-muted-foreground">
                         {isImages
                             ? "Stash images alongside your snippets and prompts, and find them the same way."
-                            : "Stash the files your projects depend on, and find them the same way you find everything else."}
+                            : "Stash the files your projects depend on, and find them the same way."}
                     </p>
                 </div>
             </div>
@@ -77,7 +82,7 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
                     <Link href="/upgrade">See plans</Link>
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                    $8 a month, or $72 a year — two months free. Cancel any time.
+                    $8 a month, or $72 a year — save 25%. Cancel any time.
                 </p>
             </div>
         </div>

@@ -299,8 +299,10 @@ export function ItemDrawer({
                                 }
                             >
                                 <Star
+                                    // Filled when on, like `CollectionActions`' star and unlike
+                                    // every other one — see the note there.
                                     className={
-                                        isFavorite ? "fill-yellow-400 text-yellow-400" : undefined
+                                        isFavorite ? "fill-favorite text-favorite" : undefined
                                     }
                                     aria-hidden="true"
                                 />

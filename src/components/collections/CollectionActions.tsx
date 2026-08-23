@@ -89,8 +89,14 @@ export function CollectionActions({
 
     const favoriteLabel = isFavorite ? "Remove from favorites" : "Add to favorites";
 
+    // Filled when it is on, in `--favorite` — the same colour as every other star in the app, but
+    // the only one that fills. This and the drawer's Favorite button are the two stars with an
+    // *off* state to show; the rest either mark a destination or are rendered only when the thing
+    // is already favourited, so they have nothing to contrast against and stay outline. Colour
+    // alone carried it for one revision and was the weaker signal: grey-outline against
+    // yellow-outline is a hue change, where hollow against solid is the shape itself.
     const star = (
-        <Star className={cn(isFavorite && "fill-yellow-400 text-yellow-400")} aria-hidden="true" />
+        <Star className={cn(isFavorite && "fill-favorite text-favorite")} aria-hidden="true" />
     );
 
     return (

@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --color-favorite: var(--favorite);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -59,6 +60,20 @@
  */
 :root {
     color-scheme: light;
+    /**
+     * One colour for every favourite star in the app — the top bar's, the sidebar's, the badge on a
+     * card or a row, and both toggles. It was `yellow-400` hard-coded at eight call sites, which is
+     * how the bar and the dashboard ended up wearing two different yellows next to each other.
+     *
+     * Its own token rather than the note type's colour, which it matches by value in dark mode. The
+     * two are the same yellow today and mean unrelated things — a favourite is not a note — so
+     * sharing a name would make either one impossible to retune without dragging the other with it.
+     *
+     * Light mode takes it down to `yellow-600`. `#fde047` is picked for a near-black background and
+     * all but vanishes on a white card; there is no light theme to check it against yet, so the
+     * value that will not be invisible is the one to leave here.
+     */
+    --favorite: #ca8a04;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -95,6 +110,7 @@
 
 .dark {
     color-scheme: dark;
+    --favorite: #fde047;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

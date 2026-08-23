@@ -144,14 +144,29 @@ export function TopBar({
                     asChild
                     aria-label="Favorites"
                     title="Favorites"
-                    // Neutral, but *visible*. The ghost variant's hover is `muted/50`, which
+                    // Full `muted` on hover rather than the ghost variant's `muted/50`, which
                     // against this background is very nearly the background — the control looked
-                    // inert until the cursor was already on it. Full `muted` is the whole fix; no
-                    // tint, because Upgrade beside it is the one control meant to carry colour.
-                    className="hover:bg-muted hover:text-foreground dark:hover:bg-muted"
+                    // inert until the cursor was already on it.
+                    //
+                    // `hover:text-foreground` comes off with it: the star sets its own colour, so
+                    // the variant's hover would only have fought it.
+                    className="hover:bg-muted dark:hover:bg-muted"
                 >
                     <Link href="/favorites">
-                        <Star className="size-5" aria-hidden="true" />
+                        {/* `--favorite`, the same colour and the same outline as every other star
+                            in the app — the sidebar's Favorites row, the badge on a card or a row,
+                            and both toggles.
+
+                            Held at 80% at rest, and only here. This star sits on bare bar next to
+                            Upgrade, where the others sit on a card or a tinted chip that already
+                            takes the edge off them; at full strength it read as the brightest thing
+                            in the bar and pulled against the one control that is meant to be. Hover
+                            resolves it to the exact shared colour, so the difference is a resting
+                            state rather than a second yellow. */}
+                        <Star
+                            className="size-5 text-favorite/80 transition-colors group-hover/button:text-favorite"
+                            aria-hidden="true"
+                        />
                     </Link>
                 </Button>
 

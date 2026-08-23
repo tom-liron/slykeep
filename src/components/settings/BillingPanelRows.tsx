@@ -221,7 +221,7 @@ function planLabel(cycle: BillingCycle | null): string {
  */
 function planDescription(billing: BillingViewModel): string {
     if (!billing.isPro) {
-        return "Upgrade for unlimited items and collections, file and image uploads, AI features, and export. $8 a month, or $72 a year — two months free. Cancel any time.";
+        return "Upgrade for unlimited items and collections, file and image uploads, AI features, and export. $8 a month, or $72 a year — save 25%. Cancel any time.";
     }
 
     if (!billing.currentPeriodEnd) return "Change your plan, update your card, or cancel.";

@@ -45,7 +45,7 @@ export default async function CollectionPage({
                         {data.collection.isFavorite && (
                             <>
                                 <Star
-                                    className="size-4 shrink-0 fill-yellow-400 text-yellow-400"
+                                    className="size-4 shrink-0 text-favorite"
                                     aria-hidden="true"
                                 />
                                 <span className="sr-only">Favorite collection</span>

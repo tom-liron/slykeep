@@ -44,10 +44,7 @@ export function SidebarNav({
                         pathname === "/favorites" && "bg-sidebar-accent font-medium",
                     )}
                 >
-                    <Star
-                        className="size-4 shrink-0 fill-yellow-400 text-yellow-400"
-                        aria-hidden="true"
-                    />
+                    <Star className="size-4 shrink-0 text-favorite" aria-hidden="true" />
                     <span className="flex-1 truncate">Favorites</span>
                 </Link>
 
@@ -121,7 +118,7 @@ export function SidebarNav({
                                             onNavigate={onNavigate}
                                             leading={
                                                 <Star
-                                                    className="size-4 shrink-0 fill-yellow-400 text-yellow-400"
+                                                    className="size-4 shrink-0 text-favorite"
                                                     aria-label="Favorite"
                                                 />
                                             }
