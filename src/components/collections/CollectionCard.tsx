@@ -29,10 +29,7 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
                 <h3 className="truncate font-semibold">{collection.name}</h3>
                 {collection.isFavorite && (
                     <>
-                        <Star
-                            className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400"
-                            aria-hidden="true"
-                        />
+                        <Star className="size-3.5 shrink-0 text-favorite" aria-hidden="true" />
                         <span className="sr-only">Favorite</span>
                     </>
                 )}

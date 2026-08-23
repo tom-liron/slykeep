@@ -65,7 +65,7 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
                         {item.isFavorite && (
                             <>
                                 <Star
-                                    className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400"
+                                    className="size-3.5 shrink-0 text-favorite"
                                     aria-hidden="true"
                                 />
                                 <span className="sr-only">Favorite</span>
