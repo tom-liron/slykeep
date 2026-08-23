@@ -6,7 +6,7 @@ import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/r
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
 import { EDITOR_MIN_HEIGHT, EDITOR_SURFACE, EDITOR_THEME_CATALOG } from "@/config/editor";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
-import { toMonacoLanguage } from "@/lib/code-language";
+import { codeLanguageLabel, toMonacoLanguage } from "@/lib/code-language";
 import { editorMaxHeight, renderedFontSize } from "@/lib/editor-metrics";
 import type { EditorThemeId } from "@/types/editor";
 import { ContentTextarea } from "./ContentTextarea";
@@ -263,8 +263,10 @@ export function CodeEditor({
                     for every item type, and it copies this exact content; a second one on the block
                     itself was the same action twice. In the create and edit forms it would be the
                     only one — but copying is not what those are for. */}
+                {/* The label, not the id: `monacoLanguage` is what the editor below is told to
+                    highlight as, and `plaintext` is a poor thing to show a person. */}
                 <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-                    {monacoLanguage}
+                    {codeLanguageLabel(monacoLanguage)}
                 </span>
             </div>
 
