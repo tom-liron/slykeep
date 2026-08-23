@@ -1,10 +1,19 @@
 "use client";
 
-import { Check, Folder } from "lucide-react";
+import { Check, ChevronDown, Folder } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { CODE_LANGUAGES, findCodeLanguage } from "@/lib/code-language";
 import { CodeEditor } from "./CodeEditor";
 import { MarkdownEditor } from "./MarkdownEditor";
 
@@ -89,21 +98,93 @@ export function ContentField({
 }
 
 /**
+ * What the picker calls an undeclared language.
+ *
+ * "Plain text" rather than "None", and the two are not interchangeable: `CodeEditor`'s header names
+ * the same state a few pixels below this control, in the same form, on the same item — as `text`. A
+ * control saying "None" over an editor saying `text` is the app disagreeing with itself. It also
+ * names the *outcome* (no highlighting) where "None" names an absence and leaves the reader to work
+ * out what that does.
+ *
+ * The two spellings differ deliberately — see `codeLanguageLabel`. This is a form control and gets a
+ * readable phrase; the header is a monospace title bar and gets a token.
+ *
+ * The **label** changed; the **value** did not. This option still writes an empty string, which
+ * `blankToNull` in `item-schemas.ts` stores as `null`. Writing the literal `"plaintext"` instead
+ * would be the tidier-looking version and would put a `plaintext` badge on every unlabelled snippet,
+ * since `ItemDrawer` renders a badge for any truthy `language` — an absence announced as a fact.
+ */
+const PLAIN_TEXT_LABEL = "Plain text";
+
+/**
  * The language the content is highlighted as.
  *
  * Rendered above the content in both forms, deliberately: it is what the editor highlights by, so
  * asking for it after the code has been written is asking too late.
+ *
+ * A dropdown rather than the free-text input this used to be, copying `PreferenceSelect` in
+ * `settings/EditorPreferencesRows.tsx` — the codebase's existing "pick one of a list" control,
+ * already styled and keyboard-navigable. Radix gives the menu typeahead over the item labels, which
+ * is what keeps a thirty-item list usable without reaching for a searchable combobox.
+ *
+ * What it writes is a monaco language id, so the stored value needs no alias lookup to highlight.
+ * What it *reads* may be anything, because items predate the list: `findCodeLanguage` resolves
+ * aliases first so an item stored as `TS` shows TypeScript, and a value that still matches nothing
+ * is rendered as its own option rather than dropped. Nothing is rewritten by opening a form —
+ * `onChange` only fires on a real choice — so an item keeps the language it has until someone
+ * changes it.
  */
 export function LanguageField({ id, value, onChange, error }: ItemFieldProps) {
+    const matched = findCodeLanguage(value);
+
+    // A language this list does not offer, kept so the picker cannot silently discard it. Empty is
+    // not this case: an undeclared language is the "Plain text" option, which every item can reach.
+    const unlisted = !matched && value.trim() ? value.trim() : null;
+
+    const selected = matched?.value ?? unlisted ?? "";
+
     return (
         <Field id={id} label="Language" error={error}>
-            <Input
-                id={id}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                placeholder="e.g. typescript"
-                {...invalidProps(id, error)}
-            />
+            <DropdownMenu>
+                {/* `Field`'s label points at this id, and a button is a labelable element, so the
+                    pair behaves the way the other fields' label/input pairs do. */}
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        id={id}
+                        variant="outline"
+                        className="w-full justify-between font-normal"
+                        {...invalidProps(id, error)}
+                    >
+                        <span className={selected ? undefined : "text-muted-foreground"}>
+                            {matched?.label ?? unlisted ?? PLAIN_TEXT_LABEL}
+                        </span>
+                        <ChevronDown data-icon="inline-end" aria-hidden="true" />
+                    </Button>
+                </DropdownMenuTrigger>
+
+                {/* Matched to the trigger's width so it reads as one control with the fields above
+                    and below it, and capped in height because the list is long enough to scroll. */}
+                <DropdownMenuContent
+                    align="start"
+                    className="max-h-72 w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto"
+                >
+                    <DropdownMenuRadioGroup value={selected} onValueChange={onChange}>
+                        <DropdownMenuRadioItem value="">{PLAIN_TEXT_LABEL}</DropdownMenuRadioItem>
+
+                        {unlisted && (
+                            <DropdownMenuRadioItem value={unlisted}>
+                                {unlisted}
+                            </DropdownMenuRadioItem>
+                        )}
+
+                        {CODE_LANGUAGES.map((language) => (
+                            <DropdownMenuRadioItem key={language.value} value={language.value}>
+                                {language.label}
+                            </DropdownMenuRadioItem>
+                        ))}
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </Field>
     );
 }
