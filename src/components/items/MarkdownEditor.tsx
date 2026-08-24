@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Tabs as TabsPrimitive } from "radix-ui";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
 import { EDITOR_THEME_CATALOG } from "@/config/editor";
+import { MARKDOWN_PLUGINS } from "@/lib/markdown-plugins";
 import { cn } from "@/lib/utils";
 import { ContentTextarea, EDITOR_PANEL, EDITOR_PANEL_BOUNDS } from "./ContentTextarea";
 
@@ -128,7 +128,7 @@ export function MarkdownEditor({
                             `language-*` class, so a highlighter can be dropped in later without
                             touching anything here — see the note in `globals.css` about the option
                             that does not need a dependency at all. */}
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={MARKDOWN_PLUGINS}>{value}</ReactMarkdown>
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground">Nothing to preview.</p>
