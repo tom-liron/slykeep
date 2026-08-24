@@ -304,6 +304,15 @@ export function ItemDrawer({
                         // drawer. A text file shows six controls and the sheet is `w-full` below
                         // `sm`, which is exactly where `ActionLabel` drops the words and leaves the
                         // icons — the same trade the top bar's "New Item" makes.
+                        // Every control in this row carries `dark:hover:bg-muted`, overriding the
+                        // ghost variant's `dark:hover:bg-muted/50`. At half strength the fill lands
+                        // near `#2d2d2d` on this panel — close enough to the surface that the row
+                        // did not read as a set of buttons until the pointer was already on one.
+                        // Full strength is the same token rather than a new colour, so it still
+                        // follows the theme, and that is exactly why this is *not* the white alpha
+                        // the editor header's Explain button uses: that header is painted with a
+                        // hard-coded monaco surface and stays dark under light mode, while this row
+                        // sits on the app's own background and has to flip with it.
                         <div className="flex items-center gap-1 border-t border-border pt-3">
                             {/* Titled and labelled by what the click will *do*, not by what the item
                                 is — the filled star already says which of the two states it is in,
@@ -312,6 +321,7 @@ export function ItemDrawer({
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                className="dark:hover:bg-muted"
                                 onClick={toggleFavorite}
                                 disabled={isFavoriting}
                                 title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -334,6 +344,7 @@ export function ItemDrawer({
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                className="dark:hover:bg-muted"
                                 onClick={togglePin}
                                 disabled={isPinning}
                                 title={isPinned ? "Unpin" : "Pin to the top"}
@@ -359,6 +370,7 @@ export function ItemDrawer({
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="dark:hover:bg-muted"
                                     onClick={copyBody}
                                     disabled={!body}
                                     title="Copy"
@@ -377,6 +389,7 @@ export function ItemDrawer({
                                     <Button
                                         variant="ghost"
                                         size="sm"
+                                        className="dark:hover:bg-muted"
                                         asChild
                                         title="Download"
                                         aria-label="Download"
@@ -390,6 +403,7 @@ export function ItemDrawer({
                                     <Button
                                         variant="ghost"
                                         size="sm"
+                                        className="dark:hover:bg-muted"
                                         disabled
                                         title="Download"
                                         aria-label="Download"
@@ -409,6 +423,7 @@ export function ItemDrawer({
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="dark:hover:bg-muted"
                                     onClick={() => setIsEditing(true)}
                                     disabled={!detail}
                                     title="Edit"

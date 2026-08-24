@@ -63,7 +63,13 @@ export function DeleteItemDialog({
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="text-destructive">
+                {/* `dark:hover:bg-muted` matches the six controls beside it in the drawer's action row —
+                    see the note there. Only the fill changes; the text stays destructive. */}
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive dark:hover:bg-muted"
+                >
                     <Trash2 aria-hidden="true" />
                     <span className="sr-only">Delete</span>
                 </Button>
