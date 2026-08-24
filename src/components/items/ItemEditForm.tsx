@@ -9,16 +9,17 @@ import { updateItem } from "@/actions/items";
 import {
     CollectionsField,
     ContentField,
+    DescriptionField,
     LanguageField,
     TagsField,
 } from "@/components/items/ItemFormFields";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useCollectionOptions } from "@/hooks/use-collection-options";
 import { formatFileSize } from "@/lib/format";
 import { itemTypeOwns, type UpdateItemField, type UpdateItemInput } from "@/lib/item-schemas";
+import type { ItemDraft } from "@/types/ai";
 import type { ItemDetailViewModel } from "@/types/view-models";
 
 /**
@@ -67,6 +68,26 @@ export function ItemEditForm({
         file: showsFile,
         language: showsLanguage,
     } = itemTypeOwns(detail.itemType.name);
+
+    /**
+     * The item as typed right now, for whichever AI button asks.
+     *
+     * Built here and handed to both, rather than each field assembling its own: the two would
+     * otherwise drift the first time a type gains a field, and the one that was not updated would
+     * quietly go on describing the item without it.
+     *
+     * A function rather than an object, so it reads the state at the moment of the click instead of
+     * closing over the render the button was drawn in.
+     */
+    const draft = (): ItemDraft => ({
+        title,
+        content,
+        url,
+        fileName: detail.fileName,
+        language,
+        tags,
+        type: detail.itemType.name,
+    });
 
     /** Points a rejected input at the message `Field` renders for it, as the auth forms do. */
     const invalid = (field: UpdateItemField) =>
@@ -140,15 +161,13 @@ export function ItemEditForm({
                 />
             </Field>
 
-            <Field id="item-description" label="Description" error={fieldErrors.description}>
-                <Textarea
-                    id="item-description"
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    rows={2}
-                    {...invalid("description")}
-                />
-            </Field>
+            <DescriptionField
+                id="item-description"
+                value={description}
+                onChange={setDescription}
+                error={fieldErrors.description}
+                draft={draft}
+            />
 
             {showsLanguage && (
                 <LanguageField
@@ -206,11 +225,7 @@ export function ItemEditForm({
                 value={tags}
                 onChange={setTags}
                 error={fieldErrors.tags}
-                draft={() => ({
-                    title,
-                    content: showsContent ? content : url,
-                    type: detail.itemType.name,
-                })}
+                draft={draft}
             />
 
             <CollectionsField

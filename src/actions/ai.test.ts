@@ -19,6 +19,8 @@ const state = vi.hoisted(() => ({
     rateLimit: { success: true, remaining: 19, reset: Date.now() + 60_000 },
     /** What the stubbed model returns from `output_text`, or an error to throw instead. */
     output: '{"tags": ["react", "hooks"]}',
+    /** `incomplete` is how a response cut short against `max_output_tokens` arrives. */
+    status: "completed",
     throws: null as Error | null,
     /** Every request the model was asked to make. Length is the assertion that matters most. */
     calls: [] as { model: string; instructions: string; input: string }[],
@@ -42,19 +44,20 @@ vi.mock("@/lib/openai", () => ({
 
                 if (state.throws) return Promise.reject(state.throws);
 
-                return Promise.resolve({ output_text: state.output });
+                return Promise.resolve({ output_text: state.output, status: state.status });
             },
         },
     }),
 }));
 
-const { generateAutoTags } = await import("./ai");
+const { generateAutoTags, generateDescription } = await import("./ai");
 const { checkRateLimit } = await import("@/lib/rate-limit");
 
 beforeEach(() => {
     state.isPro = true;
     state.rateLimit = { success: true, remaining: 19, reset: Date.now() + 60_000 };
     state.output = '{"tags": ["react", "hooks"]}';
+    state.status = "completed";
     state.throws = null;
     state.calls = [];
     vi.mocked(checkRateLimit).mockClear();
@@ -159,5 +162,88 @@ describe("the model's answer", () => {
 
         expect(result.success).toBe(false);
         expect(result.success ? "" : result.error).not.toContain("sk-abc");
+    });
+});
+
+/**
+ * The description action, which shares `guardAiRequest` with the tagging one above.
+ *
+ * The shared helper is why these are not a copy of the tag cases for the sake of it: the order it
+ * enforces is invisible in the return value, so the only way a mis-wired second caller shows up is
+ * an assertion on *what was called*. The bucket name is the same kind of mistake — passing
+ * `"aiTag"` here would compile, pass every test that reads `success`, and quietly bill a person's
+ * descriptions against their tagging budget.
+ */
+describe("generateDescription", () => {
+    const description = "A React hook that debounces a value between renders.";
+
+    beforeEach(() => {
+        state.output = JSON.stringify({ description });
+    });
+
+    it("writes a description for a Pro account", async () => {
+        const result = await generateDescription(draft);
+
+        expect(result).toEqual({ success: true, data: { description } });
+    });
+
+    it("refuses a free account before the model and before the rate limit", async () => {
+        state.isPro = false;
+
+        const result = await generateDescription(draft);
+
+        expect(result.success).toBe(false);
+        expect(state.calls).toHaveLength(0);
+        expect(checkRateLimit).not.toHaveBeenCalled();
+    });
+
+    it("spends its own budget, not the tagging one", async () => {
+        await generateDescription(draft);
+
+        expect(checkRateLimit).toHaveBeenCalledWith("aiDescribe", "user-1");
+    });
+
+    it("refuses a spent budget without calling the model", async () => {
+        state.rateLimit = { success: false, remaining: 0, reset: Date.now() + 5 * 60_000 };
+
+        const result = await generateDescription(draft);
+
+        expect(result.success).toBe(false);
+        expect(state.calls).toHaveLength(0);
+    });
+
+    it("describes an item that has only a file name", async () => {
+        // The case tagging could not serve from `content` alone, and the reason the draft carries
+        // the fields apart: an image has no body and no URL.
+        const result = await generateDescription({
+            fileName: "q3-architecture.png",
+            type: "image",
+        });
+
+        expect(result.success).toBe(true);
+        expect(state.calls[0].input).toContain("q3-architecture.png");
+    });
+
+    it("refuses an empty draft without calling the model", async () => {
+        const result = await generateDescription({ language: "typescript", tags: "react" });
+
+        expect(result.success).toBe(false);
+        expect(state.calls).toHaveLength(0);
+    });
+
+    it("refuses a response cut short rather than saving half a sentence", async () => {
+        state.status = "incomplete";
+
+        const result = await generateDescription(draft);
+
+        expect(result.success).toBe(false);
+    });
+
+    it("reports an unusable answer as a failure, not an empty success", async () => {
+        state.output = '{"description": ""}';
+
+        const result = await generateDescription(draft);
+
+        expect(result.success).toBe(false);
     });
 });

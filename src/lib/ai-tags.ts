@@ -1,3 +1,4 @@
+import { truncateForModel } from "@/lib/ai-text";
 import { TAG_MAX_LENGTH } from "@/lib/item-schemas";
 
 /**
@@ -6,8 +7,8 @@ import { TAG_MAX_LENGTH } from "@/lib/item-schemas";
  *
  * Pure functions in `lib/` rather than beside the action, for two reasons. A `"use server"` module
  * may only export async functions, so a helper exported from `actions/ai.ts` would not compile. And
- * these are the two halves that can actually be *wrong* in a way the compiler cannot catch — a
- * truncation that cuts mid-character, a response shape that arrives in the other of the two forms
+ * these are the halves that can actually be *wrong* in a way the compiler cannot catch — a prompt
+ * missing the one word the API requires, a response shape that arrives in the other of the two forms
  * this model uses — so they belong somewhere a unit test can reach without a network.
  *
  * No `server-only` here, unlike `openai.ts`: there is no secret in this file, and keeping it
@@ -37,20 +38,6 @@ export const MAX_SUGGESTED_TAGS = 5;
  * before the truncation above gets to run.
  */
 export const AI_TAG_PAYLOAD_LIMIT = 100_000;
-
-/**
- * Cuts `content` to the cap without splitting a character in half.
- *
- * JavaScript string indices are UTF-16 code units, so a plain `slice` can land between the two
- * halves of a surrogate pair and produce a lone half — an emoji or a CJK character turned into a
- * replacement glyph in the middle of what the model reads. Spreading into an array iterates by code
- * point, which is what makes the cut land on a real boundary.
- */
-export function truncateForTagging(content: string): string {
-    if (content.length <= AI_TAG_CONTENT_LIMIT) return content;
-
-    return [...content].slice(0, AI_TAG_CONTENT_LIMIT).join("");
-}
 
 /** What the model is told it is doing. Constant, so it is not rebuilt per call. */
 export const TAG_INSTRUCTIONS = [
@@ -91,7 +78,7 @@ export function buildTagInput({
     const parts = [`Item type: ${type ?? "item"}`];
 
     if (title) parts.push(`Title: ${title}`);
-    if (content) parts.push(`Content:\n${truncateForTagging(content)}`);
+    if (content) parts.push(`Content:\n${truncateForModel(content, AI_TAG_CONTENT_LIMIT)}`);
 
     parts.push("Return the tags as JSON.");
 

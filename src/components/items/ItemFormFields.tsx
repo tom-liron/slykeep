@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, ChevronDown, Folder, Lightbulb, X } from "lucide-react";
+import { Check, ChevronDown, Folder, Lightbulb, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { generateAutoTags } from "@/actions/ai";
+import { generateAutoTags, generateDescription } from "@/actions/ai";
 import { useIsPro } from "@/components/layout/ProContext";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { addTagToInput } from "@/lib/ai-tags";
 // The one entitlement rule, shared with the action rather than restated — the same reason
@@ -27,18 +28,26 @@ import { addTagToInput } from "@/lib/ai-tags";
 import { canUseAi } from "@/lib/limits";
 import { CODE_LANGUAGES, findCodeLanguage } from "@/lib/code-language";
 import { cn } from "@/lib/utils";
+import type { ItemDraft } from "@/types/ai";
 import { CodeEditor } from "./CodeEditor";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 /**
  * The fields the create dialog and the edit drawer render identically.
  *
- * Only these four. Title, description, and URL look similar but differ in placeholder, `rows`, and
- * `autoFocus`, and pulling them in here would turn readable markup into prop-level configuration.
- * There is deliberately no component covering the whole field *set* either: the two forms order them
- * differently — create puts URL and the upload before the content, edit puts description before the
- * language — so a shared wrapper would have to take the order as a prop, which is worse than the
- * duplication it removes.
+ * Only these five. Title and URL look similar but differ in placeholder and `autoFocus`, and pulling
+ * them in here would turn readable markup into prop-level configuration. There is deliberately no
+ * component covering the whole field *set* either: the two forms order them differently — create
+ * puts URL and the upload before the content, edit puts description before the language — so a
+ * shared wrapper would have to take the order as a prop, which is worse than the duplication it
+ * removes.
+ *
+ * **Description used to be on the other side of that line**, left inline in both forms for exactly
+ * the reason above. That held while it was a labelled textarea whose only difference was a
+ * placeholder, and stopped holding the moment it grew a button, an async call, a proposal to accept
+ * or reject, and an entitlement check: duplicating *that* twice is the thing `TagsField` exists to
+ * avoid, and the placeholder became a prop — which `ContentField` already does. Title and URL have
+ * not crossed the line and stay where they are.
  *
  * Each of these owns its `<Field>` as well as its input, because the pair is the unit that has to
  * stay in step: `Field` renders the error as `<p id="{id}-error">`, and the input has to point at
@@ -63,6 +72,186 @@ type ItemFieldProps = {
 /** Points a rejected input at the message `Field` renders for it. */
 function invalidProps(id: string, error?: string) {
     return error ? { "aria-invalid": true, "aria-describedby": `${id}-error` } : undefined;
+}
+
+/**
+ * What a field hands to `Field`'s `action` slot to ask the model for something.
+ *
+ * Shared by the tags and description fields so the two cannot drift on size, spacing, or what
+ * "working" looks like — they sit a few pixels apart in the same form, and two ghost buttons that
+ * pulse differently would read as two features rather than one.
+ *
+ * **Both carry visible text**, which the description button did not at first. An icon alone is a
+ * question mark on a control that spends the user's money and their rate limit, and a tooltip is no
+ * answer on a touch screen, where nothing hovers.
+ *
+ * `pendingText` is a prop rather than one shared "Suggesting…" because the verb has to match the
+ * button: the tags button suggests and the description button writes, and a control that changes
+ * what it claims to be doing while it does it is worse than one that says nothing.
+ *
+ * `label` is the accessible name and the tooltip — a longer phrase naming *how*, which the visible
+ * text has no room for. It must **contain** that visible text: WCAG 2.5.3 (Label in Name) is what
+ * makes "click Describe" work for someone driving the app by voice, and an `aria-label` that
+ * replaces the word on the button rather than extending it is what breaks it.
+ */
+function SuggestButton({
+    icon: Icon,
+    label,
+    text,
+    pendingText,
+    isPending,
+    onClick,
+}: {
+    icon: typeof Lightbulb;
+    label: string;
+    text: string;
+    pendingText: string;
+    isPending: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClick}
+            disabled={isPending}
+            aria-label={label}
+            title={label}
+            className="-my-1 h-7 gap-1.5 px-2 text-xs"
+        >
+            <Icon className={cn("size-3.5", isPending && "animate-pulse")} aria-hidden="true" />
+            <span>{isPending ? pendingText : text}</span>
+        </Button>
+    );
+}
+
+/**
+ * The description an item gets when nobody wants to write one.
+ *
+ * The button is `PenLine` — "write this for me", which is the action. Deliberately not `Sparkles`,
+ * the Prompt type's icon in `item-type-catalog.ts`, and deliberately not `Lightbulb`, which is the
+ * tag button eight pixels below it; two AI controls in one form have to be told apart at a glance.
+ *
+ * It says **"Describe"**, not "Suggest Description". Symmetry with the tags button was the obvious
+ * reading and the wrong one: you do not *suggest* a description, you write one, and the phrase is
+ * the longest option on the row that has least room for it. "Summarize" was the other candidate and
+ * promises something else — a summary condenses what the reader is also going to read, a
+ * description says what the item is so they do not have to — besides colliding with the standalone
+ * summary feature still open in `docs/ai-integration-plan.md` §14. One imperative verb carrying its
+ * own object is what lets it sit beside a label that already says "Description" without restating
+ * it, which is the thing "Suggest Tags" has to do because "Suggest" alone says nothing.
+ *
+ * **Where the answer lands is one rule with two shapes: never destroy text the user wrote.** An
+ * empty field is filled directly, because filling nothing destroys nothing and the extra click
+ * would be a review of a decision already made. A field with something in it gets a proposal
+ * underneath, accepted or dismissed the way a suggested tag is — the same two controls, in the same
+ * two colours, for the same reason.
+ */
+export function DescriptionField({
+    id,
+    value,
+    onChange,
+    error,
+    placeholder,
+    draft,
+}: ItemFieldProps & {
+    placeholder?: string;
+    /** Omit to render the plain field — the button appears only when there is something to send. */
+    draft?: () => ItemDraft;
+}) {
+    // What is shown, not what is enforced: `generateDescription` runs this same check server-side,
+    // so a free account that reaches the action by hand is still refused. This only keeps a control
+    // that would always fail off their screen.
+    const canSuggest = canUseAi(useIsPro());
+    const [proposal, setProposal] = useState<string | null>(null);
+    const [isPending, startTransition] = useTransition();
+
+    const suggest = () => {
+        startTransition(async () => {
+            const result = await generateDescription(draft!());
+
+            if (!result.success) {
+                toast.error(result.error);
+
+                return;
+            }
+
+            if (value.trim() === "") {
+                onChange(result.data.description);
+                setProposal(null);
+
+                return;
+            }
+
+            // Replaces any proposal already on screen rather than stacking a second one, so what is
+            // shown always answers the most recent question.
+            setProposal(result.data.description);
+        });
+    };
+
+    const accept = () => {
+        onChange(proposal!);
+        setProposal(null);
+    };
+
+    return (
+        <Field
+            id={id}
+            label="Description"
+            error={error}
+            action={
+                canSuggest && draft ? (
+                    <SuggestButton
+                        icon={PenLine}
+                        label="Describe this item with AI"
+                        text="Describe"
+                        pendingText="Writing…"
+                        isPending={isPending}
+                        onClick={suggest}
+                    />
+                ) : undefined
+            }
+        >
+            <Textarea
+                id={id}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                placeholder={placeholder}
+                rows={2}
+                {...invalidProps(id, error)}
+            />
+
+            {proposal && (
+                /* A block rather than the tags' inline badge, because the content is a sentence:
+                   badges wrap by word and would break it across lines with the controls stranded at
+                   the end. The colours are the tag suggestions' exactly — blue for a proposal that
+                   is not yet the field's value, green and red for two opposite actions that would
+                   otherwise be a pair of identical grey glyphs. */
+                <div className="flex items-start gap-1 rounded-md border bg-muted/40 p-2">
+                    <p className="flex-1 text-xs leading-relaxed text-suggestion">{proposal}</p>
+
+                    <button
+                        type="button"
+                        onClick={accept}
+                        aria-label="Use this description"
+                        className="rounded-full p-0.5 text-confirm transition-colors hover:bg-confirm/15"
+                    >
+                        <Check className="size-3.5" aria-hidden="true" />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setProposal(null)}
+                        aria-label="Dismiss this description"
+                        className="rounded-full p-0.5 text-destructive transition-colors hover:bg-destructive/15"
+                    >
+                        <X className="size-3.5" aria-hidden="true" />
+                    </button>
+                </div>
+            )}
+        </Field>
+    );
 }
 
 /**
@@ -222,7 +411,7 @@ export function TagsField({
     draft,
 }: ItemFieldProps & {
     /** Omit to render the plain field — the button appears only when there is something to send. */
-    draft?: () => { title: string; content: string; type?: string };
+    draft?: () => ItemDraft;
 }) {
     // What is shown, not what is enforced: `generateAutoTags` runs this same check server-side, so
     // a free account that reaches the action by hand is still refused. This only keeps a control
@@ -267,28 +456,22 @@ export function TagsField({
             hint="Separate tags with commas."
             action={
                 canSuggest && draft ? (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
+                    /* Deliberately not `Sparkles`, which the spec asked for: that is the Prompt
+                       type's icon in `item-type-catalog.ts`, so the button and a prompt item
+                       rendered the same glyph a few pixels apart. `Wand`/`WandSparkles` are the
+                       usual "generate this for me" mark and were the obvious swap, but both are
+                       built from eight or nine paths *and* carry their own sparkle cluster —
+                       illegible at 14px and still the thing being avoided. A lightbulb is three
+                       paths, reads cleanly at this size, means "suggestion" rather than "magic",
+                       and collides with nothing else in the app. */
+                    <SuggestButton
+                        icon={Lightbulb}
+                        label="Suggest Tags with AI"
+                        text="Suggest Tags"
+                        pendingText="Suggesting…"
+                        isPending={isPending}
                         onClick={suggest}
-                        disabled={isPending}
-                        className="-my-1 h-7 gap-1.5 px-2 text-xs"
-                    >
-                        {/* Deliberately not `Sparkles`, which the spec asked for: that is the
-                            Prompt type's icon in `item-type-catalog.ts`, so the button and a prompt
-                            item rendered the same glyph a few pixels apart. `Wand`/`WandSparkles`
-                            are the usual "generate this for me" mark and were the obvious swap, but
-                            both are built from eight or nine paths *and* carry their own sparkle
-                            cluster — illegible at 14px and still the thing being avoided. A
-                            lightbulb is three paths, reads cleanly at this size, means "suggestion"
-                            rather than "magic", and collides with nothing else in the app. */}
-                        <Lightbulb
-                            className={cn("size-3.5", isPending && "animate-pulse")}
-                            aria-hidden="true"
-                        />
-                        {isPending ? "Suggesting…" : "Suggest Tags"}
-                    </Button>
+                    />
                 ) : undefined
             }
         >

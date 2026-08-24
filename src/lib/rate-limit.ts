@@ -68,6 +68,12 @@ const LIMITS = {
     // Twenty an hour is well above tagging a batch of items by hand — the suggestions are accepted
     // once and then the item is saved — and well below what a loop would spend.
     aiTag: { tokens: 20, window: "1 h", keyBy: "user" },
+    // The same shape and the same number as `aiTag`, for the same reason — but its own bucket, not
+    // a shared AI allowance. The two buttons sit a few pixels apart in the same form and a person
+    // writing a batch of items uses both on each one, so one shared budget would mean tagging a
+    // batch silently spends the descriptions for it, and the refusal would name a limit the user
+    // never went near.
+    aiDescribe: { tokens: 20, window: "1 h", keyBy: "user" },
 } as const satisfies Record<
     string,
     { tokens: number; window: `${number} ${"m" | "h"}`; keyBy: "ip" | "ip+email" | "user" }

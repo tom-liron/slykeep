@@ -10,6 +10,7 @@ import { FileUpload } from "@/components/items/FileUpload";
 import {
     CollectionsField,
     ContentField,
+    DescriptionField,
     LanguageField,
     TagsField,
 } from "@/components/items/ItemFormFields";
@@ -27,7 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
 import { useCollectionOptions } from "@/hooks/use-collection-options";
@@ -40,6 +40,7 @@ import {
     type CreateItemField,
     type CreateItemInput,
 } from "@/lib/item-schemas";
+import type { ItemDraft } from "@/types/ai";
 
 const DEFAULT_TYPE: CreatableItemTypeName = "snippet";
 
@@ -175,6 +176,23 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
         file: showsFile,
         language: showsLanguage,
     } = itemTypeOwns(type);
+
+    /**
+     * The item as typed right now, for whichever AI button asks — see the edit form's copy of this.
+     *
+     * The type is always the one the chips currently show, which matters more here than in the edit
+     * form: switching from Snippet to Link between typing and clicking changes what the item *is*,
+     * and reading it at click time is what keeps the prompt describing the right thing.
+     */
+    const draft = (): ItemDraft => ({
+        title,
+        content,
+        url,
+        fileName: file?.fileName,
+        language,
+        tags,
+        type,
+    });
 
     /** Points a rejected input at the message `Field` renders for it, as the edit form does. */
     const invalid = (field: CreateItemField) =>
@@ -341,29 +359,21 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     />
                 )}
 
-                <Field
+                <DescriptionField
                     id="new-item-description"
-                    label="Description"
+                    value={description}
+                    onChange={setDescription}
                     error={fieldErrors.description}
-                >
-                    <Textarea
-                        id="new-item-description"
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
-                        placeholder="Add a short summary"
-                        rows={2}
-                        {...invalid("description")}
-                    />
-                </Field>
+                    placeholder="Add a short summary"
+                    draft={draft}
+                />
 
-                {/* As the edit form: the draft as typed, and a link's URL standing in for the
-                    content column it does not have. */}
                 <TagsField
                     id="new-item-tags"
                     value={tags}
                     onChange={setTags}
                     error={fieldErrors.tags}
-                    draft={() => ({ title, content: showsContent ? content : url, type })}
+                    draft={draft}
                 />
 
                 {/* Last, and after the tags: filing is what happens to an item once it exists, so

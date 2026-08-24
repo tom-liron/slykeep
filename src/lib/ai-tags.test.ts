@@ -6,7 +6,6 @@ import {
     addTagToInput,
     buildTagInput,
     parseSuggestedTags,
-    truncateForTagging,
 } from "./ai-tags";
 
 /**
@@ -17,8 +16,7 @@ import {
  * outside the range the prompt asked for, casing that varies within one response. None of it is
  * reachable from a type.
  *
- * `truncateForTagging` is here for the surrogate pair: the obvious `slice` passes every test that
- * uses ASCII and corrupts the one character that matters.
+ * The truncation these prompts share moved to `ai-text.test.ts` with the function itself.
  */
 
 describe("parseSuggestedTags", () => {
@@ -65,30 +63,6 @@ describe("parseSuggestedTags", () => {
         expect(parseSuggestedTags('{"suggestions": ["react"]}')).toEqual([]);
         expect(parseSuggestedTags('{"tags": []}')).toEqual([]);
         expect(parseSuggestedTags("null")).toEqual([]);
-    });
-});
-
-describe("truncateForTagging", () => {
-    it("leaves content under the cap exactly as it was", () => {
-        const content = "const a = 1;";
-
-        expect(truncateForTagging(content)).toBe(content);
-    });
-
-    it("cuts content over the cap down to it", () => {
-        expect(truncateForTagging("a".repeat(AI_TAG_CONTENT_LIMIT + 500))).toHaveLength(
-            AI_TAG_CONTENT_LIMIT,
-        );
-    });
-
-    it("cuts on a character boundary, not half way through a surrogate pair", () => {
-        // Each emoji is two UTF-16 code units, so the cap lands mid-character — the case a plain
-        // `slice` turns into a replacement glyph.
-        const cut = truncateForTagging("😀".repeat(AI_TAG_CONTENT_LIMIT));
-
-        expect(cut).not.toContain("�");
-        expect(cut.endsWith("😀")).toBe(true);
-        expect([...cut]).toHaveLength(AI_TAG_CONTENT_LIMIT);
     });
 });
 
