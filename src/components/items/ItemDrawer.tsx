@@ -148,6 +148,27 @@ export function ItemDrawer({
     // it is the newer of the two, so everything the summary also carries is read from it.
     const view: ItemSummaryViewModel = detail ?? item;
 
+    /**
+     * What the Explain button sends the model, built at click time.
+     *
+     * Handed only to the read-only editor below, which is the whole of "not in the create and edit
+     * forms": those render their own `CodeEditor` without this prop, so the button does not exist
+     * there rather than being hidden there. `showsCode` is the same test the action re-applies as
+     * `isExplainableType` — a snippet or a command — so a hand-made request cannot ask for an
+     * explanation of a note.
+     *
+     * It reads `detail`, not `item`: the summary the card passed in has no body at all, and the
+     * body is the entire input. Everything else is context the prompt uses to tell a shell line
+     * from a program — the type most of all.
+     */
+    const explainDraft = () => ({
+        title: view.title,
+        content: detail?.content ?? "",
+        language: detail?.language,
+        tags: view.tags.join(", "),
+        type: item.itemType.name,
+    });
+
     // The write and both toasts moved to `copyToClipboard`, shared with the cards' copy icon: the
     // same action reached two ways should not be able to start reporting itself two ways.
     const copyBody = () => copyToClipboard(body);
@@ -461,6 +482,7 @@ export function ItemDrawer({
                                             language={detail.language}
                                             readOnly
                                             label={`${view.title} content`}
+                                            explain={explainDraft}
                                         />
                                     ) : (
                                         <MarkdownEditor
