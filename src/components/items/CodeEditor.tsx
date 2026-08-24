@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
+import { Crown, Loader2, MessageSquareText } from "lucide-react";
+import { Tabs as TabsPrimitive } from "radix-ui";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
+import { explainCode } from "@/actions/ai";
+import { useIsPro } from "@/components/layout/ProContext";
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
+import { Button } from "@/components/ui/button";
 import { EDITOR_MIN_HEIGHT, EDITOR_SURFACE, EDITOR_THEME_CATALOG } from "@/config/editor";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { codeLanguageLabel, toMonacoLanguage } from "@/lib/code-language";
 import { editorMaxHeight, renderedFontSize } from "@/lib/editor-metrics";
+import { canUseAi } from "@/lib/limits";
+import { MARKDOWN_PLUGINS } from "@/lib/markdown-plugins";
+import { cn } from "@/lib/utils";
+import type { ItemDraft } from "@/types/ai";
 import type { EditorThemeId } from "@/types/editor";
-import { ContentTextarea } from "./ContentTextarea";
+import { ContentTextarea, EDITOR_PANEL, EDITOR_PANEL_BOUNDS } from "./ContentTextarea";
 
 /**
  * The wrapper ships its own default CDN build, which is a *different* monaco version from the
@@ -178,6 +189,7 @@ export function CodeEditor({
     id,
     label,
     placeholder,
+    explain,
     "aria-invalid": ariaInvalid,
     "aria-describedby": ariaDescribedBy,
 }: {
@@ -190,10 +202,24 @@ export function CodeEditor({
     /** The editor's accessible name, since the visible label is not wired to a native control. */
     label: string;
     placeholder?: string;
+    /**
+     * What to send the model when Explain is clicked. **Omit it and the whole feature is absent** —
+     * no button, no tabs, no action import reached at runtime — which is how the create and edit
+     * forms stay exactly as they were.
+     *
+     * A function rather than an `ItemDraft` value, matching `DescriptionField`'s `draft` prop: the
+     * caller builds it at click time, so the request describes what is on screen now rather than
+     * what was on screen when this rendered.
+     */
+    explain?: () => ItemDraft;
     "aria-invalid"?: boolean;
     "aria-describedby"?: string;
 }) {
     const [height, setHeight] = useState(MIN_HEIGHT);
+    /** The explanation this editor has been given, or null while it has none. */
+    const [explanation, setExplanation] = useState<string | null>(null);
+    const [isExplaining, startExplaining] = useTransition();
+    const [tab, setTab] = useState("code");
 
     // Font size, tab size, wrapping, the minimap, and the theme are the account's, not this
     // component's — see `settings/EditorPreferencesContext`. Outside the dashboard layout there is
@@ -215,6 +241,38 @@ export function CodeEditor({
     // to paint its body — otherwise the header band and border stay one colour while the editor
     // changes underneath them.
     const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
+
+    // What is shown, not what is enforced: `explainCode` runs this same check server-side, and it
+    // also re-checks the item type, so a free account that reaches the action by hand is refused.
+    // Unlike the two AI buttons in the forms — which hide themselves from a free account — this one
+    // stays on screen wearing a crown, because the surface it sits on is different: a form's field
+    // row reads as complete without it, while a control missing from the editor's chrome is a
+    // feature nobody discovers. That is the spec's call, and it is why `canExplain` gates the
+    // *action* here rather than the button's existence.
+    const canExplain = canUseAi(useIsPro());
+
+    // Pinned to the code tab until there is a second tab to switch to, so nothing can leave the
+    // editor showing a panel that holds nothing — the same guard `MarkdownEditor` applies with
+    // `readOnly ? "preview" : tab`.
+    const activeTab = explanation === null ? "code" : tab;
+
+    const requestExplanation = () => {
+        startExplaining(async () => {
+            const result = await explainCode(explain!());
+
+            if (!result.success) {
+                toast.error(result.error);
+
+                return;
+            }
+
+            setExplanation(result.data.explanation);
+            // Switches on arrival rather than waiting to be clicked. The user asked a question and
+            // this is the answer; leaving them on the code with a new tab quietly added beside it
+            // would make them ask for it twice.
+            setTab("explain");
+        });
+    };
 
     // Fluid up to a ceiling: monaco reports how tall its content actually is — wrapped lines
     // included — and the wrapper follows it until the ceiling, past which the editor scrolls itself.
@@ -245,7 +303,13 @@ export function CodeEditor({
     };
 
     return (
-        <div
+        // A tabs root even when there is only ever one tab, which is every editor outside the
+        // drawer. Radix renders a plain div and the header's list is what is conditional, so the
+        // alternative — a div here and a root there — would be two versions of the frame to keep
+        // matching. `MarkdownEditor` is built the same way for the same reason.
+        <TabsPrimitive.Root
+            value={activeTab}
+            onValueChange={setTab}
             className="overflow-hidden rounded-lg border border-border aria-invalid:border-destructive"
             style={{ backgroundColor: surface }}
             aria-invalid={ariaInvalid}
@@ -259,18 +323,51 @@ export function CodeEditor({
                     <span className="size-2.5 rounded-full bg-[#28c840]" />
                 </div>
 
+                {/* Only once there is something to switch to. A lone "Code" tab beside the dots
+                    would be chrome that does nothing, and it would appear on every form in the app
+                    to serve a feature only the drawer has. */}
+                {explanation !== null && (
+                    <TabsPrimitive.List className="flex items-center gap-1" aria-label={label}>
+                        <Tab value="code">Code</Tab>
+                        <Tab value="explain">Explain</Tab>
+                    </TabsPrimitive.List>
+                )}
+
                 {/* No copy button here. The drawer's action bar already has one, in the same place
                     for every item type, and it copies this exact content; a second one on the block
                     itself was the same action twice. In the create and edit forms it would be the
-                    only one — but copying is not what those are for. */}
-                {/* The label, not the id: `monacoLanguage` is what the editor below is told to
-                    highlight as, and `plaintext` is a poor thing to show a person. */}
-                <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-                    {codeLanguageLabel(monacoLanguage)}
-                </span>
+                    only one — but copying is not what those are for.
+
+                    Explain is the exception, and the reason is that same action bar: it holds what
+                    is true of *every* item type, and this is true of two. A button there would have
+                    to be absent for five of the seven types, which is a worse thing for a toolbar
+                    to be than short. */}
+                <div className="ml-auto flex items-center gap-2">
+                    {explain && (
+                        <ExplainButton
+                            canExplain={canExplain}
+                            isExplaining={isExplaining}
+                            hasExplanation={explanation !== null}
+                            onClick={requestExplanation}
+                        />
+                    )}
+
+                    {/* The label, not the id: `monacoLanguage` is what the editor below is told to
+                        highlight as, and `plaintext` is a poor thing to show a person. */}
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                        {codeLanguageLabel(monacoLanguage)}
+                    </span>
+                </div>
             </div>
 
-            {/* The fallback keeps the frame, the header and the language label — everything except
+            {/* Force-mounted and hidden by class rather than unmounted, the way `MarkdownEditor`
+                keeps its Write tab alive. Monaco is not a control that can be thrown away and
+                rebuilt cheaply: it fetches several megabytes from a CDN, measures its own content
+                height on mount, and holds the scroll position the reader left off at. Unmounting it
+                to look at the explanation would lose all three, and coming back would flash a
+                re-measuring editor at someone who only switched tabs. */}
+            <TabsPrimitive.Content value="code" forceMount className="data-[state=inactive]:hidden">
+                {/* The fallback keeps the frame, the header and the language label — everything except
                 the highlighting, which is what a plain textarea cannot do. It stays honest about
                 what the content is: the label above still says `typescript`, and the item reads back
                 highlighted the moment it is saved and viewed.
@@ -278,77 +375,207 @@ export function CodeEditor({
                 Rendering it *instead of* `<Editor>`, rather than hiding one of the two, is also what
                 keeps monaco off the phone: `@monaco-editor/react` fetches several megabytes from a
                 CDN when the editor mounts, and a surface that never mounts never asks. */}
-            {plainText ? (
-                <ContentTextarea
-                    id={id}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder}
-                    label={label}
-                    code
-                />
-            ) : (
-                <Editor
-                    height={height}
-                    language={monacoLanguage}
-                    value={value}
-                    // The preference *is* the monaco theme name: `devstash-dark` is the one registered
-                    // above, and the rest are built in.
-                    theme={preferences.theme}
-                    beforeMount={defineTheme}
-                    onMount={handleMount}
-                    onChange={(next) => onChange?.(next ?? "")}
-                    loading={<div className="size-full animate-pulse bg-muted/40" />}
-                    options={{
-                        readOnly,
-                        domReadOnly: readOnly,
-                        ariaLabel: label,
-                        placeholder,
-                        automaticLayout: true,
-                        scrollBeyondLastLine: false,
-                        // The editor lives inside a scrolling drawer and a scrolling dialog. Consuming
-                        // the wheel would trap the page's scroll the moment the pointer crossed it.
-                        scrollbar: {
-                            alwaysConsumeMouseWheel: false,
-                            verticalScrollbarSize: 10,
-                            horizontalScrollbarSize: 10,
-                            useShadows: false,
-                        },
-                        // A stash, not an IDE: nothing here has a project or a type-checker behind it,
-                        // so suggestions and hovers would only ever be noise over stored text.
-                        quickSuggestions: false,
-                        suggestOnTriggerCharacters: false,
-                        parameterHints: { enabled: false },
-                        hover: { enabled: "off" },
-                        occurrencesHighlight: "off",
-                        renderLineHighlight: readOnly ? "none" : "line",
-                        minimap: { enabled: preferences.minimap },
-                        overviewRulerLanes: 0,
-                        overviewRulerBorder: false,
-                        hideCursorInOverviewRuler: true,
-                        folding: false,
-                        glyphMargin: false,
-                        lineNumbersMinChars: 3,
-                        lineDecorationsWidth: 8,
-                        // Wrapping rather than a horizontal scrollbar is the default, because the drawer
-                        // is narrow and a long line scrolled sideways is worse than a wrapped one — but
-                        // it is a preference now, since that trade is the user's to make for their own
-                        // content. Turning it off also shortens the measured content height, which is
-                        // the height of the box: the editor gets smaller, not just narrower in reach.
-                        wordWrap: preferences.wordWrap ? "on" : "off",
-                        fontFamily: "var(--font-mono)",
-                        // Floored under a finger, which here is the read-only drawer: monaco's textarea
-                        // is focusable even when it is read-only, and iOS zooms the page in on focus at
-                        // anything under 16px. The stored preference is untouched — see
-                        // `renderedFontSize`.
-                        fontSize: renderedFontSize(preferences.fontSize, coarsePointer),
-                        tabSize: preferences.tabSize,
-                        padding: { top: 12, bottom: 12 },
-                        contextmenu: !readOnly,
-                        stickyScroll: { enabled: false },
-                    }}
-                />
+                {plainText ? (
+                    <ContentTextarea
+                        id={id}
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder}
+                        label={label}
+                        code
+                    />
+                ) : (
+                    <Editor
+                        height={height}
+                        language={monacoLanguage}
+                        value={value}
+                        // The preference *is* the monaco theme name: `devstash-dark` is the one registered
+                        // above, and the rest are built in.
+                        theme={preferences.theme}
+                        beforeMount={defineTheme}
+                        onMount={handleMount}
+                        onChange={(next) => onChange?.(next ?? "")}
+                        loading={<div className="size-full animate-pulse bg-muted/40" />}
+                        options={{
+                            readOnly,
+                            domReadOnly: readOnly,
+                            ariaLabel: label,
+                            placeholder,
+                            automaticLayout: true,
+                            scrollBeyondLastLine: false,
+                            // The editor lives inside a scrolling drawer and a scrolling dialog. Consuming
+                            // the wheel would trap the page's scroll the moment the pointer crossed it.
+                            scrollbar: {
+                                alwaysConsumeMouseWheel: false,
+                                verticalScrollbarSize: 10,
+                                horizontalScrollbarSize: 10,
+                                useShadows: false,
+                            },
+                            // A stash, not an IDE: nothing here has a project or a type-checker behind it,
+                            // so suggestions and hovers would only ever be noise over stored text.
+                            quickSuggestions: false,
+                            suggestOnTriggerCharacters: false,
+                            parameterHints: { enabled: false },
+                            hover: { enabled: "off" },
+                            occurrencesHighlight: "off",
+                            renderLineHighlight: readOnly ? "none" : "line",
+                            minimap: { enabled: preferences.minimap },
+                            overviewRulerLanes: 0,
+                            overviewRulerBorder: false,
+                            hideCursorInOverviewRuler: true,
+                            folding: false,
+                            glyphMargin: false,
+                            lineNumbersMinChars: 3,
+                            lineDecorationsWidth: 8,
+                            // Wrapping rather than a horizontal scrollbar is the default, because the drawer
+                            // is narrow and a long line scrolled sideways is worse than a wrapped one — but
+                            // it is a preference now, since that trade is the user's to make for their own
+                            // content. Turning it off also shortens the measured content height, which is
+                            // the height of the box: the editor gets smaller, not just narrower in reach.
+                            wordWrap: preferences.wordWrap ? "on" : "off",
+                            fontFamily: "var(--font-mono)",
+                            // Floored under a finger, which here is the read-only drawer: monaco's textarea
+                            // is focusable even when it is read-only, and iOS zooms the page in on focus at
+                            // anything under 16px. The stored preference is untouched — see
+                            // `renderedFontSize`.
+                            fontSize: renderedFontSize(preferences.fontSize, coarsePointer),
+                            tabSize: preferences.tabSize,
+                            padding: { top: 12, bottom: 12 },
+                            contextmenu: !readOnly,
+                            stickyScroll: { enabled: false },
+                        }}
+                    />
+                )}
+            </TabsPrimitive.Content>
+
+            {/* Rendered only once it exists, so there is no empty panel to reach — `activeTab` also
+                refuses to select it before then, and the two agree on purpose rather than one
+                covering for the other.
+
+                The same surface, bounds and `.markdown-preview` ramp the markdown editor's Preview
+                tab uses. An explanation of a snippet and a rendered note are the same kind of thing
+                on screen — prose in the drawer's content slot — and they read as one surface because
+                they *are* one, not because two sets of classes were kept in step. */}
+            {explanation !== null && (
+                <TabsPrimitive.Content
+                    value="explain"
+                    style={EDITOR_PANEL_BOUNDS}
+                    className={cn(EDITOR_PANEL, "px-3 py-3")}
+                >
+                    <div className="markdown-preview">
+                        <ReactMarkdown remarkPlugins={MARKDOWN_PLUGINS}>
+                            {explanation}
+                        </ReactMarkdown>
+                    </div>
+                </TabsPrimitive.Content>
             )}
-        </div>
+        </TabsPrimitive.Root>
+    );
+}
+
+/** A header tab: quiet until selected, and never loud — the content below it is the point. */
+function Tab({ value, children }: { value: string; children: React.ReactNode }) {
+    return (
+        <TabsPrimitive.Trigger
+            value={value}
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground"
+        >
+            {children}
+        </TabsPrimitive.Trigger>
+    );
+}
+
+/**
+ * The one control in the editor's chrome.
+ *
+ * Sized and styled as `ItemFormFields`' `SuggestButton` is — ghost, `h-7`, `text-xs`, an icon at
+ * `size-3.5` — so the three AI buttons in the app are recognizably one control in three places,
+ * even though this one lives in a window header rather than beside a field label.
+ *
+ * `MessageSquareText`, and **not** the `Sparkles` the spec asked for. Sparkles is the Prompt
+ * *type's* icon in `item-type-catalog.ts`, and reusing it here was rejected once already: `e0487ed`
+ * took it off the Suggest Tags button for exactly this reason. The argument for keeping it the
+ * second time — that this button only ever renders on a snippet or a command, so the prompt type is
+ * never on screen beside it — is true and still not enough. An icon is learned across the whole
+ * app, not per surface, and one glyph meaning "prompt" in the sidebar and "explain" in a window
+ * header has to be read twice wherever it appears.
+ *
+ * It names the *action*, which is the rule `PenLine` set for the description button — "write this
+ * for me" — and the reason none of the three AI controls wears a generic AI glyph. A bubble with
+ * text in it is the answer coming back, which is what this button produces: prose about the code,
+ * not a transformation of it.
+ *
+ * **Weight is a real constraint here, not a preference.** This is the only icon in the editor's
+ * chrome, and everything around it is spare — three flat dots, two quiet tabs, a mono language
+ * label. `BookOpen` was tried first and rejected on sight for exactly that: a pictorial,
+ * many-stroke glyph reads as heavy next to that much restraint, and at `size-3.5` its detail turns
+ * to mush. The rule for replacing this icon is therefore *light and geometric before clever* — the
+ * word "Explain" sits right beside it and carries the meaning, so the glyph only has to stay
+ * legible and stay out of the way.
+ *
+ * A free account gets `Crown` and a disabled button rather than no button. It says "Explain" either
+ * way — the crown is what marks it as bought, and swapping the word for "Upgrade" would make a
+ * control that never says what it does.
+ */
+function ExplainButton({
+    canExplain,
+    isExplaining,
+    hasExplanation,
+    onClick,
+}: {
+    canExplain: boolean;
+    isExplaining: boolean;
+    hasExplanation: boolean;
+    onClick: () => void;
+}) {
+    // Native `title` rather than a tooltip component, which this app does not have — the same thing
+    // `SuggestButton` does with its own label. `aria-label` carries it for assistive tech, since a
+    // `title` alone is not reliably announced.
+    const label = canExplain
+        ? hasExplanation
+            ? "Explain this code with AI again"
+            : "Explain this code with AI"
+        : "AI features require Pro subscription";
+
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClick}
+            // A free account's button is inert rather than a route to the upgrade page. The action
+            // behind it would refuse, and a control that navigates away from an item someone is
+            // reading is a bigger surprise than one that does nothing.
+            disabled={!canExplain || isExplaining}
+            aria-label={label}
+            title={label}
+            // The hover fill is a **white alpha**, overriding the ghost variant's `bg-muted`, and
+            // for the same reason `SLIDER_COLORS` above is written in white alphas: this header is
+            // not painted with a theme token. It takes its colour from `EDITOR_THEME_CATALOG`, which
+            // is five hard-coded monaco surfaces — `#171717`, `#272822`, `#0d1117`, `#1e1e1e`,
+            // `#000000` — so a grey mixed from `--muted` lands somewhere different on each of them:
+            // nearly invisible on the darkest, and washing Monokai's warm brown toward grey.
+            //
+            // It also has to survive light mode, which is still on the roadmap. Every monaco theme
+            // here is `vs-dark`-based, so this header stays dark even when the app around it turns
+            // light — at which point `--muted` flips to a *light* grey and a token-based hover would
+            // vanish into the dark chrome entirely. A white alpha is immune to that by construction,
+            // which is why this is not simply a contrast tweak.
+            //
+            // 10%, which is `scrollbarSlider.background` above to the digit — `#ffffff1a`. 15% was
+            // tried first and read as too bright for chrome this quiet, and landing on the alpha the
+            // scrollbar already uses means the two things that light up in this frame light up by
+            // the same amount.
+            className="-my-1 h-7 gap-1.5 px-2 text-xs hover:bg-white/10 dark:hover:bg-white/10"
+        >
+            {!canExplain ? (
+                <Crown className="size-3.5" aria-hidden="true" />
+            ) : isExplaining ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+                <MessageSquareText className="size-3.5" aria-hidden="true" />
+            )}
+            <span>{isExplaining ? "Explaining…" : "Explain"}</span>
+        </Button>
     );
 }

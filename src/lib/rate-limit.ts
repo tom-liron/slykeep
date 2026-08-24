@@ -74,6 +74,17 @@ const LIMITS = {
     // batch silently spends the descriptions for it, and the refusal would name a limit the user
     // never went near.
     aiDescribe: { tokens: 20, window: "1 h", keyBy: "user" },
+    // Its own bucket for the reason `aiDescribe` is: one shared AI allowance would let one feature
+    // silently spend another's, and the refusal would name a limit the user never went near.
+    //
+    // **Tighter than the other two**, and the only AI limit that is. Those two are clicked while
+    // *writing* an item — once each, then the item is saved — so twenty an hour is far more than a
+    // person doing it by hand. This one is clicked while *reading*, from a drawer that reopens on
+    // every item in a list, and it asks the model for four hundred words against up to three times
+    // the input; it is comfortably the most expensive request in the product, and the one whose
+    // button is easiest to press repeatedly without meaning to. Ten an hour is still more
+    // explanations than anyone reads in a sitting.
+    aiExplain: { tokens: 10, window: "1 h", keyBy: "user" },
 } as const satisfies Record<
     string,
     { tokens: number; window: `${number} ${"m" | "h"}`; keyBy: "ip" | "ip+email" | "user" }

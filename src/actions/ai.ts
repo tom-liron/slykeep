@@ -12,6 +12,16 @@ import {
     parseSuggestedDescription,
 } from "@/lib/ai-description";
 import {
+    AI_EXPLAIN_PAYLOAD_LIMIT,
+    EXPLAIN_INSTRUCTIONS,
+    EXPLAIN_MAX_OUTPUT_TOKENS,
+    EXPLAIN_REASONING_EFFORT,
+    buildExplainInput,
+    hasExplainableContent,
+    isExplainableType,
+    parseExplanation,
+} from "@/lib/ai-explain";
+import {
     AI_TAG_PAYLOAD_LIMIT,
     TAG_INSTRUCTIONS,
     buildTagInput,
@@ -21,7 +31,12 @@ import { canUseAi } from "@/lib/limits";
 import { AI_MODEL, openai } from "@/lib/openai";
 import { type RateLimitName, checkRateLimit, minutesUntilReset } from "@/lib/rate-limit";
 import { getCurrentUser } from "@/server/current-user";
-import type { ItemDraft, SuggestDescriptionResult, SuggestTagsResult } from "@/types/ai";
+import type {
+    ExplainCodeResult,
+    ItemDraft,
+    SuggestDescriptionResult,
+    SuggestTagsResult,
+} from "@/types/ai";
 
 /**
  * What the AI buttons may ask about.
@@ -41,7 +56,11 @@ import type { ItemDraft, SuggestDescriptionResult, SuggestTagsResult } from "@/t
  * before the prompt builders' truncation gets to run, not a product limit — an item's content is
  * not capped anywhere.
  */
-const PAYLOAD_LIMIT = Math.min(AI_TAG_PAYLOAD_LIMIT, AI_DESCRIPTION_PAYLOAD_LIMIT);
+const PAYLOAD_LIMIT = Math.min(
+    AI_TAG_PAYLOAD_LIMIT,
+    AI_DESCRIPTION_PAYLOAD_LIMIT,
+    AI_EXPLAIN_PAYLOAD_LIMIT,
+);
 
 const itemDraftSchema = z.object({
     title: z.string().max(PAYLOAD_LIMIT).optional(),
@@ -70,12 +89,12 @@ const itemDraftSchema = z.object({
  * of a budget it was never entitled to use — a refusal that consumed their hourly allowance would
  * be a limit on people who cannot make the call at all.
  *
- * Shared by both actions rather than written twice: the order is invisible in the return value —
+ * Shared by all three actions rather than written out each time: the order is invisible in the return value —
  * every step returns the same shape — so a copy that reordered two lines would keep every test that
  * only asserts `success` green while changing what the action actually protects.
  *
  * `feature` names the thing in both messages, which is why it is a plural noun phrase: "AI *tag
- * suggestions* require a Pro subscription", "you have used all your *descriptions*".
+ * suggestions* require a Pro subscription", "you have used all your *explanations*".
  */
 async function guardAiRequest(
     isPro: boolean,
@@ -227,6 +246,84 @@ export async function generateDescription(input: ItemDraft): Promise<SuggestDesc
         return { success: true, data: { description } };
     } catch (error) {
         return { success: false, error: failure(error, "Descriptions") };
+    }
+}
+
+/**
+ * Explains the code or command an item holds, for the person reading it.
+ *
+ * The third AI action and the first that runs over an item being **read** rather than written,
+ * which is the one thing that makes it different from its two neighbours. Everything else is
+ * theirs: a Server Action because the caller needs the prose or a sentence explaining its absence,
+ * the same guards in the same order, its own rate-limit bucket.
+ *
+ * It still takes an `ItemDraft` rather than an item id, and that is not laziness about the read
+ * case. Passing an id would mean this action re-reading a body the drawer has already fetched and
+ * is displaying — a second query to answer a question about text that is on screen — and it would
+ * make the explanation describe the stored row rather than what the user is looking at. The drawer
+ * hands over what it rendered.
+ *
+ * The **type gate is enforced here, not only hidden in the UI.** A free-text type would otherwise be
+ * an opening to write the model's instructions from the client — `buildExplainInput` interpolates
+ * it — and beyond that, "explain this" over a note or a link is a different feature with a
+ * different prompt, not this one with a wider audience. Unlike the other two actions, which drop an
+ * unrecognized type and ask anyway, an unexplainable type is a refusal: there is no useful request
+ * left once it is removed.
+ */
+export async function explainCode(input: ItemDraft): Promise<ExplainCodeResult> {
+    const { id: userId, isPro } = await getCurrentUser();
+
+    const parsed = itemDraftSchema.safeParse(input);
+
+    if (!parsed.success) {
+        return { success: false, error: "That item could not be read." };
+    }
+
+    const draft = parsed.data;
+
+    if (!isExplainableType(draft.type)) {
+        return { success: false, error: "Only snippets and commands can be explained." };
+    }
+
+    if (!hasExplainableContent(draft)) {
+        return { success: false, error: "There is no code here to explain." };
+    }
+
+    const guard = await guardAiRequest(isPro, userId, "aiExplain", "explanations");
+
+    if (!guard.ok) return { success: false, error: guard.error };
+
+    try {
+        // No `text.format` on this one, unlike the two above — the answer *is* the response, in
+        // markdown, so there is no field to pull out of a wrapper. See `parseExplanation`.
+        const response = await openai().responses.create({
+            model: AI_MODEL,
+            instructions: EXPLAIN_INSTRUCTIONS,
+            input: buildExplainInput(draft),
+            max_output_tokens: EXPLAIN_MAX_OUTPUT_TOKENS,
+            // The only call of the three that sets this. See the constant for why this one.
+            reasoning: { effort: EXPLAIN_REASONING_EFFORT },
+        });
+
+        // Checked for the same reason `generateDescription` checks it, and it matters more here:
+        // this call sets the higher ceiling *and* asks for the longest answer, so it is the one most
+        // likely to hit it. What arrives is an explanation that stops mid-sentence, which reads as a
+        // confident account that simply ends — worse than no answer, because nothing marks it short.
+        if (response.status === "incomplete") {
+            return { success: false, error: "That explanation was cut short. Try again." };
+        }
+
+        const explanation = parseExplanation(response.output_text ?? "");
+
+        // Nothing usable is a failure, not an empty success — a tab that appears holding nothing
+        // reads as broken rather than as a model with nothing to say.
+        if (explanation === null) {
+            return { success: false, error: "No explanation could be written for this code." };
+        }
+
+        return { success: true, data: { explanation } };
+    } catch (error) {
+        return { success: false, error: failure(error, "Explanations") };
     }
 }
 

@@ -48,3 +48,13 @@ export type SuggestTagsResult =
 /** The generated description, in the same shape and for the same reasons. */
 export type SuggestDescriptionResult =
     { success: true; data: { description: string } } | { success: false; error: string };
+
+/**
+ * The generated explanation, in the same shape and for the same reasons.
+ *
+ * `explanation` is **markdown**, not plain text — the only one of the three whose value is rendered
+ * rather than put in a field. Nothing is stored: it is regenerated on each click, so it never
+ * reaches an item column and no schema knows about it.
+ */
+export type ExplainCodeResult =
+    { success: true; data: { explanation: string } } | { success: false; error: string };

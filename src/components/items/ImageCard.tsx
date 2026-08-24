@@ -29,7 +29,10 @@ export function ImageCard({ item }: { item: ItemSummaryViewModel }) {
     const name = item.fileName || item.title;
 
     return (
-        <article className="overflow-hidden rounded-xl border border-border bg-card">
+        // `h-full` for the reason `ItemCard` explains at length: the grid item is the wrapper
+        // `ItemList` puts around this, not the article itself. Thumbnails share one aspect ratio, so
+        // this only shows when a title wraps or the tag rows differ.
+        <article className="h-full overflow-hidden rounded-xl border border-border bg-card">
             <div className="aspect-video overflow-hidden bg-muted/40">
                 {isRenderableImage(name) ? (
                     // eslint-disable-next-line @next/next/no-img-element
