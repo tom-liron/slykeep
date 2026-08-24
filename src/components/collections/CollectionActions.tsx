@@ -89,12 +89,25 @@ export function CollectionActions({
 
     const favoriteLabel = isFavorite ? "Remove from favorites" : "Add to favorites";
 
-    // Filled when it is on, in `--favorite` — the same colour as every other star in the app, but
-    // the only one that fills. This and the drawer's Favorite button are the two stars with an
-    // *off* state to show; the rest either mark a destination or are rendered only when the thing
-    // is already favourited, so they have nothing to contrast against and stay outline. Colour
-    // alone carried it for one revision and was the weaker signal: grey-outline against
-    // yellow-outline is a hue change, where hollow against solid is the shape itself.
+    // Filled when it is on, in `--favorite` — the colour every star in the app shares. Colour alone
+    // carried this for one revision and was the weaker signal: grey-outline against yellow-outline
+    // is a hue change, where hollow against solid is the shape itself.
+    //
+    // The rule the whole app follows, of which this is one case: **a filled star asserts that this
+    // particular thing is favourited; an outline star is the word "favourites" as a place or a
+    // concept.** So the badges — on item cards, image cards, file rows, collection cards, a
+    // collection page's title, and the sidebar's favourite-collection rows — all fill, because each
+    // one is a statement about the object beside it. The destinations stay hollow: the sidebar's
+    // Favorites link, the top bar's button, `/favorites`' own heading, the dashboard's stat icons.
+    // A toggle is the one star that does both, and shows the off state as the outline.
+    //
+    // This replaces an earlier rule that filled *only* the toggles, on the grounds that a badge has
+    // no off state to contrast against. True, but it argued that outline was harmless there rather
+    // than right, and the cost was that one fact — "this is favourited" — was drawn two ways
+    // depending on which component you were looking at.
+    //
+    // Placement carries the same distinction and is worth keeping consistent: a star *before* a
+    // heading labels it (`/favorites`), a star *after* a name badges it (a collection's title).
     const star = (
         <Star className={cn(isFavorite && "fill-favorite text-favorite")} aria-hidden="true" />
     );

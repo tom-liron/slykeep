@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { Star } from "lucide-react";
+
 import { CollectionRow } from "@/components/collections/CollectionRow";
 import { ItemList } from "@/components/items/ItemList";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -71,7 +73,17 @@ export function FavoritesView({
 
     return (
         <div>
-            <h1 className="mb-4 text-2xl font-bold">Favorites</h1>
+            {/* Outline, and leading — both by the rule the rest of the app's stars follow. This one
+                names the page rather than asserting that anything is favourited, so it is a noun and
+                stays hollow; a filled star here would be the app claiming "Favorites" is itself
+                favourited. Leading for the same reason: an icon before a heading labels it, while a
+                star *after* a name is the badge that says that particular thing is starred, which is
+                what the collection page's title does. Same icon and same side as the sidebar's
+                Favorites row, because they are the same destination. */}
+            <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
+                <Star className="size-6 shrink-0 text-favorite" aria-hidden="true" />
+                Favorites
+            </h1>
 
             {/* One empty state for the page, not one per section. Two dashed boxes saying "no
                 favorite items" and "no favorite collections" is the same sentence twice on the only

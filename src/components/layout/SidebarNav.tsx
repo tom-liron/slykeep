@@ -118,7 +118,7 @@ export function SidebarNav({
                                             onNavigate={onNavigate}
                                             leading={
                                                 <Star
-                                                    className="size-4 shrink-0 text-favorite"
+                                                    className="size-4 shrink-0 fill-favorite text-favorite"
                                                     aria-label="Favorite"
                                                 />
                                             }
