@@ -157,14 +157,37 @@ export function TopBar({
                             in the app — the sidebar's Favorites row, the badge on a card or a row,
                             and both toggles.
 
-                            Held at 80% at rest, and only here. This star sits on bare bar next to
-                            Upgrade, where the others sit on a card or a tinted chip that already
-                            takes the edge off them; at full strength it read as the brightest thing
-                            in the bar and pulled against the one control that is meant to be. Hover
-                            resolves it to the exact shared colour, so the difference is a resting
-                            state rather than a second yellow. */}
+                            Full strength, matching the sidebar's row exactly — one destination
+                            reached two ways should not be two different yellows depending on which
+                            one you are looking at.
+
+                            It was held at 80% here for one release, so that it would not outshine
+                            the Upgrade control beside it. Two things were wrong with that. Upgrade
+                            renders only for a free account (`!isPro` above), so the star was being
+                            dimmed against a button that is absent for everyone who has paid; and
+                            spending the *resting* state on that comparison left hover as the only
+                            moment the two stars agreed, which is backwards — the resting state is
+                            the one that is on screen the whole time.
+
+                            Hover lifts brightness rather than changing the colour, for the same
+                            reason: a second yellow would be a second meaning. `brightness` also
+                            leaves the token alone, so this keeps working if `--favorite` is ever
+                            retuned, and in the light theme where a lower opacity would only look
+                            washed out.
+
+                            105, which is the smallest step on the scale and is meant to be: it
+                            was tried at 125 and then 110, and both read as a second yellow rather
+                            than the same star lit slightly. `--favorite` is already a light colour,
+                            so there is very little headroom above it before the lift turns into a
+                            colour change. The hover only has to confirm the pointer is on the right
+                            target, and the button's own `hover:bg-muted` is doing the louder half
+                            of that anyway.
+
+                            The sidebar's Favorites star deliberately has no hover treatment: there
+                            the star leads a row that answers the pointer itself, and every other
+                            leading icon in that rail holds still. */}
                         <Star
-                            className="size-5 text-favorite/80 transition-colors group-hover/button:text-favorite"
+                            className="size-5 text-favorite transition group-hover/button:brightness-105"
                             aria-hidden="true"
                         />
                     </Link>

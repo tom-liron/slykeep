@@ -44,6 +44,13 @@ export function SidebarNav({
                         pathname === "/favorites" && "bg-sidebar-accent font-medium",
                     )}
                 >
+                    {/* No hover treatment of its own, deliberately. Every other leading icon in this
+                        rail — the type icons, the collection stars — holds still while the row tints
+                        behind it, so a star that brightened here would be the one icon in the
+                        sidebar behaving differently. The top bar's star does lift on hover because
+                        it *is* the control, with no label beside it; this one leads a row that
+                        already answers the pointer. Shared resting colour, different hover, and the
+                        reason is which of the two is the thing being hovered. */}
                     <Star className="size-4 shrink-0 text-favorite" aria-hidden="true" />
                     <span className="flex-1 truncate">Favorites</span>
                 </Link>
