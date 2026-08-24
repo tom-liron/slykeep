@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, ChevronDown, Folder, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, Folder, Lightbulb, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { generateAutoTags } from "@/actions/ai";
@@ -275,7 +275,15 @@ export function TagsField({
                         disabled={isPending}
                         className="-my-1 h-7 gap-1.5 px-2 text-xs"
                     >
-                        <Sparkles
+                        {/* Deliberately not `Sparkles`, which the spec asked for: that is the
+                            Prompt type's icon in `item-type-catalog.ts`, so the button and a prompt
+                            item rendered the same glyph a few pixels apart. `Wand`/`WandSparkles`
+                            are the usual "generate this for me" mark and were the obvious swap, but
+                            both are built from eight or nine paths *and* carry their own sparkle
+                            cluster — illegible at 14px and still the thing being avoided. A
+                            lightbulb is three paths, reads cleanly at this size, means "suggestion"
+                            rather than "magic", and collides with nothing else in the app. */}
+                        <Lightbulb
                             className={cn("size-3.5", isPending && "animate-pulse")}
                             aria-hidden="true"
                         />
