@@ -6,6 +6,8 @@
 
 @theme inline {
     --color-favorite: var(--favorite);
+    --color-suggestion: var(--suggestion);
+    --color-confirm: var(--confirm);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -74,6 +76,22 @@
      * value that will not be invisible is the one to leave here.
      */
     --favorite: #ca8a04;
+    /**
+     * The two colours the AI tag suggestions are drawn in: the suggested tag itself, and the
+     * control that accepts it. Rejecting one uses `--destructive`, which already means exactly
+     * that everywhere else.
+     *
+     * Tokens rather than palette classes, for the reason `--favorite` above is one: nothing in
+     * `src/` reaches for a raw Tailwind colour, and a hard-coded `text-blue-400` would be the
+     * first thing in the app that cannot be retuned in one place or answer to the light theme.
+     *
+     * The blue is the snippet type's, a shade lighter, so a suggestion reads as part of the same
+     * palette rather than a new accent — and the green is the link type's, for the same reason.
+     * Both are the light-mode values here: picked to stay legible on white, since the dark values
+     * below are chosen for a near-black background and wash out on one.
+     */
+    --suggestion: #2563eb;
+    --confirm: #16a34a;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -111,6 +129,8 @@
 .dark {
     color-scheme: dark;
     --favorite: #fde047;
+    --suggestion: #60a5fa;
+    --confirm: #4ade80;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);

@@ -22,9 +22,11 @@ afterEach(() => {
 
 describe("with entitlement enforcement disabled", () => {
     it("allows everything, whatever the plan or the count", async () => {
-        const { canAccessItemType, canCreateItem, canCreateCollection } = await loadLimits(false);
+        const { canAccessItemType, canCreateItem, canCreateCollection, canUseAi } =
+            await loadLimits(false);
 
         expect(canAccessItemType(false, true)).toBe(true);
+        expect(canUseAi(false)).toBe(true);
         expect(canCreateItem(false, 50)).toBe(true);
         expect(canCreateItem(false, 5_000)).toBe(true);
         expect(canCreateCollection(false, 3)).toBe(true);
@@ -88,5 +90,20 @@ describe("canCreateCollection", () => {
 
         expect(canCreateCollection(true, 3)).toBe(true);
         expect(canCreateCollection(true, 5_000)).toBe(true);
+    });
+});
+
+describe("canUseAi", () => {
+    it("refuses a free account and allows Pro", async () => {
+        const { canUseAi } = await loadLimits(true);
+
+        expect(canUseAi(false)).toBe(false);
+        expect(canUseAi(true)).toBe(true);
+    });
+
+    it("bypasses for everyone while enforcement is off, like every other gate", async () => {
+        const { canUseAi } = await loadLimits(false);
+
+        expect(canUseAi(false)).toBe(true);
     });
 });

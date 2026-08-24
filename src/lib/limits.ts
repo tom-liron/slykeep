@@ -30,3 +30,17 @@ export function canCreateItem(userIsPro: boolean, currentCount: number): boolean
 export function canCreateCollection(userIsPro: boolean, currentCount: number): boolean {
     return !ENFORCE_PRO_LIMITS || userIsPro || currentCount < FREE_COLLECTION_LIMIT;
 }
+
+/**
+ * Whether this account may use the AI features — auto-tagging today, the rest of §4.F after it.
+ *
+ * Here rather than inlined in the action, so it reads `ENFORCE_PRO_LIMITS` like every other
+ * entitlement does. That flag is documented as a complete rollback, and a hand-written
+ * `if (!isPro)` in the action would be the one gate it could not switch off.
+ *
+ * One rule for all four AI features rather than one each: they are sold as a single line on the
+ * pricing page, so a per-feature entitlement would be inventing a plan we do not offer.
+ */
+export function canUseAi(userIsPro: boolean): boolean {
+    return !ENFORCE_PRO_LIMITS || userIsPro;
+}

@@ -198,7 +198,20 @@ export function ItemEditForm({
                 </div>
             )}
 
-            <TagsField id="item-tags" value={tags} onChange={setTags} error={fieldErrors.tags} />
+            {/* Read at click time, and from the inputs rather than from `detail` — the point of
+                suggesting tags mid-edit is that they describe what has just been typed. A link has
+                no content column, so its URL is what there is to go on besides the title. */}
+            <TagsField
+                id="item-tags"
+                value={tags}
+                onChange={setTags}
+                error={fieldErrors.tags}
+                draft={() => ({
+                    title,
+                    content: showsContent ? content : url,
+                    type: detail.itemType.name,
+                })}
+            />
 
             <CollectionsField
                 id="item-collections"

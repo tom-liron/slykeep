@@ -18,7 +18,8 @@ import type { ItemTypeName } from "@/types/item-type";
  */
 
 const TITLE_MAX_LENGTH = 200;
-const TAG_MAX_LENGTH = 50;
+/** Exported so the AI tag suggestions are filtered against the same bound the schema enforces. */
+export const TAG_MAX_LENGTH = 50;
 const MAX_TAGS = 20;
 
 /**

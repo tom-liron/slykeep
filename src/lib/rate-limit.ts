@@ -60,6 +60,14 @@ const LIMITS = {
     // someone else's system that nothing here can tidy up. Ten in ten minutes is far more than a
     // person deciding between monthly and yearly, and far less than a script is worth.
     checkout: { tokens: 10, window: "10 m", keyBy: "user" },
+    // Behind the session like the two above, so what this bounds is cost rather than anonymity —
+    // every call is a paid request to a third party, made from a button that is one click away and
+    // asks for nothing back. Keyed on the account for the same reason `upload` is: the caller is
+    // known here, and an IP would bill one office NAT for everyone behind it.
+    //
+    // Twenty an hour is well above tagging a batch of items by hand — the suggestions are accepted
+    // once and then the item is saved — and well below what a loop would spend.
+    aiTag: { tokens: 20, window: "1 h", keyBy: "user" },
 } as const satisfies Record<
     string,
     { tokens: number; window: `${number} ${"m" | "h"}`; keyBy: "ip" | "ip+email" | "user" }

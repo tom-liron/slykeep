@@ -1,3 +1,4 @@
+import { ProProvider } from "@/components/layout/ProContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { TopBar } from "@/components/layout/TopBar";
@@ -34,8 +35,11 @@ export default async function DashboardLayout({
 
     return (
         <SidebarProvider>
-            <EditorPreferencesProvider preferences={editorPreferences}>
-                {/* Two shapes. From `md` up this is a frame pinned to the viewport: the bar and the
+            {/* `nav.user.isPro` again, for the controls too far from this layout to be handed a
+                prop — see `ProContext`. The bar below still takes one, being one hop away. */}
+            <ProProvider isPro={nav.user.isPro}>
+                <EditorPreferencesProvider preferences={editorPreferences}>
+                    {/* Two shapes. From `md` up this is a frame pinned to the viewport: the bar and the
                     rail hold still and `main` scrolls inside them. Below `md` the frame is dropped
                     and the whole thing is an ordinary page — `min-h-dvh` so it fills the screen, and
                     the document does the scrolling.
@@ -43,12 +47,12 @@ export default async function DashboardLayout({
                     `dvh` rather than `vh`: `vh` is the *largest* viewport, chrome excluded, so a
                     pinned frame measured in it hangs its last row behind the browser's own bars.
                     `dvh` tracks what is actually visible. */}
-                <div className="flex min-h-dvh flex-col md:h-dvh">
-                    {/* `nav.user` is already read for the sidebar, so the bar costs no query of its own. */}
-                    <TopBar searchData={searchData} isPro={nav.user.isPro} />
-                    <div className="flex min-h-0 flex-1">
-                        <Sidebar data={sidebarData} />
-                        {/* The container everything inside measures itself against.
+                    <div className="flex min-h-dvh flex-col md:h-dvh">
+                        {/* `nav.user` is already read for the sidebar, so the bar costs no query of its own. */}
+                        <TopBar searchData={searchData} isPro={nav.user.isPro} />
+                        <div className="flex min-h-0 flex-1">
+                            <Sidebar data={sidebarData} />
+                            {/* The container everything inside measures itself against.
                             `container-type: inline-size` makes this the query container, so a
                             component asks "how much room do I have" instead of asking the viewport
                             how wide it is and subtracting a guessed sidebar. Named `app` so a
@@ -65,12 +69,13 @@ export default async function DashboardLayout({
                             `overflow-y-auto` only from `md`, where this is a pane inside a pinned
                             frame. Below that the document scrolls and a second scroller here would
                             trap the page inside a box the size of the screen. */}
-                        <main className="@container/app min-w-0 flex-1 p-4 sm:p-6 md:overflow-y-auto">
-                            {children}
-                        </main>
+                            <main className="@container/app min-w-0 flex-1 p-4 sm:p-6 md:overflow-y-auto">
+                                {children}
+                            </main>
+                        </div>
                     </div>
-                </div>
-            </EditorPreferencesProvider>
+                </EditorPreferencesProvider>
+            </ProProvider>
         </SidebarProvider>
     );
 }

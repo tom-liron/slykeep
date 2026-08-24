@@ -356,11 +356,14 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                     />
                 </Field>
 
+                {/* As the edit form: the draft as typed, and a link's URL standing in for the
+                    content column it does not have. */}
                 <TagsField
                     id="new-item-tags"
                     value={tags}
                     onChange={setTags}
                     error={fieldErrors.tags}
+                    draft={() => ({ title, content: showsContent ? content : url, type })}
                 />
 
                 {/* Last, and after the tags: filing is what happens to an item once it exists, so
