@@ -25,6 +25,9 @@
 DEVSTASH_SYSTEM_INSPECTION.md
 *.pem
 
+# a personal walkthrough of the AI tagging flow — local reference, deliberately not pushed
+/docs/ai-tagging-walkthrough.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
