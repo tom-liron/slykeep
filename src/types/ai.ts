@@ -58,3 +58,23 @@ export type SuggestDescriptionResult =
  */
 export type ExplainCodeResult =
     { success: true; data: { explanation: string } } | { success: false; error: string };
+
+/**
+ * The optimized prompt, its change list, and whether anything actually changed.
+ *
+ * The same shape as its three neighbours, with two fields they do not have.
+ *
+ * `changes` is the account of what was rewritten, which is what turns accept/reject into an
+ * informed choice — `docs/ai-integration-plan.md` §4: *"a rewritten prompt handed back with no
+ * account of what changed is not reviewable, and the whole interaction is a review."*
+ *
+ * `unchanged` is the honest answer to "refine, if needed". It is a **success**, not a failure: the
+ * model read the prompt and had nothing worth changing, which is a real result and the one a good
+ * prompt should get. The caller shows it rather than opening a review of a rewrite that is not one.
+ *
+ * Unlike an explanation, this value is destined for the item's own `content` column — but only if
+ * the user accepts it. Nothing here is written by the action that produces it.
+ */
+export type OptimizePromptResult =
+    | { success: true; data: { prompt: string; changes: string[]; unchanged: boolean } }
+    | { success: false; error: string };

@@ -22,6 +22,16 @@ import {
     parseExplanation,
 } from "@/lib/ai-explain";
 import {
+    AI_OPTIMIZE_PAYLOAD_LIMIT,
+    OPTIMIZE_INSTRUCTIONS,
+    OPTIMIZE_MAX_OUTPUT_TOKENS,
+    buildOptimizeInput,
+    hasOptimizableContent,
+    isOptimizablePromptType,
+    isUnchanged,
+    parseOptimizedPrompt,
+} from "@/lib/ai-optimize";
+import {
     AI_TAG_PAYLOAD_LIMIT,
     TAG_INSTRUCTIONS,
     buildTagInput,
@@ -34,6 +44,7 @@ import { getCurrentUser } from "@/server/current-user";
 import type {
     ExplainCodeResult,
     ItemDraft,
+    OptimizePromptResult,
     SuggestDescriptionResult,
     SuggestTagsResult,
 } from "@/types/ai";
@@ -60,6 +71,7 @@ const PAYLOAD_LIMIT = Math.min(
     AI_TAG_PAYLOAD_LIMIT,
     AI_DESCRIPTION_PAYLOAD_LIMIT,
     AI_EXPLAIN_PAYLOAD_LIMIT,
+    AI_OPTIMIZE_PAYLOAD_LIMIT,
 );
 
 const itemDraftSchema = z.object({
@@ -89,7 +101,7 @@ const itemDraftSchema = z.object({
  * of a budget it was never entitled to use — a refusal that consumed their hourly allowance would
  * be a limit on people who cannot make the call at all.
  *
- * Shared by all three actions rather than written out each time: the order is invisible in the return value —
+ * Shared by all four actions rather than written out each time: the order is invisible in the return value —
  * every step returns the same shape — so a copy that reordered two lines would keep every test that
  * only asserts `success` green while changing what the action actually protects.
  *
@@ -324,6 +336,93 @@ export async function explainCode(input: ItemDraft): Promise<ExplainCodeResult> 
         return { success: true, data: { explanation } };
     } catch (error) {
         return { success: false, error: failure(error, "Explanations") };
+    }
+}
+
+/**
+ * Rewrites a saved prompt to be clearer and more specific, for the person about to reuse it.
+ *
+ * The fourth AI action, and structurally the closest to `explainCode`: it runs over an item being
+ * **read** rather than written, it takes the drawer's rendered draft rather than an item id, and its
+ * type gate is a refusal rather than a dropped field — an unoptimizable type leaves no useful
+ * request behind once it is removed.
+ *
+ * Two things make it its own thing rather than explain with a different prompt.
+ *
+ * **It is the one AI feature whose input is itself a prompt.** A stashed prompt saying "ignore all
+ * previous instructions" is ordinary content here, not a contrived attack, and `OPTIMIZE_INSTRUCTIONS`
+ * documents what is done about it inside the request. What actually contains it is downstream of
+ * this action: the result is shown to the user for review, never executed and never fed onward, and
+ * `content` is only written if they click accept. This action writes nothing.
+ *
+ * **It can succeed by changing nothing.** `unchanged` is a success, not a failure — the model read
+ * the prompt and had nothing worth changing, which is what a good prompt should get. Reporting it as
+ * an error would tell the user something went wrong when the opposite did.
+ */
+export async function optimizePrompt(input: ItemDraft): Promise<OptimizePromptResult> {
+    const { id: userId, isPro } = await getCurrentUser();
+
+    const parsed = itemDraftSchema.safeParse(input);
+
+    if (!parsed.success) {
+        return { success: false, error: "That prompt could not be read." };
+    }
+
+    const draft = parsed.data;
+
+    if (!isOptimizablePromptType(draft.type)) {
+        return { success: false, error: "Only prompts can be optimized." };
+    }
+
+    if (!hasOptimizableContent(draft)) {
+        return { success: false, error: "There is no prompt here to optimize." };
+    }
+
+    const guard = await guardAiRequest(isPro, userId, "aiOptimize", "prompt optimizations");
+
+    if (!guard.ok) return { success: false, error: guard.error };
+
+    try {
+        const response = await openai().responses.create({
+            model: AI_MODEL,
+            instructions: OPTIMIZE_INSTRUCTIONS,
+            input: buildOptimizeInput(draft),
+            // Wrapped, unlike explain and like the two writing actions: this answer has two parts,
+            // so there is a field to pull out rather than a whole response to take.
+            text: { format: { type: "json_object" } },
+            max_output_tokens: OPTIMIZE_MAX_OUTPUT_TOKENS,
+            // Left at the default `medium`, unlike explain. That one dialled the thinking back
+            // because the thinking was what kept running out; rewriting is a harder task than
+            // labelling and an easier one than reading unfamiliar code, and a shallow rewrite is a
+            // worse outcome here than a slow one — the user is being asked to replace their own
+            // text with it.
+        });
+
+        // The worst output this feature can produce: a rewrite that stops early still looks like a
+        // finished prompt, and the accept button would save it over the original.
+        if (response.status === "incomplete") {
+            return { success: false, error: "That optimization was cut short. Try again." };
+        }
+
+        const optimized = parseOptimizedPrompt(response.output_text ?? "");
+
+        if (optimized === null) {
+            return { success: false, error: "No optimization could be written for this prompt." };
+        }
+
+        return {
+            success: true,
+            data: {
+                ...optimized,
+                // Compared against the draft the request was built from, not against whatever the
+                // model was shown — a long prompt is truncated before it reaches the model, so
+                // comparing against the truncated copy would report "unchanged" for a rewrite that
+                // silently drops the tail of the user's prompt.
+                unchanged: isUnchanged(draft.content ?? "", optimized.prompt),
+            },
+        };
+    } catch (error) {
+        return { success: false, error: failure(error, "Prompt optimizations") };
     }
 }
 

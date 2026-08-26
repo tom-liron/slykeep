@@ -1,7 +1,20 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { MarkdownEditor } from "./MarkdownEditor";
+/**
+ * The Optimize button made this component import a `"use server"` module, which reaches Auth.js and
+ * then `next/server` — a chain that resolves under the Next build and not under vitest. Next turns
+ * such an import in a client component into an RPC reference; nothing here does, so the module is
+ * stubbed rather than loaded.
+ *
+ * Stubbing it costs this file nothing: none of these tests click the button, and the action is
+ * covered directly in `src/actions/ai.test.ts`.
+ */
+vi.mock("@/actions/ai", () => ({
+    optimizePrompt: vi.fn(),
+}));
+
+const { MarkdownEditor } = await import("./MarkdownEditor");
 
 /**
  * Rendered rather than asserted on props, because "does the markdown become markup" is the whole

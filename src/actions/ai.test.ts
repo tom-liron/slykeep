@@ -50,7 +50,8 @@ vi.mock("@/lib/openai", () => ({
     }),
 }));
 
-const { generateAutoTags, generateDescription, explainCode } = await import("./ai");
+const { generateAutoTags, generateDescription, explainCode, optimizePrompt } = await import("./ai");
+const { AI_OPTIMIZE_CONTENT_LIMIT } = await import("@/lib/ai-optimize");
 const { checkRateLimit } = await import("@/lib/rate-limit");
 
 beforeEach(() => {
@@ -346,5 +347,141 @@ describe("explainCode", () => {
         const result = await explainCode(draft);
 
         expect(result.success).toBe(false);
+    });
+});
+
+describe("optimizePrompt", () => {
+    const promptDraft = {
+        title: "Commit message writer",
+        content: "write a commit message",
+        type: "prompt",
+    };
+
+    const rewritten = "You are a senior engineer. Write a concise commit message.";
+
+    beforeEach(() => {
+        state.output = JSON.stringify({
+            prompt: rewritten,
+            changes: ["named the audience", "bounded the length"],
+        });
+    });
+
+    it("optimizes a prompt for a Pro account", async () => {
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result).toEqual({
+            success: true,
+            data: {
+                prompt: rewritten,
+                changes: ["named the audience", "bounded the length"],
+                unchanged: false,
+            },
+        });
+    });
+
+    it("refuses a free account before the model and before the rate limit", async () => {
+        state.isPro = false;
+
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result.success).toBe(false);
+        expect(state.calls).toHaveLength(0);
+        expect(checkRateLimit).not.toHaveBeenCalled();
+    });
+
+    it("spends its own budget, not any of the other three", async () => {
+        await optimizePrompt(promptDraft);
+
+        expect(checkRateLimit).toHaveBeenCalledWith("aiOptimize", "user-1");
+    });
+
+    it("refuses a spent budget without calling the model", async () => {
+        state.rateLimit = { success: false, remaining: 0, reset: Date.now() + 5 * 60_000 };
+
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result.success).toBe(false);
+        expect(state.calls).toHaveLength(0);
+    });
+
+    it("refuses every type but prompt, before spending anything", async () => {
+        // Ahead of the Pro gate and the limiter for the reason explain's type gate is: there is no
+        // request left to make once the type is refused. A note is prose too, but rewriting
+        // someone's notes is a different feature.
+        for (const type of ["note", "snippet", "command", "link", "file", "image"]) {
+            const result = await optimizePrompt({ content: "some text", type });
+
+            expect(result.success).toBe(false);
+        }
+
+        expect(state.calls).toHaveLength(0);
+        expect(checkRateLimit).not.toHaveBeenCalled();
+    });
+
+    it("refuses a prompt with no body, even when it has a title", async () => {
+        const result = await optimizePrompt({ title: "Commit message writer", type: "prompt" });
+
+        expect(result.success).toBe(false);
+        expect(state.calls).toHaveLength(0);
+    });
+
+    it("reports an unimproved prompt as a success, not a failure", async () => {
+        // "Refine, if needed" — the model read it and had nothing to change, which is a real
+        // result and the one a good prompt should get.
+        state.output = JSON.stringify({ prompt: promptDraft.content, changes: [] });
+
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result).toEqual({
+            success: true,
+            data: { prompt: promptDraft.content, changes: [], unchanged: true },
+        });
+    });
+
+    it("compares against the untruncated draft, so a dropped tail is never called unchanged", async () => {
+        // The model is shown at most `AI_OPTIMIZE_CONTENT_LIMIT` characters. Comparing the rewrite
+        // against the truncated copy would report "already good" for a rewrite that silently loses
+        // the end of the user's prompt.
+        const long = "a".repeat(AI_OPTIMIZE_CONTENT_LIMIT + 200);
+
+        state.output = JSON.stringify({ prompt: "a".repeat(AI_OPTIMIZE_CONTENT_LIMIT) });
+
+        const result = await optimizePrompt({ ...promptDraft, content: long });
+
+        expect(result).toMatchObject({ success: true, data: { unchanged: false } });
+    });
+
+    it("sends the prompt as delimited data, with the title outside the delimiters", async () => {
+        await optimizePrompt(promptDraft);
+
+        expect(state.calls[0].input).toContain(
+            "<<<SAVED_PROMPT\nwrite a commit message\nSAVED_PROMPT>>>",
+        );
+        expect(state.calls[0].input).toContain("Prompt title: Commit message writer");
+    });
+
+    it("refuses a response cut short rather than offering half a prompt to save", async () => {
+        state.status = "incomplete";
+
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result.success).toBe(false);
+    });
+
+    it("reports an unusable answer as a failure", async () => {
+        state.output = "Here is a better prompt: write a commit message.";
+
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result.success).toBe(false);
+    });
+
+    it("reports an SDK failure without leaking what it said", async () => {
+        state.throws = new Error("401 Incorrect API key sk-proj-abc provided");
+
+        const result = await optimizePrompt(promptDraft);
+
+        expect(result.success).toBe(false);
+        expect(result.success === false && result.error).not.toContain("sk-proj-abc");
     });
 });
