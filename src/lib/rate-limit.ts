@@ -85,6 +85,16 @@ const LIMITS = {
     // button is easiest to press repeatedly without meaning to. Ten an hour is still more
     // explanations than anyone reads in a sitting.
     aiExplain: { tokens: 10, window: "1 h", keyBy: "user" },
+    // Ten, matching `aiExplain` rather than the two writing buttons, because it shares both of the
+    // properties that made that one tighter: it is clicked while *reading*, from a drawer that
+    // reopens on every prompt in a list, and its output is long — a whole rewritten prompt, which
+    // can be as large as the input it was given.
+    //
+    // Its own bucket all the same. This is the one AI feature whose result the user is meant to
+    // *iterate* on — optimize, read the changes, discard, edit the prompt, optimize again — so it
+    // is the likeliest of the four to be exhausted in normal use, and a shared allowance would take
+    // tagging and describing down with it in the middle of writing an item.
+    aiOptimize: { tokens: 10, window: "1 h", keyBy: "user" },
 } as const satisfies Record<
     string,
     { tokens: number; window: `${number} ${"m" | "h"}`; keyBy: "ip" | "ip+email" | "user" }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, Copy, Download, Folder, Pencil, Pin, Star, Tag } from "lucide-react";
 import { toast } from "sonner";
 
-import { toggleItemFavorite, toggleItemPin } from "@/actions/items";
+import { toggleItemFavorite, toggleItemPin, updateItem } from "@/actions/items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -142,6 +142,11 @@ export function ItemDrawer({
     // highlighter over English is only a distraction, and English is what people write markdown in.
     const showsCode = itemTypeOwns(item.itemType.name).language;
 
+    // The one type the optimizer accepts, and the same test the action re-applies server-side as
+    // `isOptimizablePromptType`. A literal comparison rather than a catalog property, because there
+    // is no property in the catalog that means "is a prompt" other than being one.
+    const isPrompt = item.itemType.name === "prompt";
+
     // The card's summary is what the drawer opens on, but it stops being the truth the moment an
     // edit is saved: `ItemList` holds the clicked item in state, so a `router.refresh()` updates the
     // cards behind without touching this prop. Once the detail has loaded — and after every save —
@@ -168,6 +173,57 @@ export function ItemDrawer({
         tags: view.tags.join(", "),
         type: item.itemType.name,
     });
+
+    /**
+     * What the Optimize button sends the model, built at click time.
+     *
+     * `explainDraft`'s twin, and handed to the same read-only editor for the same reason: the create
+     * and edit forms render their own `MarkdownEditor` without this prop, so the button does not
+     * exist there rather than being hidden there.
+     *
+     * No `language` — a prompt has none — and the type is what `optimizePrompt` re-checks as
+     * `isOptimizablePromptType`, so a hand-made request cannot ask for a note to be rewritten.
+     */
+    const optimizeDraft = () => ({
+        title: view.title,
+        content: detail?.content ?? "",
+        tags: view.tags.join(", "),
+        type: item.itemType.name,
+    });
+
+    /**
+     * Saves an accepted rewrite over the prompt's own body.
+     *
+     * **The payload names only what changes.** `updateItem` reads an absent field as "leave this
+     * alone" — `tags` and `collections` are written as Prisma relation operations guarded by
+     * `tags && {...}` / `collectionIds && {...}`, and the optional text columns are `undefined`,
+     * which Prisma skips. So omitting them is not a shortcut that happens to work; it is the
+     * contract, and it is safer than rebuilding the full payload from `detail` would be, because a
+     * field this drawer forgot to copy across would silently clear the column rather than being
+     * left untouched.
+     *
+     * `title` is the exception and has to be sent: `updateItemSchema` requires a non-empty one.
+     *
+     * Returns whether it saved, which is what lets `MarkdownEditor` keep the review panel open on a
+     * failure instead of throwing away the rewrite the user just accepted.
+     */
+    const useOptimizedPrompt = async (prompt: string): Promise<boolean> => {
+        const result = await updateItem(itemId, { title: view.title, content: prompt });
+
+        if (!result.success) {
+            toast.error(result.error);
+
+            return false;
+        }
+
+        setDetail(result.data);
+        toast.success("Prompt updated.");
+        // The cards behind were rendered on the server from the old row. Same pair of steps the
+        // edit form's save makes, for the same reason.
+        router.refresh();
+
+        return true;
+    };
 
     // The write and both toasts moved to `copyToClipboard`, shared with the cards' copy icon: the
     // same action reached two ways should not be able to start reporting itself two ways.
@@ -504,6 +560,15 @@ export function ItemDrawer({
                                             value={detail.content}
                                             readOnly
                                             label={`${view.title} content`}
+                                            // Prompts only. Notes get the same editor and no
+                                            // button: rewriting someone's notes is a different
+                                            // feature, and `optimizePrompt` refuses the type
+                                            // anyway. This is the same narrowing `explain` makes
+                                            // with `showsCode`, one type narrower.
+                                            {...(isPrompt && {
+                                                optimize: optimizeDraft,
+                                                onUseOptimized: useOptimizedPrompt,
+                                            })}
                                         />
                                     )
                                 ) : (
