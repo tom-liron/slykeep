@@ -2,7 +2,7 @@ import { ENFORCE_PRO_LIMITS } from "@/config/access";
 
 /**
  * Centralizes item-type entitlement checks until billing rules become more detailed.
- * Development keeps all types available while `ENFORCE_PRO_LIMITS` is false.
+ * `ENFORCE_PRO_LIMITS` is on, so this refuses for real; turning it off reopens every type.
  */
 export function canAccessItemType(userIsPro: boolean, itemTypeIsPro: boolean): boolean {
     return !ENFORCE_PRO_LIMITS || userIsPro || !itemTypeIsPro;

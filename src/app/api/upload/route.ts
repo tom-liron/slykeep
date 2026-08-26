@@ -50,8 +50,8 @@ export async function POST(request: Request) {
     }
 
     // The same gate the item-type pages read, so an upload cannot be the one way past a limit the
-    // rest of the app enforces. `ENFORCE_PRO_LIMITS` is false during development, which is what
-    // keeps file and image usable without a Pro account for now.
+    // rest of the app enforces. `ENFORCE_PRO_LIMITS` is on, so a free account is refused here;
+    // turning it off is what would make file and image usable without Pro again.
     if (!canAccessItemType(user.isPro, true)) {
         return NextResponse.json(
             { error: "File uploads require a Pro subscription." },

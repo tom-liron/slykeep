@@ -44,8 +44,8 @@ const RECORD_NOT_FOUND = "P2025";
  * without the input being looked at.
  *
  * The free tier's cap of three is checked below, at the write boundary — the UI may show the cap,
- * but this is the authority. It refuses nothing yet: `canCreateCollection` short-circuits on
- * `ENFORCE_PRO_LIMITS`, which stays false until launch.
+ * but this is the authority. It refuses for real: `canCreateCollection` short-circuits on
+ * `ENFORCE_PRO_LIMITS`, which has been on since Phase 6.
  */
 export async function createCollection(
     input: CreateCollectionInput,

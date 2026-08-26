@@ -249,8 +249,8 @@ function CollectionLink({
 
 /**
  * Marks a Pro-gated item type. Deliberately quiet — it labels the row rather than competing with
- * the type's coloured icon, and it does not gate the link: entitlements are still open in
- * development (`ENFORCE_PRO_LIMITS`), so a badged type stays navigable.
+ * the type's coloured icon, and it does not gate the link: the type's page answers with a locked
+ * state rather than a 404, so a badged type stays navigable and explains what Pro buys.
  */
 function ProBadge() {
     return (
