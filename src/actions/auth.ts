@@ -1,7 +1,6 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { z } from "zod";
 
 import { signIn, signOut } from "@/auth";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/lib/auth-errors";
 import { resolveCallbackUrl, signInDestination } from "@/lib/auth-redirects";
 import { signInSchema } from "@/lib/auth-schemas";
+import { fieldErrorsOf } from "@/lib/field-errors";
 import { EMPTY_AUTH_STATE, type AuthActionState } from "@/types/auth";
 
 /**
@@ -53,16 +53,10 @@ export async function signInWithCredentials(
     const parsed = signInSchema.safeParse({ email, password: formData.get("password") });
 
     if (!parsed.success) {
-        const fields = z.flattenError(parsed.error).fieldErrors;
-
         // Name the field that is actually wrong. The old blanket "Enter your email and password"
         // fired on a malformed address too, which reads as "you left something blank" when both
         // boxes are visibly full — leaving no way to see that the address is missing its TLD.
-        return {
-            error: null,
-            fields: { email: fields.email?.[0], password: fields.password?.[0] },
-            email,
-        };
+        return { error: null, fields: fieldErrorsOf(parsed.error), email };
     }
 
     try {

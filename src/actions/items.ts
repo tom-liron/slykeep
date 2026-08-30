@@ -1,8 +1,7 @@
 "use server";
 
 import { ITEM_TYPE_CATALOG, isItemTypeName } from "@/config/item-type-catalog";
-import { Prisma } from "@/generated/prisma-client/client";
-import { fieldErrorsOf } from "@/lib/field-errors";
+import { fieldFailure } from "@/lib/field-errors";
 import { FILE_CONSTRAINTS, extensionOf, isFileItemTypeName } from "@/lib/file-constraints";
 import {
     createItemSchema,
@@ -16,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { deleteObject, isOwnedKey } from "@/lib/r2";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import { getItemDetail } from "@/server/items";
+import { isRecordNotFound } from "@/server/prisma-errors";
 import type {
     CreateItemResult,
     DeleteItemResult,
@@ -23,9 +23,6 @@ import type {
     ToggleItemPinResult,
     UpdateItemResult,
 } from "@/types/item";
-
-/** Prisma's "no record matched the `where`" code, raised by `update` when nothing was found. */
-const RECORD_NOT_FOUND = "P2025";
 
 /**
  * Whether every submitted collection id belongs to the signed-in user.
@@ -76,13 +73,7 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
     const parsed = createItemSchema.safeParse(input);
 
     if (!parsed.success) {
-        const fields = fieldErrorsOf(parsed.error);
-
-        return {
-            success: false,
-            error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
-            fields,
-        };
+        return fieldFailure(parsed.error);
     }
 
     const { type, tags, collectionIds, ...columns } = parsed.data;
@@ -226,13 +217,7 @@ export async function updateItem(
     const parsed = updateItemSchema.safeParse(input);
 
     if (!parsed.success) {
-        const fields = fieldErrorsOf(parsed.error);
-
-        return {
-            success: false,
-            error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
-            fields,
-        };
+        return fieldFailure(parsed.error);
     }
 
     const { tags, collectionIds, title, description, content, url, language } = parsed.data;
@@ -329,10 +314,7 @@ export async function updateItem(
             },
         });
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This item no longer exists." };
         }
 
@@ -387,10 +369,7 @@ export async function toggleItemFavorite(
 
         return { success: true, data: { isFavorite: updated.isFavorite } };
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This item no longer exists." };
         }
 
@@ -439,10 +418,7 @@ export async function toggleItemPin(
 
         return { success: true, data: { isPinned: updated.isPinned } };
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This item no longer exists." };
         }
 
@@ -484,10 +460,7 @@ export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
             select: { fileKey: true },
         }));
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This item no longer exists." };
         }
 

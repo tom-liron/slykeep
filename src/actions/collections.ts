@@ -2,30 +2,23 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Prisma } from "@/generated/prisma-client/client";
 import {
     createCollectionSchema,
     updateCollectionSchema,
     type CreateCollectionInput,
     type UpdateCollectionInput,
 } from "@/lib/collection-schemas";
-import { fieldErrorsOf } from "@/lib/field-errors";
+import { fieldFailure } from "@/lib/field-errors";
 import { FREE_COLLECTION_LIMIT, canCreateCollection } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
+import { isRecordNotFound } from "@/server/prisma-errors";
 import type {
     CreateCollectionResult,
     DeleteCollectionResult,
     ToggleCollectionFavoriteResult,
     UpdateCollectionResult,
 } from "@/types/collection";
-
-/**
- * Prisma's "no record matched the `where`" code, raised by `update` and `delete` when nothing was
- * found. Restated rather than imported from `actions/items.ts`, which declares the same constant: a
- * `"use server"` module may only export async functions, so there is nothing to import.
- */
-const RECORD_NOT_FOUND = "P2025";
 
 /**
  * Creates a collection from the top bar's dialog.
@@ -55,13 +48,7 @@ export async function createCollection(
     const parsed = createCollectionSchema.safeParse(input);
 
     if (!parsed.success) {
-        const fields = fieldErrorsOf(parsed.error);
-
-        return {
-            success: false,
-            error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
-            fields,
-        };
+        return fieldFailure(parsed.error);
     }
 
     // The same shape `createItem` uses, and the same accepted race: the count is read outside a
@@ -117,13 +104,7 @@ export async function updateCollection(
     const parsed = updateCollectionSchema.safeParse(input);
 
     if (!parsed.success) {
-        const fields = fieldErrorsOf(parsed.error);
-
-        return {
-            success: false,
-            error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
-            fields,
-        };
+        return fieldFailure(parsed.error);
     }
 
     try {
@@ -134,10 +115,7 @@ export async function updateCollection(
 
         return { success: true };
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This collection no longer exists." };
         }
 
@@ -179,10 +157,7 @@ export async function toggleCollectionFavorite(
             select: { isFavorite: true },
         });
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This collection no longer exists." };
         }
 
@@ -219,10 +194,7 @@ export async function deleteCollection(collectionId: string): Promise<DeleteColl
     try {
         await prisma.collection.delete({ where: { id: collectionId, userId } });
     } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === RECORD_NOT_FOUND
-        ) {
+        if (isRecordNotFound(error)) {
             return { success: false, error: "This collection no longer exists." };
         }
 
