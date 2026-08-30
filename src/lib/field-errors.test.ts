@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { fieldErrorsOf } from "./field-errors";
+import { fieldErrorsOf, fieldFailure } from "./field-errors";
 
 /**
  * Two action modules now report validation failures through this, so its behaviour is a contract
  * rather than a detail of whichever one was written first. What matters is that every rejected field
  * gets exactly one message and that nothing crashes on an issue whose path is not a plain field —
- * both of which the actions rely on when they read `Object.values(fields)[0]` for the toast.
+ * both of which `fieldFailure` relies on when it picks the toast's sentence.
  */
 
 /** Errors are what this reads, so each case parses something deliberately invalid. */
@@ -70,5 +70,33 @@ describe("fieldErrorsOf", () => {
         const schema = z.array(z.string().max(2, "Too long."));
 
         expect(fieldErrorsOf(errorOf(schema, ["abc"]))).toEqual({});
+    });
+});
+
+describe("fieldFailure", () => {
+    it("uses the first field's message as the toast sentence", () => {
+        const schema = z.object({
+            title: z.string().min(1, "Give it a title."),
+            url: z.url("That is not a valid URL."),
+        });
+
+        expect(fieldFailure(errorOf(schema, { title: "", url: "nope" }))).toEqual({
+            success: false,
+            error: "Give it a title.",
+            fields: { title: "Give it a title.", url: "That is not a valid URL." },
+        });
+    });
+
+    // The fallback exists for exactly one case: a parse that rejected the payload without marking
+    // any field, so there is no message to promote. Four action call sites used to carry their own
+    // copy of this sentence.
+    it("falls back to the generic sentence when no issue names a field", () => {
+        const schema = z.object({ name: z.string() }).refine(() => false, "Not allowed.");
+
+        expect(fieldFailure(errorOf(schema, { name: "ok" }))).toEqual({
+            success: false,
+            error: "Check the highlighted fields and try again.",
+            fields: {},
+        });
     });
 });

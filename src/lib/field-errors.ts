@@ -25,3 +25,29 @@ export function fieldErrorsOf(error: z.ZodError): Record<string, string> {
 
     return fields;
 }
+
+/**
+ * The whole failure result a Server Action returns when its Zod parse did not pass.
+ *
+ * The toast shows the *first* field's message, and falls back to a generic sentence only when the
+ * parse produced no field-scoped issue at all — a form-level `.refine()` with an empty `path`. That
+ * ordering rule is the reason this is one function rather than four copies: it is a real decision,
+ * and so is the fallback sentence, which was a user-facing string with four identical copies and
+ * nothing keeping them identical.
+ *
+ * `success` is typed as the literal `false` rather than inferred as `boolean`, or the discriminated
+ * result unions in `types/item.ts` and `types/collection.ts` stop accepting the return.
+ */
+export function fieldFailure(error: z.ZodError): {
+    success: false;
+    error: string;
+    fields: Record<string, string>;
+} {
+    const fields = fieldErrorsOf(error);
+
+    return {
+        success: false,
+        error: Object.values(fields)[0] ?? "Check the highlighted fields and try again.",
+        fields,
+    };
+}

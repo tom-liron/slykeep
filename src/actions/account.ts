@@ -1,10 +1,10 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 
 import { signOut } from "@/auth";
 import { changePasswordSchema } from "@/lib/auth-schemas";
+import { fieldErrorsOf } from "@/lib/field-errors";
 import { prisma } from "@/lib/prisma";
 import { endBillingRelationship, hasBillableSubscription } from "@/server/billing";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
@@ -41,16 +41,7 @@ export async function changePassword(
     });
 
     if (!parsed.success) {
-        const fields = z.flattenError(parsed.error).fieldErrors;
-
-        return {
-            error: null,
-            fields: {
-                currentPassword: fields.currentPassword?.[0],
-                password: fields.password?.[0],
-                confirmPassword: fields.confirmPassword?.[0],
-            },
-        };
+        return { error: null, fields: fieldErrorsOf(parsed.error) };
     }
 
     try {
