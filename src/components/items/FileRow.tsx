@@ -36,7 +36,7 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
 
     return (
         <article
-            className="flex items-center gap-3 rounded-lg border border-border border-l-4 bg-card px-4 py-3"
+            className="@container/file-row flex items-center gap-3 rounded-lg border border-border border-l-4 bg-card px-4 py-3"
             style={{ borderLeftColor: accent }}
         >
             <span
@@ -49,8 +49,22 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
             {/* Two lines on the left, size and date on the right. The filename sits under the title
                 rather than beside it because it is the one string here with no bound on its length —
                 sharing a row with the title meant whichever of the two moved first got trimmed; on
-                its own line it has the width of the row to itself. */}
-            <div className="flex min-w-0 flex-1 items-center gap-4">
+                its own line it has the width of the row to itself.
+
+                Below 420px of row the same pair stacks instead, because side by side there is no
+                width left to divide: the icon, the size, the date and the download button all take
+                their intrinsic width first, and the title column — the only flexible one — absorbs
+                the entire shortfall. On a 382px phone that left it 62px, so the heading rendered as
+                `J…` and the filename under it vanished. Stacking hands those 62px back to the two
+                strings that say which item this is, and drops the size and date onto their own line,
+                where they cost a line of height and lose only their alignment down the column.
+
+                Measured against the row's own width and not the viewport: `FILE_ROW_GRID` splits the
+                listing into two columns once `@container/app` reaches 860px, so a row is ~426px wide
+                on a large screen — a `sm:` breakpoint would be answering a question about the window
+                that this row is not asking. 420 is the width at which the title still has ~150px
+                left beside the metadata, which puts the two-column desktop case just inside it. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5 @min-[420px]/file-row:flex-row @min-[420px]/file-row:items-center @min-[420px]/file-row:gap-4">
                 <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5">
                         <h3 className="truncate font-medium">{item.title}</h3>
@@ -71,7 +85,7 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
                     )}
                 </div>
 
-                <div className="flex shrink-0 items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground @min-[420px]/file-row:gap-4">
                     <span className="tabular-nums">{formatFileSize(item.fileSize)}</span>
                     <time dateTime={item.createdAt} className="tabular-nums">
                         {formatDate(item.createdAt)}
