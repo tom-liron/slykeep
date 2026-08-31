@@ -26,7 +26,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Field } from "@/components/ui/Field";
+import { Field, invalidFor } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
@@ -194,11 +194,7 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
         type,
     });
 
-    /** Points a rejected input at the message `Field` renders for it, as the edit form does. */
-    const invalid = (field: CreateItemField) =>
-        fieldErrors[field]
-            ? { "aria-invalid": true, "aria-describedby": `new-item-${field}-error` }
-            : undefined;
+    const invalid = invalidFor<CreateItemField>("new-item", fieldErrors);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

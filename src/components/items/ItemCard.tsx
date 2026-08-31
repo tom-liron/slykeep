@@ -1,5 +1,4 @@
-import { Pin, Star } from "lucide-react";
-
+import { FavoriteBadge, PinnedBadge } from "@/components/ui/StatusBadges";
 import { formatDate } from "@/lib/format";
 import { cn, withAlpha } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
@@ -60,24 +59,8 @@ export function ItemCard({
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-1.5">
                         <h3 className="truncate font-medium">{item.title}</h3>
-                        {item.isPinned && (
-                            <>
-                                <Pin
-                                    className="size-3.5 shrink-0 fill-sky-400 text-sky-400"
-                                    aria-hidden="true"
-                                />
-                                <span className="sr-only">Pinned</span>
-                            </>
-                        )}
-                        {item.isFavorite && (
-                            <>
-                                <Star
-                                    className="size-3.5 shrink-0 fill-favorite text-favorite"
-                                    aria-hidden="true"
-                                />
-                                <span className="sr-only">Favorite</span>
-                            </>
-                        )}
+                        {item.isPinned && <PinnedBadge />}
+                        {item.isFavorite && <FavoriteBadge />}
                     </div>
                     {/* Gives way to the copy button, which `ItemList` puts in this corner on hover
                         and on focus — but only when there is one, or hovering a card whose item has

@@ -14,7 +14,7 @@ import {
     TagsField,
 } from "@/components/items/ItemFormFields";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/Field";
+import { Field, invalidFor } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { useCollectionOptions } from "@/hooks/use-collection-options";
 import { formatFileSize } from "@/lib/format";
@@ -89,11 +89,7 @@ export function ItemEditForm({
         type: detail.itemType.name,
     });
 
-    /** Points a rejected input at the message `Field` renders for it, as the auth forms do. */
-    const invalid = (field: UpdateItemField) =>
-        fieldErrors[field]
-            ? { "aria-invalid": true, "aria-describedby": `item-${field}-error` }
-            : undefined;
+    const invalid = invalidFor<UpdateItemField>("item", fieldErrors);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

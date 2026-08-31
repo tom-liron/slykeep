@@ -15,7 +15,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Field } from "@/components/ui/Field";
+import { Field, invalidFor } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { UpdateCollectionField, UpdateCollectionInput } from "@/lib/collection-schemas";
@@ -82,14 +82,7 @@ function EditCollectionForm({
     const [name, setName] = useState(collection.name);
     const [description, setDescription] = useState(collection.description);
 
-    /** Points a rejected input at the message `Field` renders for it, as the other forms do. */
-    const invalid = (field: UpdateCollectionField) =>
-        fieldErrors[field]
-            ? {
-                  "aria-invalid": true,
-                  "aria-describedby": `edit-collection-${field}-error`,
-              }
-            : undefined;
+    const invalid = invalidFor<UpdateCollectionField>("edit-collection", fieldErrors);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
