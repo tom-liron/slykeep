@@ -50,7 +50,7 @@ export function ChangePasswordDialog() {
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Change password</DialogTitle>
                     <DialogDescription>

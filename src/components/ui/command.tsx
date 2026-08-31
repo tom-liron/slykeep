@@ -48,9 +48,18 @@ function CommandDialog({
         <Dialog {...props}>
             <DialogContent
                 // Sat high rather than centred — a palette grows downward as you type, and the
-                // `max-w-[calc(100%-2rem)]` the base content class carries is left alone so it still
+                // `w-[calc(100%-2rem)]` the base content class carries is left alone so it still
                 // insets on a phone.
-                className={cn("top-[20%] translate-y-0 overflow-hidden p-0 sm:max-w-lg", className)}
+                //
+                // `scrollbar-gutter:auto` undoes `DialogContent`'s `stable`. That reservation is there so a
+                // dialog whose height changes with its content does not shift sideways when its
+                // scrollbar appears; this one is `overflow-hidden` and never scrolls, but
+                // `overflow: hidden` is still a scroll container, so the 10px was reserved anyway —
+                // and with `p-0` it read as a dead strip down the right of the palette.
+                className={cn(
+                    "top-[20%] max-w-lg translate-y-0 overflow-hidden p-0 [scrollbar-gutter:auto]",
+                    className,
+                )}
                 showCloseButton={false}
             >
                 <DialogTitle className="sr-only">{title}</DialogTitle>

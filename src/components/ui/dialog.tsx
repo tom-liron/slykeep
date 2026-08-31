@@ -50,8 +50,20 @@ function DialogContent({
     return (
         <DialogPortal>
             <DialogOverlay />
-            {/* `max-h` is the vertical half of the gutter beside it: centred by `-translate-y-1/2`,
-                a dialog taller than the window hangs off both ends with its footer — and therefore
+            {/* The 2rem gutter lives in `w-`, and the size cap lives in `max-w-`. Two properties,
+                both unconditional, so they compose instead of taking turns: the dialog is the
+                viewport minus a gutter until it reaches its cap, and the cap after that. Width is
+                then monotonic in the viewport, which is the whole point of writing it this way.
+
+                It used to be `w-full max-w-[calc(100%-2rem)] sm:max-w-sm`, with callers overriding
+                the `sm:` half. Both halves are `max-width`, so tailwind-merge keeps one — which
+                made the gutter and the cap take turns at 640px, and the cap is the *smaller* of
+                the two there: a dialog reached 607px at a 639px viewport and snapped back to
+                512px at 640px. Widening the window made the dialog narrower, and re-wrapped
+                everything inside it on the way.
+
+                `max-h` is the vertical half of the same gutter: centred by `-translate-y-1/2`, a
+                dialog taller than the window hangs off both ends with its footer — and therefore
                 its submit button — off screen entirely. Phone landscape and a short laptop window
                 both land there.
 
@@ -60,6 +72,16 @@ function DialogContent({
                 where they are, which is what `CreateItemDialog` does with its own scroller. This
                 one catches whatever does not.
 
+                `scrollbar-gutter: stable` because `.app-scrollbar` is a classic 10px bar, not an
+                overlay one, so it takes width from the content box the moment this scrolls. The
+                New item dialog changes height with the selected type — `link` is the only one
+                short enough not to overflow — so without the reservation every field in the form
+                jumped 11px sideways on each switch to it and back.
+
+                `@container` so `DialogFooter` can lay its buttons out against *this* element's
+                width. A viewport breakpoint cannot: the width it would need to test is the cap,
+                and the cap is per-dialog.
+
                 `overflow-x-hidden` because `overflow-y: auto` alone computes `overflow-x` to `auto`
                 as well, and `DialogFooter` deliberately breaks the padding with `-mx-4` — which is
                 inline overflow, and would otherwise put a horizontal scrollbar under a dialog that
@@ -67,7 +89,7 @@ function DialogContent({
             <DialogPrimitive.Content
                 data-slot="dialog-content"
                 className={cn(
-                    "app-scrollbar fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+                    "app-scrollbar @container fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none [scrollbar-gutter:stable] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
                     className,
                 )}
                 {...props}
@@ -115,8 +137,13 @@ function DialogFooter({
     return (
         <div
             data-slot="dialog-footer"
+            // `@sm`, not `sm` — a container query against `DialogContent`, which declares
+            // `@container` for it. The question here is whether two buttons fit side by side in
+            // *this dialog*, and the dialog's width is its own cap, not the window's: on a viewport
+            // wide enough for `sm` a 512px dialog and a 384px one want different answers, and one
+            // narrow enough to fail it may still be holding a dialog with room for a row.
             className={cn(
-                "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+                "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 @sm:flex-row @sm:justify-end",
                 className,
             )}
             {...props}

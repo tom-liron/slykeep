@@ -1,22 +1,17 @@
 # Current Feature
 
-## Feature
-
-_None loaded. Run `/feature load <spec>` to begin._
-
 ## Status
 
 Not Started
 
 ## Goals
 
-_Populated by `/feature load`._
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-_Populated by `/feature load`._
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
-Moved to `context/feature-history.md`, which is **not** `@`-imported — this file is loaded into
-every session and the history is not needed in most of them. `/feature complete` appends there.
+Completed features are logged in `context/feature-history.md`.

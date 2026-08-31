@@ -58,7 +58,7 @@ export function CreateCollectionDialog({
                 </DialogTrigger>
             )}
 
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>New collection</DialogTitle>
                     <DialogDescription>

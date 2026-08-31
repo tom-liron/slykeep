@@ -76,8 +76,8 @@ const PLACEHOLDERS: Record<CreatableItemTypeName, { title: string; content: stri
     snippet: { title: "e.g. Debounce hook", content: "Paste your code" },
     prompt: { title: "e.g. Code review prompt", content: "Write your prompt" },
     command: { title: "e.g. Reset a branch to origin", content: "Paste your command" },
-    note: { title: "e.g. Postgres connection pooling", content: "Write your note" },
-    link: { title: "e.g. Prisma migrate reference", content: "" },
+    note: { title: "e.g. Connection pooling", content: "Write your note" },
+    link: { title: "e.g. Prisma migrate docs", content: "" },
     // The file types render an upload rather than a content field, so only the title is used.
     file: { title: "e.g. Deployment runbook", content: "" },
     image: { title: "e.g. Architecture diagram", content: "" },
@@ -125,7 +125,7 @@ export function CreateItemDialog({
                 </DialogTrigger>
             )}
 
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>New item</DialogTitle>
                     <DialogDescription>Pick a type — the fields below follow it.</DialogDescription>

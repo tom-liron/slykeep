@@ -152,7 +152,10 @@ export function FileUpload({
                         button inside it would be a second one firing the same picker. */}
                     <p className="text-sm text-muted-foreground">
                         Drag and drop, or{" "}
-                        <span className="font-medium text-primary underline-offset-4 group-hover:underline">
+                        {/* `whitespace-nowrap` so the phrase breaks *before* it and not inside it:
+                            at phone width the line wrapped after "choose a", leaving a lone "file"
+                            on the next line under a link that reads as two. */}
+                        <span className="font-medium whitespace-nowrap text-primary underline-offset-4 group-hover:underline">
                             choose a file
                         </span>
                     </p>

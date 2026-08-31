@@ -125,7 +125,7 @@ export function DeleteAccountDialog({
                             onClick={cancelSubscription}
                             disabled={portalPending}
                             size="lg"
-                            className="w-full sm:w-auto"
+                            className="w-full @sm:w-auto"
                         >
                             {portalPending ? "Opening…" : "Cancel subscription"}
                         </Button>
@@ -169,7 +169,7 @@ export function DeleteAccountDialog({
                                 variant="destructive"
                                 size="lg"
                                 disabled={isPending || !confirmed}
-                                className="w-full sm:w-auto"
+                                className="w-full @sm:w-auto"
                             >
                                 {isPending ? "Deleting…" : "I understand, delete my account"}
                             </Button>

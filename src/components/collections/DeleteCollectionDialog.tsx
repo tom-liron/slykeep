@@ -104,7 +104,7 @@ export function DeleteCollectionDialog({
                         variant="destructive"
                         onClick={confirmDelete}
                         disabled={isPending}
-                        className="w-full sm:w-auto"
+                        className="w-full @sm:w-auto"
                     >
                         {isPending ? "Deleting…" : "Delete collection"}
                     </Button>

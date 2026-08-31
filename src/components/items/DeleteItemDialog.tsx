@@ -111,7 +111,7 @@ export function DeleteItemDialog({
                         variant="destructive"
                         onClick={confirmDelete}
                         disabled={isPending}
-                        className="w-full sm:w-auto"
+                        className="w-full @sm:w-auto"
                     >
                         {isPending ? "Deleting…" : "Delete item"}
                     </Button>
