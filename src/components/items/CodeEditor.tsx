@@ -216,6 +216,12 @@ export function CodeEditor({
     "aria-describedby"?: string;
 }) {
     const [height, setHeight] = useState(MIN_HEIGHT);
+    /**
+     * Whether the content is taller than the ceiling — i.e. the editor is scrolling itself, and the
+     * last visible line is a cut rather than the end of the file. Drives the fade below; see the
+     * note there for why it is measured rather than always on.
+     */
+    const [isClipped, setIsClipped] = useState(false);
     /** The explanation this editor has been given, or null while it has none. */
     const [explanation, setExplanation] = useState<string | null>(null);
     const [isExplaining, startExplaining] = useTransition();
@@ -282,13 +288,13 @@ export function CodeEditor({
     // the box it was given. `onDidDispose` rather than an effect cleanup because monaco owns this
     // listener's lifetime: the editor is what the closure measures.
     const handleMount: OnMount = (editor) => {
-        const measure = () =>
-            setHeight(
-                Math.min(
-                    editorMaxHeight(window.innerHeight),
-                    Math.max(MIN_HEIGHT, editor.getContentHeight()),
-                ),
-            );
+        const measure = () => {
+            const ceiling = editorMaxHeight(window.innerHeight);
+            const content = Math.max(MIN_HEIGHT, editor.getContentHeight());
+
+            setHeight(Math.min(ceiling, content));
+            setIsClipped(content > ceiling);
+        };
 
         measure();
         editor.onDidContentSizeChange(measure);
@@ -385,66 +391,96 @@ export function CodeEditor({
                         code
                     />
                 ) : (
-                    <Editor
-                        height={height}
-                        language={monacoLanguage}
-                        value={value}
-                        // The preference *is* the monaco theme name: `devstash-dark` is the one registered
-                        // above, and the rest are built in.
-                        theme={preferences.theme}
-                        beforeMount={defineTheme}
-                        onMount={handleMount}
-                        onChange={(next) => onChange?.(next ?? "")}
-                        loading={<div className="size-full animate-pulse bg-muted/40" />}
-                        options={{
-                            readOnly,
-                            domReadOnly: readOnly,
-                            ariaLabel: label,
-                            placeholder,
-                            automaticLayout: true,
-                            scrollBeyondLastLine: false,
-                            // The editor lives inside a scrolling drawer and a scrolling dialog. Consuming
-                            // the wheel would trap the page's scroll the moment the pointer crossed it.
-                            scrollbar: {
-                                alwaysConsumeMouseWheel: false,
-                                verticalScrollbarSize: 10,
-                                horizontalScrollbarSize: 10,
-                                useShadows: false,
-                            },
-                            // A stash, not an IDE: nothing here has a project or a type-checker behind it,
-                            // so suggestions and hovers would only ever be noise over stored text.
-                            quickSuggestions: false,
-                            suggestOnTriggerCharacters: false,
-                            parameterHints: { enabled: false },
-                            hover: { enabled: "off" },
-                            occurrencesHighlight: "off",
-                            renderLineHighlight: readOnly ? "none" : "line",
-                            minimap: { enabled: preferences.minimap },
-                            overviewRulerLanes: 0,
-                            overviewRulerBorder: false,
-                            hideCursorInOverviewRuler: true,
-                            folding: false,
-                            glyphMargin: false,
-                            lineNumbersMinChars: 3,
-                            lineDecorationsWidth: 8,
-                            // Wrapping rather than a horizontal scrollbar is the default, because the drawer
-                            // is narrow and a long line scrolled sideways is worse than a wrapped one — but
-                            // it is a preference now, since that trade is the user's to make for their own
-                            // content. Turning it off also shortens the measured content height, which is
-                            // the height of the box: the editor gets smaller, not just narrower in reach.
-                            wordWrap: preferences.wordWrap ? "on" : "off",
-                            fontFamily: "var(--font-mono)",
-                            // Floored under a finger, which here is the read-only drawer: monaco's textarea
-                            // is focusable even when it is read-only, and iOS zooms the page in on focus at
-                            // anything under 16px. The stored preference is untouched — see
-                            // `renderedFontSize`.
-                            fontSize: renderedFontSize(preferences.fontSize, coarsePointer),
-                            tabSize: preferences.tabSize,
-                            padding: { top: 12, bottom: 12 },
-                            contextmenu: !readOnly,
-                            stickyScroll: { enabled: false },
-                        }}
-                    />
+                    // `relative`, only so the fade below has something to be absolute against. It
+                    // wraps rather than replaces the editor's own box, so monaco still measures and
+                    // lays out exactly as it did.
+                    <div className="relative">
+                        <Editor
+                            height={height}
+                            language={monacoLanguage}
+                            value={value}
+                            // The preference *is* the monaco theme name: `devstash-dark` is the one registered
+                            // above, and the rest are built in.
+                            theme={preferences.theme}
+                            beforeMount={defineTheme}
+                            onMount={handleMount}
+                            onChange={(next) => onChange?.(next ?? "")}
+                            loading={<div className="size-full animate-pulse bg-muted/40" />}
+                            options={{
+                                readOnly,
+                                domReadOnly: readOnly,
+                                ariaLabel: label,
+                                placeholder,
+                                automaticLayout: true,
+                                scrollBeyondLastLine: false,
+                                // The editor lives inside a scrolling drawer and a scrolling dialog. Consuming
+                                // the wheel would trap the page's scroll the moment the pointer crossed it.
+                                scrollbar: {
+                                    alwaysConsumeMouseWheel: false,
+                                    verticalScrollbarSize: 10,
+                                    horizontalScrollbarSize: 10,
+                                    useShadows: false,
+                                },
+                                // A stash, not an IDE: nothing here has a project or a type-checker behind it,
+                                // so suggestions and hovers would only ever be noise over stored text.
+                                quickSuggestions: false,
+                                suggestOnTriggerCharacters: false,
+                                parameterHints: { enabled: false },
+                                hover: { enabled: "off" },
+                                occurrencesHighlight: "off",
+                                renderLineHighlight: readOnly ? "none" : "line",
+                                minimap: { enabled: preferences.minimap },
+                                overviewRulerLanes: 0,
+                                overviewRulerBorder: false,
+                                hideCursorInOverviewRuler: true,
+                                folding: false,
+                                glyphMargin: false,
+                                lineNumbersMinChars: 3,
+                                lineDecorationsWidth: 8,
+                                // Wrapping rather than a horizontal scrollbar is the default, because the drawer
+                                // is narrow and a long line scrolled sideways is worse than a wrapped one — but
+                                // it is a preference now, since that trade is the user's to make for their own
+                                // content. Turning it off also shortens the measured content height, which is
+                                // the height of the box: the editor gets smaller, not just narrower in reach.
+                                wordWrap: preferences.wordWrap ? "on" : "off",
+                                fontFamily: "var(--font-mono)",
+                                // Floored under a finger, which here is the read-only drawer: monaco's textarea
+                                // is focusable even when it is read-only, and iOS zooms the page in on focus at
+                                // anything under 16px. The stored preference is untouched — see
+                                // `renderedFontSize`.
+                                fontSize: renderedFontSize(preferences.fontSize, coarsePointer),
+                                tabSize: preferences.tabSize,
+                                padding: { top: 12, bottom: 12 },
+                                contextmenu: !readOnly,
+                                stickyScroll: { enabled: false },
+                            }}
+                        />
+                        {/* A cut line is the one thing a reader cannot tell from a finished one, and
+                            this editor cuts mid-glyph — the drawer scrolls, the editor scrolls
+                            inside it, and the bottom edge of a clipped snippet looked like a
+                            rendering fault rather than an invitation to keep scrolling.
+
+                            Measured rather than always on: the box is fluid up to a ceiling, so most
+                            snippets end where their content ends, and a permanent fade would dim the
+                            last line of every one of them to solve a problem they do not have.
+
+                            Faded to `${surface}00` rather than `transparent`, because `transparent`
+                            is transparent *black*: browsers interpolate in premultiplied sRGB and
+                            the midpoint of `#272822 → transparent` is a grey haze over Monokai. The
+                            same hue at zero alpha interpolates cleanly.
+
+                            `pointer-events-none` so it never eats a click, a drag, or a text
+                            selection reaching the lines underneath it. */}
+                        {isClipped && (
+                            <div
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-x-0 bottom-0 h-8"
+                                style={{
+                                    backgroundImage: `linear-gradient(to top, ${surface}, ${surface}00)`,
+                                }}
+                            />
+                        )}
+                    </div>
                 )}
             </TabsPrimitive.Content>
 

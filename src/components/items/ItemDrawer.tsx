@@ -369,133 +369,150 @@ export function ItemDrawer({
                         // the editor header's Explain button uses: that header is painted with a
                         // hard-coded monaco surface and stays dark under light mode, while this row
                         // sits on the app's own background and has to flip with it.
-                        <div className="flex items-center gap-1 border-t border-border pt-3">
-                            {/* Titled and labelled by what the click will *do*, not by what the item
+                        // Two elements, because they do two things. The rule separates the actions
+                        // from the content above them; the tray inside groups the six controls into
+                        // one object. The hover override below fixed how this row reads *under the
+                        // pointer* — the tray is what it reads as at rest, which is where six ghost
+                        // buttons on a bare panel read as a line of text rather than a toolbar.
+                        // One tray rather than a border on each control: six outlines side by side
+                        // compete with each other and with the item's own chrome, and the thing that
+                        // needs a boundary here is the set, not its members.
+                        <div className="border-t border-border pt-3">
+                            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
+                                {/* Titled and labelled by what the click will *do*, not by what the item
                                 is — the filled star already says which of the two states it is in,
                                 and a control named "Favorite" on an already-favourited item reads as
                                 the one thing it will not do. */}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="dark:hover:bg-muted"
-                                onClick={toggleFavorite}
-                                disabled={isFavoriting}
-                                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                                aria-label={
-                                    isFavorite ? "Remove from favorites" : "Add to favorites"
-                                }
-                            >
-                                <Star
-                                    // Filled when on, like `CollectionActions`' star and unlike
-                                    // every other one — see the note there.
-                                    className={
-                                        isFavorite ? "fill-favorite text-favorite" : undefined
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="dark:hover:bg-muted"
+                                    onClick={toggleFavorite}
+                                    disabled={isFavoriting}
+                                    title={
+                                        isFavorite ? "Remove from favorites" : "Add to favorites"
                                     }
-                                    aria-hidden="true"
-                                />
-                                <ActionLabel>Favorite</ActionLabel>
-                            </Button>
-                            {/* Named by the action for the same reason Favorite is: the filled pin
+                                    aria-label={
+                                        isFavorite ? "Remove from favorites" : "Add to favorites"
+                                    }
+                                >
+                                    <Star
+                                        // Filled when on, like `CollectionActions`' star and unlike
+                                        // every other one — see the note there.
+                                        className={
+                                            isFavorite ? "fill-favorite text-favorite" : undefined
+                                        }
+                                        aria-hidden="true"
+                                    />
+                                    <ActionLabel>Favorite</ActionLabel>
+                                </Button>
+                                {/* Named by the action for the same reason Favorite is: the filled pin
                                 already says which state the item is in. */}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="dark:hover:bg-muted"
-                                onClick={togglePin}
-                                disabled={isPinning}
-                                title={isPinned ? "Unpin" : "Pin to the top"}
-                                aria-label={isPinned ? "Unpin" : "Pin to the top"}
-                            >
-                                {/* Filled sky blue when pinned, the same way the star goes filled
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="dark:hover:bg-muted"
+                                    onClick={togglePin}
+                                    disabled={isPinning}
+                                    title={isPinned ? "Unpin" : "Pin to the top"}
+                                    aria-label={isPinned ? "Unpin" : "Pin to the top"}
+                                >
+                                    {/* Filled sky blue when pinned, the same way the star goes filled
                                     yellow — a fill alone reads as "slightly bolder icon" at 14px,
                                     which is not a state. Blue rather than any of the type accents'
                                     blues would be, at `sky-400`: light enough to carry on the dark
                                     surface, and not `#3b82f6`, which is what a snippet's own accent
                                     is drawn in three inches above this. */}
-                                <Pin
-                                    className={isPinned ? "fill-sky-400 text-sky-400" : undefined}
-                                    aria-hidden="true"
-                                />
-                                <ActionLabel>Pin</ActionLabel>
-                            </Button>
-                            {/* Copy appears for a file only when the file is text, where its rendered
+                                    <Pin
+                                        className={
+                                            isPinned ? "fill-sky-400 text-sky-400" : undefined
+                                        }
+                                        aria-hidden="true"
+                                    />
+                                    <ActionLabel>Pin</ActionLabel>
+                                </Button>
+                                {/* Copy appears for a file only when the file is text, where its rendered
                                 contents are as copyable as a snippet's. An image or a PDF has
                                 nothing to put on the clipboard, so a Copy beside Download would be a
                                 control that can never do anything. */}
-                            {showsCopy && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="dark:hover:bg-muted"
-                                    onClick={copyBody}
-                                    disabled={!body}
-                                    title="Copy"
-                                    aria-label="Copy"
-                                >
-                                    <Copy aria-hidden="true" />
-                                    <ActionLabel>Copy</ActionLabel>
-                                </Button>
-                            )}
-                            {isFile &&
-                                // An anchor rather than a click handler, so the browser downloads it
-                                // the way it downloads anything else. Rendered as a plain disabled
-                                // button until the detail has loaded, because `disabled` means
-                                // nothing to an `<a>` — it would still be clickable.
-                                (detail?.fileName ? (
+                                {showsCopy && (
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         className="dark:hover:bg-muted"
-                                        asChild
-                                        title="Download"
-                                        aria-label="Download"
+                                        onClick={copyBody}
+                                        disabled={!body}
+                                        title="Copy"
+                                        aria-label="Copy"
                                     >
-                                        <a href={`${fileUrl}?download`} download={detail.fileName}>
+                                        <Copy aria-hidden="true" />
+                                        <ActionLabel>Copy</ActionLabel>
+                                    </Button>
+                                )}
+                                {isFile &&
+                                    // An anchor rather than a click handler, so the browser downloads it
+                                    // the way it downloads anything else. Rendered as a plain disabled
+                                    // button until the detail has loaded, because `disabled` means
+                                    // nothing to an `<a>` — it would still be clickable.
+                                    (detail?.fileName ? (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="dark:hover:bg-muted"
+                                            asChild
+                                            title="Download"
+                                            aria-label="Download"
+                                        >
+                                            <a
+                                                href={`${fileUrl}?download`}
+                                                download={detail.fileName}
+                                            >
+                                                <Download aria-hidden="true" />
+                                                <ActionLabel>Download</ActionLabel>
+                                            </a>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="dark:hover:bg-muted"
+                                            disabled
+                                            title="Download"
+                                            aria-label="Download"
+                                        >
                                             <Download aria-hidden="true" />
                                             <ActionLabel>Download</ActionLabel>
-                                        </a>
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="dark:hover:bg-muted"
-                                        disabled
-                                        title="Download"
-                                        aria-label="Download"
-                                    >
-                                        <Download aria-hidden="true" />
-                                        <ActionLabel>Download</ActionLabel>
-                                    </Button>
-                                ))}
+                                        </Button>
+                                    ))}
 
-                            {/* Grouped with the rest rather than pushed right by `ml-auto`: the
+                                {/* Grouped with the rest rather than pushed right by `ml-auto`: the
                                 wider the panel got, the further Edit and Delete drifted from the
                                 controls they belong with, until Delete was alone against the edge.
                                 One evenly spaced row reads as one toolbar. */}
-                            <div className="flex items-center gap-1">
-                                {/* Disabled until the body has loaded: the form is seeded from the
+                                <div className="flex items-center gap-1">
+                                    {/* Disabled until the body has loaded: the form is seeded from the
                                     detail, and there is nothing to seed it with before then. */}
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="dark:hover:bg-muted"
-                                    onClick={() => setIsEditing(true)}
-                                    disabled={!detail}
-                                    title="Edit"
-                                    aria-label="Edit"
-                                >
-                                    <Pencil aria-hidden="true" />
-                                    <ActionLabel>Edit</ActionLabel>
-                                </Button>
-                                {/* Titled from `view`, so a rename saved a moment ago is what the
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="dark:hover:bg-muted"
+                                        onClick={() => setIsEditing(true)}
+                                        disabled={!detail}
+                                        title="Edit"
+                                        aria-label="Edit"
+                                    >
+                                        <Pencil aria-hidden="true" />
+                                        <ActionLabel>Edit</ActionLabel>
+                                    </Button>
+                                    {/* Titled from `view`, so a rename saved a moment ago is what the
                                     confirmation names. Closing is all this drawer has to do: the
                                     row is gone, and `ItemList` drops the item on the refresh. */}
-                                <DeleteItemDialog
-                                    itemId={itemId}
-                                    title={view.title}
-                                    onDeleted={onClose}
-                                />
+                                    <DeleteItemDialog
+                                        itemId={itemId}
+                                        title={view.title}
+                                        onDeleted={onClose}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

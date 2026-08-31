@@ -165,8 +165,21 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             { label: "Unlimited items", included: true },
             { label: "Unlimited collections", included: true },
             { label: "All seven types, including files & images", included: true },
+            // Both rows lead with "AI", and that is the whole point of the wording. The second one
+            // used to read "Explain this code & prompt optimizer", which names two AI features
+            // without saying so — against a Free card whose one AI row is the crossed-out "AI
+            // features", a reader counting what Pro adds could see one AI row here rather than two.
+            //
+            // Still two rows for four capabilities, deliberately: they pair as "what AI writes for
+            // you about an item" and "what AI does to an item's content", and a pricing card is
+            // scanned rather than read — four AI rows out of nine would make AI look like padding
+            // instead of the reason to upgrade. All four are named, none is hidden.
+            //
+            // These are the four that actually exist as Server Actions in `actions/ai.ts`
+            // (`generateAutoTags`, `generateDescription`, `explainCode`, `optimizePrompt`), so this
+            // card promises nothing the product does not do.
             { label: "AI auto-tagging and summaries", included: true },
-            { label: "Explain this code & prompt optimizer", included: true },
+            { label: "AI code explanation and prompt optimizer", included: true },
             { label: "Export to JSON or ZIP", included: true },
             { label: "Priority support", included: true },
         ],
