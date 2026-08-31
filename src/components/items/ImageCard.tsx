@@ -1,5 +1,4 @@
-import { Pin, Star } from "lucide-react";
-
+import { FavoriteBadge, PinnedBadge } from "@/components/ui/StatusBadges";
 import { isRenderableImage } from "@/lib/file-preview";
 import { formatDate } from "@/lib/format";
 import type { ItemSummaryViewModel } from "@/types/view-models";
@@ -54,24 +53,8 @@ export function ImageCard({ item }: { item: ItemSummaryViewModel }) {
             <div className="flex items-start justify-between gap-2 p-3">
                 <div className="flex min-w-0 items-center gap-1.5">
                     <h3 className="truncate text-sm font-medium">{item.title}</h3>
-                    {item.isPinned && (
-                        <>
-                            <Pin
-                                className="size-3.5 shrink-0 fill-sky-400 text-sky-400"
-                                aria-hidden="true"
-                            />
-                            <span className="sr-only">Pinned</span>
-                        </>
-                    )}
-                    {item.isFavorite && (
-                        <>
-                            <Star
-                                className="size-3.5 shrink-0 fill-favorite text-favorite"
-                                aria-hidden="true"
-                            />
-                            <span className="sr-only">Favorite</span>
-                        </>
-                    )}
+                    {item.isPinned && <PinnedBadge />}
+                    {item.isFavorite && <FavoriteBadge />}
                 </div>
                 <time dateTime={item.editedAt} className="shrink-0 text-xs text-muted-foreground">
                     {formatDate(item.editedAt)}

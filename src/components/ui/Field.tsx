@@ -1,4 +1,34 @@
 /**
+ * The two ARIA attributes that point a rejected input at the message `Field` renders for it, or
+ * `undefined` when there is nothing to report.
+ *
+ * `undefined` rather than `{ "aria-invalid": false }` on purpose: spread into a JSX element, that
+ * leaves the attribute off the DOM entirely, which is what assistive technology expects of a field
+ * that is simply valid.
+ *
+ * This is the other half of the `${id}-error` contract `Field` renders below — the two derivations
+ * of that one string now live in the same module, which is the point. Four form modules used to
+ * rebuild it from a prefix and a field name, and they agreed with `Field` only because every call
+ * site happened to pass a matching `id`; renaming one prefix pointed `aria-describedby` at an
+ * element that did not exist, with no error and no warning.
+ */
+export function invalidProps(id: string, error?: string) {
+    return error ? { "aria-invalid": true, "aria-describedby": `${id}-error` } : undefined;
+}
+
+/**
+ * `invalidProps` bound to a form's id prefix and its error map, for the forms that key their fields
+ * by name rather than by full id.
+ *
+ * The returned function is what a call site names `invalid` and spreads onto each input. Composing
+ * the id here — `${prefix}-${field}` — rather than at four call sites is what keeps the prefix a
+ * single edit.
+ */
+export function invalidFor<F extends string>(prefix: string, errors: Partial<Record<F, string>>) {
+    return (field: F) => invalidProps(`${prefix}-${field}`, errors[field]);
+}
+
+/**
  * A labelled form input with room for one message under it — either the validation error the server
  * reported for that field, or a hint when there is nothing to report.
  *

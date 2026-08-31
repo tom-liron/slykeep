@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
+import { FavoriteBadge } from "@/components/ui/StatusBadges";
 import type { CollectionViewModel } from "@/types/view-models";
 import { CollectionActions } from "./CollectionActions";
 
@@ -27,15 +27,7 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
             {/* Padded clear of the menu, which is laid over this row's right-hand end. */}
             <div className="flex items-center gap-1.5 pr-8">
                 <h3 className="truncate font-semibold">{collection.name}</h3>
-                {collection.isFavorite && (
-                    <>
-                        <Star
-                            className="size-3.5 shrink-0 fill-favorite text-favorite"
-                            aria-hidden="true"
-                        />
-                        <span className="sr-only">Favorite</span>
-                    </>
-                )}
+                {collection.isFavorite && <FavoriteBadge />}
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
                 {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}

@@ -17,7 +17,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Field } from "@/components/ui/Field";
+import { Field, invalidFor } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { CreateCollectionField, CreateCollectionInput } from "@/lib/collection-schemas";
@@ -82,11 +82,7 @@ function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
 
-    /** Points a rejected input at the message `Field` renders for it, as the item forms do. */
-    const invalid = (field: CreateCollectionField) =>
-        fieldErrors[field]
-            ? { "aria-invalid": true, "aria-describedby": `new-collection-${field}-error` }
-            : undefined;
+    const invalid = invalidFor<CreateCollectionField>("new-collection", fieldErrors);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

@@ -16,7 +16,7 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field } from "@/components/ui/Field";
+import { Field, invalidProps } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleChip } from "@/components/ui/ToggleChip";
@@ -68,11 +68,6 @@ type ItemFieldProps = {
     onChange: (value: string) => void;
     error?: string;
 };
-
-/** Points a rejected input at the message `Field` renders for it. */
-function invalidProps(id: string, error?: string) {
-    return error ? { "aria-invalid": true, "aria-describedby": `${id}-error` } : undefined;
-}
 
 /**
  * What a field hands to `Field`'s `action` slot to ask the model for something.
