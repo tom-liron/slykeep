@@ -43,6 +43,27 @@ export const DASHBOARD_RECENT_ITEMS_LIMIT = 10;
 export const CARD_GRID =
     "grid grid-cols-1 gap-4 @min-[560px]/app:grid-cols-2 @min-[704px]/app:grid-cols-3";
 
+/**
+ * The file listing's grid: one column narrow, two once there is room for two.
+ *
+ * Files are the one type rendered as rows rather than cards, and a row has no width of its own —
+ * `FileRow` fills its container and its title is `flex-1`, so a single column on a wide page put the
+ * name at one end of a 1152px row and the size, date and download at the other, with most of the row
+ * being the gap between them. Capping the column and centring it only moved the problem outward into
+ * two dead gutters; capping it and aligning left moved the whole gap to the right. A second column
+ * is what actually consumes the width, and it leaves the row component untouched.
+ *
+ * Two columns and not three, unlike `CARD_GRID`. A card is a block of stacked lines and reads fine
+ * at 224px; a row is a horizontal arrangement of five things — icon, title, filename, size and date,
+ * download — and needs roughly twice that before the title has any room left. 860 is the stop where
+ * two columns are still 422px each.
+ *
+ * `grid-cols-1` rather than a bare `grid`, for the reason `CARD_GRID` records at length: a single
+ * implicit track is sized `auto`, resolves to max-content, and is under no obligation to fit its
+ * container. This is the fourth place that would have rediscovered it.
+ */
+export const FILE_ROW_GRID = "grid grid-cols-1 gap-2 @min-[860px]/app:grid-cols-2";
+
 export const DASHBOARD_STAT_COLORS = {
     items: ITEM_TYPE_COLORS.snippet,
     collections: ITEM_TYPE_COLORS.link,

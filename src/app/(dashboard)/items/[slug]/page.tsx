@@ -5,7 +5,7 @@ import { ProTypeUpgrade } from "@/components/items/ProTypeUpgrade";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
-import { CARD_GRID } from "@/config/dashboard";
+import { CARD_GRID, FILE_ROW_GRID } from "@/config/dashboard";
 import { parsePageParam } from "@/lib/pagination";
 import { getItemTypePageData } from "@/server/items";
 
@@ -61,7 +61,7 @@ export default async function ItemTypePage({
                     <ItemList
                         items={data.items}
                         variant={variant}
-                        className={variant === "file" ? "flex flex-col gap-2" : CARD_GRID}
+                        className={variant === "file" ? FILE_ROW_GRID : CARD_GRID}
                     />
                     <Pagination
                         pagination={data.pagination}
