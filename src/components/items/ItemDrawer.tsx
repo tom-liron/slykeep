@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Copy, Download, Folder, Pencil, Pin, Star, Tag } from "lucide-react";
+import { Calendar, Copy, Download, Folder, Pencil, Pin, Star, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { toggleItemFavorite, toggleItemPin, updateItem } from "@/actions/items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { copyToClipboard } from "@/lib/clipboard";
 // Aliased because the component below already owns the name `FilePreview`.
 import { filePreviewFor, type FilePreview as FilePreviewInfo } from "@/lib/file-preview";
@@ -317,8 +317,13 @@ export function ItemDrawer({
                 narrower means giving up the button labels at every width rather than only below
                 `sm`, which is a different decision from this one.
 
-                Below `sm` the viewport is the constraint instead, and `ActionLabel` drops the words
-                there, so the row cannot squeeze at the narrow end either.
+                Below `sm` this is not a panel at all — it is `w-full`, the whole screen, and the
+                border down its left edge goes with it. A drawer that leaves 8vw of blurred page
+                behind it is showing a strip of something you cannot read or touch, and charging the
+                panel's own contents ~30px for it; on a phone the item *is* the page. It also fixes
+                the two things that made this header look broken at that width, rather than papering
+                over them: the close button and the six-button toolbar both get that room back.
+                `ActionLabel` still drops the words there, so the row cannot squeeze either.
 
                 All item types share this panel, so they all widen together.
 
@@ -328,9 +333,19 @@ export function ItemDrawer({
                 whole drawer. Naming the axis says what is actually meant: this panel scrolls one
                 way. Content that needs horizontal room scrolls inside its own box, as monaco and the
                 PDF viewer already do. */}
-            <SheetContent className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-[min(92vw,30rem)] data-[side=right]:sm:max-w-none">
-                <SheetHeader className="gap-3 p-5">
-                    <div className="flex items-start gap-3 pr-8">
+            <SheetContent
+                showCloseButton={false}
+                className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-full data-[side=right]:border-l-0 data-[side=right]:sm:w-[min(92vw,30rem)] data-[side=right]:sm:max-w-none data-[side=right]:sm:border-l"
+            >
+                <SheetHeader className="gap-3 p-4 sm:p-5">
+                    {/* `sm:pr-12` and nothing below it, because the close button is only laid over
+                        this row from `sm` up — see it below. Padding is the wrong instrument on a
+                        phone: it has to be guessed against a button whose width depends on the
+                        pointer (28px with a mouse, 44px under `pointer-coarse:`), and on a 344px
+                        Galaxy Fold the reserved strip and the title still ended up close enough
+                        that the ✕ read as the last character of the title rather than as a control.
+                        48px is generous for the wide case and costs nothing there. */}
+                    <div className="flex items-start gap-3 sm:pr-12">
                         <span
                             className="flex size-10 shrink-0 items-center justify-center rounded-lg"
                             style={{ backgroundColor: withAlpha(accent), color: accent }}
@@ -341,7 +356,10 @@ export function ItemDrawer({
                                 aria-hidden="true"
                             />
                         </span>
-                        <div className="min-w-0 space-y-1.5">
+                        {/* `flex-1` so the close button beside it is pushed to the row's right
+                            edge below `sm`. Above it the button is out of flow and this is the only
+                            growing item anyway, so it changes nothing there. */}
+                        <div className="min-w-0 flex-1 space-y-1.5">
                             <SheetTitle className="text-lg leading-tight">{view.title}</SheetTitle>
                             <div className="flex flex-wrap items-center gap-1.5">
                                 <Badge variant="secondary">{item.itemType.label}</Badge>
@@ -350,16 +368,51 @@ export function ItemDrawer({
                                 )}
                             </div>
                         </div>
+
+                        {/* One button, two placements — which is why `SheetContent` is told not to
+                            draw its own. `showCloseButton` is a boolean prop and cannot answer "it
+                            depends how wide the screen is", and this is the one drawer in the app
+                            that goes full-screen, so the choice belongs here rather than in the
+                            primitive.
+
+                            Below `sm` it is a member of this row: last item, after a `flex-1` title
+                            block that pushes it to the edge. In flow it cannot overlap anything, at
+                            any width, under either pointer — which is the whole reason to move it,
+                            rather than keep tuning a reserved strip against a button that is 28px
+                            or 44px depending on the device. It also stops the ✕ sitting on the
+                            title's own baseline, where at 344px it read as punctuation.
+
+                            From `sm` up it returns to the panel's top-right corner, where it is the
+                            same control in the same place every other overlay in the app puts it,
+                            and the row takes its `sm:pr-12` back. `SheetContent` is `fixed`, so it
+                            is the containing block for this — the same one the primitive's own
+                            button uses, which is what makes the two placements identical. */}
+                        <SheetClose asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="-mt-1 -mr-1 sm:absolute sm:top-3 sm:right-3 sm:mt-0 sm:mr-0"
+                            >
+                                <X aria-hidden="true" />
+                                <span className="sr-only">Close</span>
+                            </Button>
+                        </SheetClose>
                     </div>
 
                     {/* The whole bar gives way to the form's Save / Cancel in edit mode. */}
                     {!isEditing && (
-                        // One row, always. These buttons carry `shrink-0 whitespace-nowrap`, so a row
-                        // that does not fit does not compress — it widens the panel, and the sheet's
-                        // `overflow-y-auto` turns that into a horizontal scrollbar over the whole
-                        // drawer. A text file shows six controls and the sheet is `w-full` below
-                        // `sm`, which is exactly where `ActionLabel` drops the words and leaves the
-                        // icons — the same trade the top bar's "New Item" makes.
+                        // One row wherever it fits, and it fits everywhere worth designing for:
+                        // `ActionLabel` drops the words below `sm`, which leaves six icons, and
+                        // six 44px touch targets plus their gaps and the tray's padding come to
+                        // ~294px against the 328px a 360px phone gives them.
+                        //
+                        // `flex-wrap` is for the width below that. These buttons carry `shrink-0
+                        // whitespace-nowrap`, so a row that does not fit does not compress — and
+                        // with `overflow-x-hidden` on the sheet it is not a scrollbar either, it is
+                        // Delete being clipped off the edge with no way to reach it. At 320px the
+                        // six need ~294px and the panel offers 288, so wrapping is the difference
+                        // between the last control moving down a line and the last control being
+                        // gone. Nothing above 320px sees a second row.
                         // Every control in this row carries `dark:hover:bg-muted`, overriding the
                         // ghost variant's `dark:hover:bg-muted/50`. At half strength the fill lands
                         // near `#2d2d2d` on this panel — close enough to the surface that the row
@@ -378,7 +431,7 @@ export function ItemDrawer({
                         // compete with each other and with the item's own chrome, and the thing that
                         // needs a boundary here is the set, not its members.
                         <div className="border-t border-border pt-3">
-                            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
+                            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
                                 {/* Titled and labelled by what the click will *do*, not by what the item
                                 is — the filled star already says which of the two states it is in,
                                 and a control named "Favorite" on an already-favourited item reads as
@@ -518,7 +571,7 @@ export function ItemDrawer({
                     )}
                 </SheetHeader>
 
-                <div className="space-y-6 border-t border-border p-5">
+                <div className="space-y-6 border-t border-border p-4 sm:p-5">
                     {isEditing && detail ? (
                         <ItemEditForm
                             detail={detail}

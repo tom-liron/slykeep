@@ -90,7 +90,15 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
     return (
         <div
             data-slot="dialog-header"
-            className={cn("flex flex-col gap-2", className)}
+            // Padded clear of the close button, which is laid over this block's top-right corner
+            // and is not one width. It is `size="icon-sm"` — 28px with a mouse, but every button
+            // size carries a `pointer-coarse:` floor of 44px, so on a phone it occupies 52px in
+            // from the content's right edge and 52px down from its top. The title is short enough
+            // in every dialog here to clear it either way; the *description* is not — it is a
+            // wrapped sentence starting around 40px down, so its first line ran straight under the
+            // ✕ on any touch device. The clearance belongs here rather than on each dialog because
+            // the button is `DialogContent`'s and every dialog gets one.
+            className={cn("flex flex-col gap-2 pr-8 pointer-coarse:pr-10", className)}
             {...props}
         />
     );

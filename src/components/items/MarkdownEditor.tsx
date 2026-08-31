@@ -169,7 +169,11 @@ export function MarkdownEditor({
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
         >
-            <div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
+            {/* `flex-wrap`, for the reason recorded in `CodeEditor`: this row is inside an
+                `overflow-hidden` box, so it clips rather than scrolls. Three tabs — Write,
+                Original, Optimized — plus the optimize button and the format label need more room
+                than the drawer has on a narrow phone. */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-border px-2 py-1.5">
                 <TabsPrimitive.List className="flex items-center gap-1" aria-label={label}>
                     {!readOnly && <Tab value="write">Write</Tab>}
                     {/* "Original" only once there is a rewrite to hold it against. On its own the
