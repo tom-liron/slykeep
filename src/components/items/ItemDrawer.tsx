@@ -16,6 +16,7 @@ import { formatFileSize, formatLongDate } from "@/lib/format";
 import { itemTypeOwns } from "@/lib/item-schemas";
 import { withAlpha } from "@/lib/utils";
 import type { ItemDetailViewModel, ItemSummaryViewModel } from "@/types/view-models";
+import { ActionLabel } from "./ActionLabel";
 import { CodeEditor } from "./CodeEditor";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
@@ -315,15 +316,53 @@ export function ItemDrawer({
                 point below which they start to squeeze — 480px leaves that a little air and nothing
                 more. Deliberately minimal: a drawer beside the page, not a second page. Going
                 narrower means giving up the button labels at every width rather than only below
-                `sm`, which is a different decision from this one.
+                560px, which is a different decision from this one.
 
-                Below `sm` this is not a panel at all — it is `w-full`, the whole screen, and the
+                **600px is where the drawer stops being the page and becomes a panel**, and it is
+                the only stop this component has — the width, the header's shape, where the ✕ sits,
+                the toolbar's grid-or-flex, and whether its buttons carry words are all the same
+                question asked once. It was `sm` (640px), which was too high to be logical: a 700px
+                window is a laptop, and a laptop does not want one item taking the whole screen.
+
+                **36rem, and the cap is the variable — not the breakpoint.** Whether the toolbar's
+                words fit is not a question a breakpoint can answer: above the stop the panel is a
+                fixed width at every window size, so the row's headroom is identical at 600px and at
+                4K. The words either always fit or never do. Four breakpoints were moved chasing a
+                wrapping report before that became obvious.
+
+                The rows are not all the same width, which is what made 30rem look sufficient. A
+                snippet's five controls measure 377px, so against a 418px tray they fitted by 41px
+                and the arithmetic looked fine. But `Copy` and `Download` are conditional and not
+                mutually exclusive. An **image** swaps the first for the second — five controls
+                again, but 406px, because "Download" is the longest word in the set, and 406 against
+                that 418px tray is 12px from wrapping, which is exactly what it did. A **previewable
+                text file** shows both: `showsCopy` is `!isFile || isTextPreview`, so a `.txt` or
+                `.json` under the preview size cap gets six controls and 481px, while the same file
+                over the cap — or any extension the language map does not know — is back to five.
+                Sizing the panel to the common row is what put a two-line toolbar on every image.
+
+                36rem gives a 525px tray: 148px spare for a snippet and 119px for an image, both
+                comfortable. The six-control row is not solved by the cap and cannot be. Above the
+                stop the panel is capped, so the tray is a constant 525px at every window size, and
+                just above the stop it is ~501px against a 481px row — 4%. Making *that* fit would
+                need the stop near 700px, which is the full-screen takeover this moved away from.
+                So the six-control row drops its words instead; see the quantity query below.
+
+                600 rather than something smaller because of what the panel becomes: the cap only
+                binds once `92vw` exceeds it, so below ~592px a "panel" would show a crack of page
+                rather than a margin, which reads as a broken full-screen instead of a drawer. At
+                600 it leaves 56px, and it grows from there. The stop also sits above every phone in
+                portrait — a 16 Pro Max is 440px — and below every tablet, which is the line asked
+                for.
+
+                Below it this is not a panel at all — it is `w-full`, the whole screen, and the
                 border down its left edge goes with it. A drawer that leaves 8vw of blurred page
                 behind it is showing a strip of something you cannot read or touch, and charging the
                 panel's own contents ~30px for it; on a phone the item *is* the page. It also fixes
                 the two things that made this header look broken at that width, rather than papering
                 over them: the close button and the six-button toolbar both get that room back.
-                `ActionLabel` still drops the words there, so the row cannot squeeze either.
+                `ActionLabel` drops the words when the row is too narrow for them, so it cannot
+                squeeze either.
 
                 All item types share this panel, so they all widen together.
 
@@ -335,17 +374,30 @@ export function ItemDrawer({
                 PDF viewer already do. */}
             <SheetContent
                 showCloseButton={false}
-                className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-full data-[side=right]:border-l-0 data-[side=right]:sm:w-[min(92vw,30rem)] data-[side=right]:sm:max-w-none data-[side=right]:sm:border-l"
+                className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-full data-[side=right]:border-l-0 data-[side=right]:drawer:w-[min(92vw,36rem)] data-[side=right]:drawer:max-w-none data-[side=right]:sm:max-w-none data-[side=right]:drawer:border-l"
             >
-                <SheetHeader className="gap-3 p-4 sm:p-5">
+                <SheetHeader className="gap-3 p-4 drawer:p-5">
                     {/* `sm:pr-12` and nothing below it, because the close button is only laid over
-                        this row from `sm` up — see it below. Padding is the wrong instrument on a
+                        this row from 600px up — see it below. Padding is the wrong instrument on a
                         phone: it has to be guessed against a button whose width depends on the
                         pointer (28px with a mouse, 44px under `pointer-coarse:`), and on a 344px
                         Galaxy Fold the reserved strip and the title still ended up close enough
                         that the ✕ read as the last character of the title rather than as a control.
                         48px is generous for the wide case and costs nothing there. */}
-                    <div className="flex items-start gap-3 sm:pr-12">
+                    {/* One row at every width: the type icon, the title block, then the ✕.
+
+                        It briefly wrapped below the stop — `basis-full order-last` on the title
+                        block, putting the icon and the ✕ alone on a bar with the title beneath
+                        them. That was aimed at the ✕ colliding with the title, but the collision
+                        was already fixed by taking the button out of `position: absolute` and
+                        making it a member of this row, where it cannot overlap anything. The
+                        second line was solving a problem that no longer existed, and it made the
+                        narrow header a different shape from the wide one for no reason. One shape
+                        everywhere is both simpler and what the drawer looked like before.
+
+                        `drawer:pr-12` only above the stop, because that is the only place the ✕
+                        leaves the flow and is laid over this row's right-hand end. */}
+                    <div className="flex items-start gap-3 drawer:pr-12">
                         <span
                             className="flex size-10 shrink-0 items-center justify-center rounded-lg"
                             style={{ backgroundColor: withAlpha(accent), color: accent }}
@@ -356,9 +408,8 @@ export function ItemDrawer({
                                 aria-hidden="true"
                             />
                         </span>
-                        {/* `flex-1` so the close button beside it is pushed to the row's right
-                            edge below `sm`. Above it the button is out of flow and this is the only
-                            growing item anyway, so it changes nothing there. */}
+                        {/* `flex-1` at every width: it takes the room the icon and the ✕ leave, and
+                            below the stop that is also what pushes the ✕ to the row's right edge. */}
                         <div className="min-w-0 flex-1 space-y-1.5">
                             <SheetTitle className="text-lg leading-tight">{view.title}</SheetTitle>
                             <div className="flex flex-wrap items-center gap-1.5">
@@ -375,14 +426,14 @@ export function ItemDrawer({
                             that goes full-screen, so the choice belongs here rather than in the
                             primitive.
 
-                            Below `sm` it is a member of this row: last item, after a `flex-1` title
+                            Below 600px it is a member of this row: last item, after a `flex-1` title
                             block that pushes it to the edge. In flow it cannot overlap anything, at
                             any width, under either pointer — which is the whole reason to move it,
                             rather than keep tuning a reserved strip against a button that is 28px
                             or 44px depending on the device. It also stops the ✕ sitting on the
                             title's own baseline, where at 344px it read as punctuation.
 
-                            From `sm` up it returns to the panel's top-right corner, where it is the
+                            From 600px up it returns to the panel's top-right corner, where it is the
                             same control in the same place every other overlay in the app puts it,
                             and the row takes its `sm:pr-12` back. `SheetContent` is `fixed`, so it
                             is the containing block for this — the same one the primitive's own
@@ -391,7 +442,33 @@ export function ItemDrawer({
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                className="-mt-1 -mr-1 sm:absolute sm:top-3 sm:right-3 sm:mt-0 sm:mr-0"
+                                // `size-10`, which is the type icon's box, and that is the whole
+                                // point: in flow these two are the row's bookends, and the eye
+                                // reads them as a pair. At the variant's own 28px, top-aligned
+                                // against a 40px icon, the ✕ sat 6px high — level with the title's
+                                // first line and level with nothing else, which is what "not
+                                // aligned" was. At 40px the two centres land within 2px. It stays
+                                // 44px under a coarse pointer, because `pointer-coarse:size-11` is
+                                // a media rule layered on top of this rather than replaced by it,
+                                // and 44 against 40 is still centred to within 2px.
+                                //
+                                // No negative margins. They were pulling it up and out past the
+                                // row's right edge, so it aligned with neither the icon beside it
+                                // nor the content below it. Flush is what reads as deliberate.
+                                // `ml-auto` puts it at the far end of the bar it shares with the
+                                // type icon. That is the whole of the narrow placement — the size
+                                // is left to the variant, 28px with a mouse and 44px under a coarse
+                                // pointer, which is what pairs it with the 40px icon on the device
+                                // that actually shows this bar. An earlier pass forced `size-10` so
+                                // the two matched at any pointer, and since only `position` changes
+                                // at that stop, it followed the button to the desktop corner and made
+                                // its hover fill a 40px square for a 16px glyph.
+                                // `hover:bg-foreground/15` is the toolbar's fill, written out
+                                // because this is the one control of the set that does not sit
+                                // inside the tray and so is not reached by its rule. Same value on
+                                // purpose: the ✕ and the six below it are the drawer's controls,
+                                // and they should answer the pointer the same way.
+                                className="ml-auto hover:bg-foreground/15 dark:hover:bg-foreground/15 drawer:absolute drawer:top-3 drawer:right-3 drawer:ml-0"
                             >
                                 <X aria-hidden="true" />
                                 <span className="sr-only">Close</span>
@@ -402,7 +479,7 @@ export function ItemDrawer({
                     {/* The whole bar gives way to the form's Save / Cancel in edit mode. */}
                     {!isEditing && (
                         // One row wherever it fits, and it fits everywhere worth designing for:
-                        // `ActionLabel` drops the words below `sm`, which leaves six icons, and
+                        // `ActionLabel` drops the words on a narrow panel, which leaves six icons, and
                         // six 44px touch targets plus their gaps and the tray's padding come to
                         // ~294px against the 328px a 360px phone gives them.
                         //
@@ -413,15 +490,140 @@ export function ItemDrawer({
                         // six need ~294px and the panel offers 288, so wrapping is the difference
                         // between the last control moving down a line and the last control being
                         // gone. Nothing above 320px sees a second row.
-                        // Every control in this row carries `dark:hover:bg-muted`, overriding the
-                        // ghost variant's `dark:hover:bg-muted/50`. At half strength the fill lands
-                        // near `#2d2d2d` on this panel — close enough to the surface that the row
-                        // did not read as a set of buttons until the pointer was already on one.
-                        // Full strength is the same token rather than a new colour, so it still
-                        // follows the theme, and that is exactly why this is *not* the white alpha
-                        // the editor header's Explain button uses: that header is painted with a
-                        // hard-coded monaco surface and stays dark under light mode, while this row
-                        // sits on the app's own background and has to flip with it.
+                        //
+                        // On a narrow panel it is not a flex row at all — it is
+                        // `grid-flow-col auto-cols-fr`, one row of equal columns, and that is the
+                        // point: a grid of a fixed column count cannot wrap, so there is no width
+                        // at which a control gets stranded. Two flex arrangements were tried here
+                        // and both failed on real hardware. Left to their natural size the icons
+                        // clumped at one end and left a 71px dead strip, reading as a toolbar that
+                        // had lost its last button. Given `grow` instead, they filled the line —
+                        // until one did not fit, and then the last one wrapped and grew to the
+                        // whole width of the second row, which put a single full-bleed Delete under
+                        // the other four. Equal columns give the even spread the second attempt was
+                        // after without the failure mode, because "how many per row" stops being
+                        // something the browser decides from arithmetic.
+                        //
+                        // `justify-between` above the stop, so the row spans the tray without any
+                        // control changing size. The panel is a fixed 640px there and a
+                        // five-control row is 406px of it, so packed at their natural widths the
+                        // buttons left a third of the toolbar as dead space on the right, reading
+                        // as a bar that had lost its last buttons.
+                        //
+                        // It was `grow` first, which filled the row equally well and had one bad
+                        // property: a control that wrapped grew to the *whole width of its line*,
+                        // so the one time the row did not fit, Delete appeared alone and full-bleed
+                        // beneath the others. Distributing the slack as gaps rather than as width
+                        // has no such failure mode — a wrapped control keeps its own size.
+                        //
+                        // The `Edit`/`Delete` pair is `contents` at every width now, not just below
+                        // the stop. As a flex item it was one box taking a single share of that
+                        // growth and splitting it, so those two came out half the width of the
+                        // three beside them. Dissolving it costs nothing the row wanted: the pair
+                        // was never meant to be pushed apart from the others — see the note above
+                        // about not using `ml-auto` — and an evenly spread row is what "reads as
+                        // one toolbar" was asking for in the first place.
+                        //
+                        // The grid's default stretch is left alone, so each control fills its
+                        // column. That works because every control in the row is now the same
+                        // shape — `size="sm"`, which sets padding and a minimum but no explicit
+                        // width. It briefly needed `justify-items-center` instead, when the delete
+                        // trigger was `size="icon-sm"`: an explicit `size-7`/`size-11` cannot
+                        // stretch, so it sat 44px wide at the start of a 59px cell while its
+                        // neighbours filled theirs — one ragged control in a row whose whole
+                        // purpose is being even. Making it match the other four fixed the cause.
+                        //
+                        // Above the stop the controls `grow`, so the row spans the tray. The
+                        // panel is a fixed 576px there and the widest row — a previewable text
+                        // file's six controls, the only shape showing `Copy` and `Download`
+                        // together — is 480px of a 516px tray. Packed at their natural widths the
+                        // rest left a third of the toolbar empty on the right, reading as a bar
+                        // that had lost its last buttons.
+                        //
+                        // 36rem is the floor, and it is set by that one row rather than by the
+                        // four that are narrower. A snippet needs 376px and an image 405px, so
+                        // most of the time the panel is wider than the toolbar strictly requires —
+                        // but a panel cannot be two widths, and sizing it to the common row is
+                        // what put the six-control row on two lines for several revisions. 36px of
+                        // slack on the widest row is the whole of the margin; below this the words
+                        // have to start disappearing again.
+                        //
+                        // `grow` only ever *adds* space to a flex item, never shrinks it below its
+                        // content, so it cannot overflow. Its one bad property is that a control
+                        // which *wraps* grows to the whole width of its line, and that is exactly
+                        // what a stranded, full-bleed Delete looked like when the row did not fit.
+                        // It does fit now, with 36px to spare on the widest row there is, so the
+                        // failure mode has no width to occur at.
+                        //
+                        // `max-w-40` is the belt to that braces, and it is deliberately slack. The
+                        // narrowest this row ever gets is four controls sharing the tray, which is
+                        // ~129px each, so 160px never binds in any layout that is working. It binds
+                        // only on the one that is not: a lone control wrapped onto its own line,
+                        // where `grow` would otherwise stretch it across the full width. That was
+                        // measured once at 569px in a 571px tray — a Delete button rendered as a
+                        // full-bleed bar — and it happened on a stylesheet that did not match the
+                        // source. The cap does not fix the wrap; it stops the wrap from looking
+                        // catastrophic while the real cause is found. `justify-between` was the other
+                        // way to fill the row and is worse: it turns the slack into gaps, which on
+                        // a five-control row is 34px between every icon.
+                        //
+                        // A quantity query — `:has(> *:nth-child(5))`, hiding the words when the
+                        // row has six controls — lived here for several revisions and is gone. It
+                        // was correct CSS solving a problem that did not exist: it was introduced
+                        // on the belief that the reported rendering was ~20% wider than this one,
+                        // measured from a screenshot, and a later screenshot of the same toolbar
+                        // put the five-label row at ~364px against the 377px measured here. The
+                        // renderings agree. What actually differed was the *panel*, which was
+                        // 480px then and gave a 418px tray, 63px short of the six-control row —
+                        // and, more often than not, a dev server serving a stale stylesheet. Two
+                        // conclusions worth keeping: measure the element, never a screenshot, and
+                        // confirm the CSS being served is the CSS that was written before
+                        // concluding anything at all.
+                        //
+                        // The switch is a *container* query against the wrapper above, plus an
+                        // `sm:` floor, and it must stay identical to `ActionLabel`'s — that is where
+                        // the words appear, and labelled buttons cannot go in a grid that has no
+                        // line to wrap onto. The reasoning for both halves is recorded there.
+                        //
+                        // The container is the wrapper rather than this element because a container
+                        // query styles a container's *descendants* and never the container itself,
+                        // and this element's own `display` is one of the two things that changes.
+                        //
+                        // `gap-0.5` narrow, not `gap-1`, and it is load-bearing at exactly one
+                        // width: six controls on a 320px screen leave 278px, which is 44.7px a
+                        // column at 2px gaps and 43px at 4px — just under the 44px the buttons ask
+                        // for, which would overflow the tracks. Two pixels of gap buy the floor.
+                        //
+                        // The Edit/Delete pair is `contents` at that width so its two buttons are
+                        // grid items in their own right. Left as one box it would occupy a single
+                        // column and split it, and those two would come out half the width of the
+                        // rest. The pair is a grouping for the wide layout, where it is a real flex
+                        // row again.
+                        // The hover fill is stated once, here, rather than on each control. It
+                        // used to be six identical `dark:hover:bg-muted` classes plus a seventh
+                        // inside `DeleteItemDialog`, and a fill that lives in seven places is a
+                        // fill that drifts.
+                        //
+                        // It is written twice, and the duplicate is not redundant. `[&_button]:`
+                        // alone is `.tray button:hover` — specificity (0,2,1) — which beats the
+                        // ghost variant's light `hover:bg-muted` at (0,2,0) but *loses* to its
+                        // `dark:hover:bg-muted/50`: this project's `dark` variant is
+                        // `&:is(.dark *)`, and that `:is()` counts as a class, putting the
+                        // variant at (0,3,0). The rule applied everywhere except the theme the app
+                        // ships in, which is the one place it was written for. Repeating it under
+                        // `dark:` lands at (0,3,1) and settles it.
+                        //
+                        // `foreground/15`, not `muted`. Full-strength `muted` was already an
+                        // improvement on the variant's `muted/50`, which at `oklch(0.269)` against
+                        // this panel is very nearly the panel — but it is still a flat token a
+                        // couple of steps above the surface, and the row wanted a fill you can see
+                        // land. An alpha over `foreground` is brighter in the dark theme and
+                        // *darker* in the light one, which is the same instruction — "more
+                        // present" — expressed once instead of as two hand-picked colours.
+                        //
+                        // Note this is the row only. The editor below keeps its own hover, which is
+                        // a white alpha over a hard-coded monaco surface that does not flip with
+                        // the theme; nothing here reaches into it.
                         // Two elements, because they do two things. The rule separates the actions
                         // from the content above them; the tray inside groups the six controls into
                         // one object. The hover override below fixed how this row reads *under the
@@ -431,7 +633,7 @@ export function ItemDrawer({
                         // compete with each other and with the item's own chrome, and the thing that
                         // needs a boundary here is the set, not its members.
                         <div className="border-t border-border pt-3">
-                            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
+                            <div className="grid auto-cols-fr grid-flow-col gap-0.5 rounded-lg border border-border bg-muted/30 p-1 dark:[&_a]:hover:bg-foreground/15 dark:[&_button]:hover:bg-foreground/15 [&_a]:hover:bg-foreground/15 [&_button]:hover:bg-foreground/15 min-[42.5rem]:flex min-[42.5rem]:flex-wrap min-[42.5rem]:items-center min-[42.5rem]:gap-1 min-[42.5rem]:[&_a]:grow min-[42.5rem]:[&_button]:grow min-[42.5rem]:[&_a]:max-w-40 min-[42.5rem]:[&_button]:max-w-40">
                                 {/* Titled and labelled by what the click will *do*, not by what the item
                                 is — the filled star already says which of the two states it is in,
                                 and a control named "Favorite" on an already-favourited item reads as
@@ -439,7 +641,6 @@ export function ItemDrawer({
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="dark:hover:bg-muted"
                                     onClick={toggleFavorite}
                                     disabled={isFavoriting}
                                     title={
@@ -464,7 +665,6 @@ export function ItemDrawer({
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="dark:hover:bg-muted"
                                     onClick={togglePin}
                                     disabled={isPinning}
                                     title={isPinned ? "Unpin" : "Pin to the top"}
@@ -492,7 +692,6 @@ export function ItemDrawer({
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="dark:hover:bg-muted"
                                         onClick={copyBody}
                                         disabled={!body}
                                         title="Copy"
@@ -511,7 +710,6 @@ export function ItemDrawer({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="dark:hover:bg-muted"
                                             asChild
                                             title="Download"
                                             aria-label="Download"
@@ -528,7 +726,6 @@ export function ItemDrawer({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="dark:hover:bg-muted"
                                             disabled
                                             title="Download"
                                             aria-label="Download"
@@ -542,13 +739,12 @@ export function ItemDrawer({
                                 wider the panel got, the further Edit and Delete drifted from the
                                 controls they belong with, until Delete was alone against the edge.
                                 One evenly spaced row reads as one toolbar. */}
-                                <div className="flex items-center gap-1">
+                                <div className="contents">
                                     {/* Disabled until the body has loaded: the form is seeded from the
                                     detail, and there is nothing to seed it with before then. */}
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="dark:hover:bg-muted"
                                         onClick={() => setIsEditing(true)}
                                         disabled={!detail}
                                         title="Edit"
@@ -571,7 +767,7 @@ export function ItemDrawer({
                     )}
                 </SheetHeader>
 
-                <div className="space-y-6 border-t border-border p-4 sm:p-5">
+                <div className="space-y-6 border-t border-border p-4 drawer:p-5">
                     {isEditing && detail ? (
                         <ItemEditForm
                             detail={detail}
@@ -688,16 +884,6 @@ export function ItemDrawer({
             </SheetContent>
         </Sheet>
     );
-}
-
-/**
- * A toolbar button's word, dropped below `sm` so the row of them always fits the sheet — which is
- * `w-full` at those widths and `max-w-xl` above them. Each button carries its own `aria-label` and
- * `title`, so what disappears is only the visible word: the accessible name and the hover tooltip
- * both survive, exactly as they do on the delete button that has always been icon-only.
- */
-function ActionLabel({ children }: { children: string }) {
-    return <span className="hidden sm:inline">{children}</span>;
 }
 
 /**

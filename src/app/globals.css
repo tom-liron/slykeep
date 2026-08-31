@@ -5,6 +5,26 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    /* The item drawer's one breakpoint: below it the drawer is the page, above it a panel beside
+       the page. It is named here rather than written as `min-[600px]:` at each call site because the
+       rule spans two files — `ItemDrawer` and `ActionLabel` — and every part of it has to flip on
+       the same number: the panel's width, the header's shape, where the ✕ sits, whether the toolbar
+       is a grid or a flex row, and whether its buttons carry words. Two of those living in separate
+       files behind hand-copied literals is exactly how the toolbar ended up in states no width was
+       supposed to produce. One name, one number.
+
+       37.5rem — 600px at the default font size — and not `sm` (640px): a 700px window is a laptop,
+       and a laptop should not have one item covering the whole screen. Below it every phone in
+       portrait, a 16 Pro Max being 440px, gets the full screen, which is what that size wants.
+
+       Stated in `rem` rather than `px`, and that is not cosmetic. The panel's own cap is `36rem`, so
+       it already scales with the reader's default font size — a browser set to 24px makes that cap
+       864px, not 576px. A `px` breakpoint beside a `rem` width means every part of this layout grows
+       with the font except the point at which it changes shape, which is how a toolbar sized for the
+       panel ended up wrapping on a machine whose text was 1.45x wider. In a media query `rem`
+       resolves against the browser's *default* font size, which is exactly the setting that moved.
+       Both halves scale together now. */
+    --breakpoint-drawer: 37.5rem;
     --color-favorite: var(--favorite);
     --color-suggestion: var(--suggestion);
     --color-confirm: var(--confirm);

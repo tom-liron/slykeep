@@ -17,6 +17,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ActionLabel } from "./ActionLabel";
 
 /**
  * The drawer's Delete control, and the confirmation in front of it.
@@ -63,15 +64,33 @@ export function DeleteItemDialog({
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
-                {/* `dark:hover:bg-muted` matches the six controls beside it in the drawer's action row —
-                    see the note there. Only the fill changes; the text stays destructive. */}
+                {/* Built like the four controls beside it in the drawer's action row, because it
+                    is the fifth of them: the same `size`, the same `title` and `aria-label` pair,
+                    and the same `ActionLabel` — so it shows the word "Delete" on a wide screen and
+                    drops to the icon alone below `sm`, in step with the rest. It was `icon-sm` with
+                    a bare `sr-only` name and no `title` at all, which made it the one button in the
+                    row with no visible word at any width *and* no tooltip on hover.
+
+                    What stays different is the colour, and only the colour: `text-destructive` on
+                    the glyph and its word, held through hover. `hover:text-destructive` is not
+                    redundant — the ghost variant sets `hover:text-foreground`, which outranks a
+                    plain `text-destructive`, so without it the one control that destroys something
+                    turns the same white as the four that do not, at exactly the moment the pointer
+                    is on it. Red on hover is also what `CollectionActions` already does for its own
+                    delete, and it is the ordinary convention: a destructive action keeps its
+                    colour, because the colour *is* the warning.
+
+                    No hover fill of its own either — the row states one for every control inside
+                    it, and repeating it here is how the two would come to disagree. */}
                 <Button
                     variant="ghost"
-                    size="icon-sm"
-                    className="text-destructive dark:hover:bg-muted"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    title="Delete"
+                    aria-label="Delete"
                 >
                     <Trash2 aria-hidden="true" />
-                    <span className="sr-only">Delete</span>
+                    <ActionLabel>Delete</ActionLabel>
                 </Button>
             </AlertDialogTrigger>
 
