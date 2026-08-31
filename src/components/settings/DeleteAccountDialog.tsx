@@ -16,7 +16,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { AuthField } from "@/components/ui/AuthField";
 import { Button } from "@/components/ui/button";
+import { invalidProps } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { EMPTY_ACCOUNT_STATE } from "@/types/account";
 
@@ -130,10 +132,17 @@ export function DeleteAccountDialog({
                     </AlertDialogFooter>
                 ) : (
                     <form action={formAction} className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label htmlFor="confirmation" className="text-sm font-medium">
-                                To confirm, type <span className="font-mono">{email}</span>
-                            </label>
+                        <AuthField
+                            id="confirmation"
+                            // The one label on any of these forms that is not a plain string, and
+                            // the reason `AuthField` takes a `ReactNode`.
+                            label={
+                                <>
+                                    To confirm, type <span className="font-mono">{email}</span>
+                                </>
+                            }
+                            error={state.fields?.confirmation}
+                        >
                             <Input
                                 id="confirmation"
                                 name="confirmation"
@@ -143,17 +152,9 @@ export function DeleteAccountDialog({
                                 // A password manager offering to fill the address here would undo the
                                 // deliberateness the field exists to create.
                                 data-1p-ignore
-                                aria-invalid={state.fields?.confirmation ? true : undefined}
-                                aria-describedby={
-                                    state.fields?.confirmation ? "confirmation-error" : undefined
-                                }
+                                {...invalidProps("confirmation", state.fields?.confirmation)}
                             />
-                            {state.fields?.confirmation && (
-                                <p id="confirmation-error" className="text-sm text-destructive">
-                                    {state.fields.confirmation}
-                                </p>
-                            )}
-                        </div>
+                        </AuthField>
 
                         {state.error && (
                             <p role="alert" className="text-sm text-destructive">

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 
+import { AuthField } from "@/components/ui/AuthField";
 import { Button } from "@/components/ui/button";
+import { invalidProps } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { registerSchema } from "@/lib/auth-schemas";
@@ -98,31 +100,25 @@ export function RegisterForm() {
     return (
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {FIELDS.map((field) => {
-                const Field = field.type === "password" ? PasswordInput : Input;
+                const Control = field.type === "password" ? PasswordInput : Input;
 
                 return (
-                    <div key={field.name} className="space-y-1.5">
-                        <label htmlFor={field.name} className="text-sm font-medium">
-                            {field.label}
-                        </label>
-                        <Field
+                    <AuthField
+                        key={field.name}
+                        id={field.name}
+                        label={field.label}
+                        error={fieldErrors[field.name]?.[0]}
+                    >
+                        <Control
                             id={field.name}
                             name={field.name}
                             // `PasswordInput` owns its own type so it can flip it; only the plain
                             // inputs need one passed in.
                             {...(field.type === "password" ? {} : { type: field.type })}
                             autoComplete={field.autoComplete}
-                            aria-invalid={fieldErrors[field.name] ? true : undefined}
-                            aria-describedby={
-                                fieldErrors[field.name] ? `${field.name}-error` : undefined
-                            }
+                            {...invalidProps(field.name, fieldErrors[field.name]?.[0])}
                         />
-                        {fieldErrors[field.name] && (
-                            <p id={`${field.name}-error`} className="text-sm text-destructive">
-                                {fieldErrors[field.name]?.[0]}
-                            </p>
-                        )}
-                    </div>
+                    </AuthField>
                 );
             })}
 
