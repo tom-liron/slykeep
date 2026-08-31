@@ -29,6 +29,7 @@ import {
 import { Field, invalidFor } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { PLACEHOLDERS } from "@/config/item-placeholders";
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
 import { useCollectionOptions } from "@/hooks/use-collection-options";
 import type { UploadedFile } from "@/hooks/use-file-upload";
@@ -61,27 +62,6 @@ function typeForPath(pathname: string): CreatableItemTypeName {
         DEFAULT_TYPE
     );
 }
-
-/**
- * Two rules, both from the same finding: a placeholder must never restate the label, which is noise
- * at best and at worst makes an empty field look filled in.
- *
- * Where the field's *format* matters — language, tags, URL — the placeholder is an example, prefixed
- * "e.g." so it cannot be mistaken for a value. Where the field is open-ended and format is beside
- * the point, it is an instruction naming what goes in, which is why `content` differs by type: the
- * verb for a command is not the verb for a note. Title keeps an example rather than "Enter a title",
- * since the label already says "Title" and a sample shows what a useful one looks like.
- */
-const PLACEHOLDERS: Record<CreatableItemTypeName, { title: string; content: string }> = {
-    snippet: { title: "e.g. Debounce hook", content: "Paste your code" },
-    prompt: { title: "e.g. Code review prompt", content: "Write your prompt" },
-    command: { title: "e.g. Reset a branch to origin", content: "Paste your command" },
-    note: { title: "e.g. Connection pooling", content: "Write your note" },
-    link: { title: "e.g. Prisma migrate docs", content: "" },
-    // The file types render an upload rather than a content field, so only the title is used.
-    file: { title: "e.g. Deployment runbook", content: "" },
-    image: { title: "e.g. Architecture diagram", content: "" },
-};
 
 /**
  * The top bar's "New Item" control and the dialog behind it.
