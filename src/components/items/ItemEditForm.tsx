@@ -135,10 +135,17 @@ export function ItemEditForm({
                     <Check aria-hidden="true" />
                     {isPending ? "Saving…" : "Save"}
                 </Button>
+                {/* The drawer's toolbar fill, not the ghost variant's. This row *replaces* that
+                    toolbar in edit mode — Save and Cancel stand where Favorite, Pin, Copy, Edit and
+                    Delete were a moment ago — so a control that lights up more faintly than the one
+                    it took the place of reads as a different, lesser kind of button. `muted/50` in
+                    the dark theme is very nearly this panel's own surface, which is the reason the
+                    toolbar overrode it in the first place; see the note there. */}
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="hover:bg-foreground/15 dark:hover:bg-foreground/15"
                     onClick={onCancel}
                     disabled={isPending}
                 >
