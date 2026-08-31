@@ -66,13 +66,20 @@ export function ItemCard({
                         and on focus — but only when there is one, or hovering a card whose item has
                         nothing to copy would fade the date out and leave an empty corner.
                         `group-*` rather than `hover:` because the pointer is never over this card:
-                        a sibling covers it. */}
+                        a sibling covers it.
+
+                        `pointer-coarse:opacity-0` is the other half of that button being always-on
+                        under a coarse pointer — see the note in `ItemList`. Without it the two
+                        occupy the same corner at the same time, which is the one arrangement worse
+                        than either. The date is what gives way because the button is the thing you
+                        cannot get at any other way from here; the drawer prints both dates in
+                        full. */}
                     <time
                         dateTime={item.editedAt}
                         className={cn(
                             "shrink-0 text-xs text-muted-foreground",
                             showsCopy &&
-                                "transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
+                                "transition-opacity group-hover:opacity-0 group-focus-within:opacity-0 pointer-coarse:opacity-0",
                         )}
                     >
                         {formatDate(item.editedAt)}

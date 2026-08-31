@@ -321,7 +321,13 @@ export function CodeEditor({
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
         >
-            <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+            {/* `flex-wrap`, because this row lives inside an `overflow-hidden` box and the drawer
+                that hosts it is `overflow-x-hidden` too — so a row that does not fit is not a
+                scrollbar, it is the right-hand end silently disappearing. With both tabs showing
+                it needs ~330px between the window dots, the two tabs, the AI button and the
+                language, and the drawer offers 288px at 320px wide. Wrapping moves the trailing
+                group down a line at that width and changes nothing at any other. */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-border px-3 py-2">
                 {/* Window dots — decoration, not controls, so they are hidden from assistive tech. */}
                 <div className="flex items-center gap-1.5" aria-hidden="true">
                     <span className="size-2.5 rounded-full bg-[#ff5f57]" />

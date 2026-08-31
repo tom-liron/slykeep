@@ -40,7 +40,15 @@ export function Pagination({
     return (
         <nav
             aria-label="Pagination"
-            className={cn("flex items-center justify-center gap-1", className)}
+            // `flex-wrap`, because this row's width is set by the page count and the pointer, not
+            // by the screen. The widest window is prev, 1, …, p-1, p, p+1, …, last, next — seven
+            // `size="icon"` buttons and two ellipses, and every button size carries a
+            // `pointer-coarse:` floor of 44px, so on a phone that is ~376px of controls in the
+            // 288px a 320px screen leaves after the layout's padding. Nothing here shrinks and
+            // nothing clips it, so it grew the page instead and put a horizontal scrollbar under
+            // the whole document. A free account never sees it — 50 items is three pages — which is
+            // why it survived: it takes a Pro library to produce the window that overflows.
+            className={cn("flex flex-wrap items-center justify-center gap-1", className)}
         >
             {page > 1 ? (
                 <Link

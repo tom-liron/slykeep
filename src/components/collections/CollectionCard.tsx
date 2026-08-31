@@ -24,8 +24,14 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
             className="relative flex flex-col rounded-xl border border-border border-l-4 bg-card p-4 transition-colors hover:bg-muted/50 focus-within:bg-muted/50"
             style={accent ? { borderLeftColor: accent } : undefined}
         >
-            {/* Padded clear of the menu, which is laid over this row's right-hand end. */}
-            <div className="flex items-center gap-1.5 pr-8">
+            {/* Padded clear of the menu, which is laid over this row's right-hand end — and the
+                menu is not one width. `CollectionActions` renders it at `size="icon-sm"`, 28px
+                with a mouse, but every button size carries a `pointer-coarse:` floor of 44px, so
+                on a phone it is 44px at `right-2.5` and reaches 54px in from the card's edge.
+                `pr-8` plus the card's own `p-4` reserved 48px, and the name was drawn under the
+                ⋯. Stated as `pointer-coarse:` rather than a breakpoint for the same reason the
+                button is: a touchscreen laptop has the 44px button at any width. */}
+            <div className="flex items-center gap-1.5 pr-8 pointer-coarse:pr-12">
                 <h3 className="truncate font-semibold">{collection.name}</h3>
                 {collection.isFavorite && <FavoriteBadge />}
             </div>

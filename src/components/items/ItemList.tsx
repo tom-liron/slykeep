@@ -101,12 +101,21 @@ export function ItemList({
                                 keyboard, where focusing the trigger is the equivalent of pointing
                                 at the card.
 
+                                And `pointer-coarse:opacity-100`, because a touch device has no
+                                third state to reveal it with: there is no hover, and the only thing
+                                focusable here is the full-card trigger, whose `focus-within` fires
+                                on the tap that opens the drawer. Left hover-only, copying from a
+                                card was not merely hard to find on a phone — it did not exist. The
+                                swap is dropped there rather than reproduced: the button is simply
+                                always on, and `ItemCard`'s timestamp is always off, which is why
+                                the same variant appears on both.
+
                                 Cards only. A file row and a gallery tile are different shapes with
                                 no corner spare, and the request was for the item card. */}
                             {showsCopy && (
                                 <CopyItemButton
                                     item={item}
-                                    className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                                    className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
                                 />
                             )}
                         </div>
