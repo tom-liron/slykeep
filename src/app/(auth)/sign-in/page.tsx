@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AuthDivider } from "@/components/auth/AuthDivider";
 import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
 import { ResendVerification } from "@/components/auth/ResendVerification";
 import { SignInForm } from "@/components/auth/SignInForm";
@@ -133,11 +134,7 @@ export default async function SignInPage({
 
             <GitHubSignInButton callbackUrl={callbackUrl} />
 
-            <div className="my-5 flex items-center gap-3">
-                <span className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted-foreground uppercase">or</span>
-                <span className="h-px flex-1 bg-border" />
-            </div>
+            <AuthDivider />
 
             <SignInForm callbackUrl={callbackUrl} />
         </div>

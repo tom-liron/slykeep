@@ -165,7 +165,16 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
             // sign-in and register, which is two bars of two heights across one shell.
             // Opaque while the menu is open, translucent otherwise. The glass is the point of the
             // bar on its own; behind an open menu it is just the hero legible through the nav.
-            className="sticky top-0 z-50 h-16 shrink-0 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px]"
+            // Asymmetric on purpose, via `data-[scrolled]:duration-75` against the base `duration-300`:
+            // a CSS transition reads its timing from the state being transitioned *to*, so arming
+            // the attribute takes 75ms and disarming it takes 300ms.
+            //
+            // The threshold is already 8px, so the bar commits almost immediately — the visible
+            // bleed was the 300ms it then spent between `/30` and `/90`, which at scrolling speed is
+            // a lot of content passing under a bar that is still two-thirds transparent. Going
+            // opaque is a response to content arriving underneath and has to keep up with it;
+            // returning to the hero's glass is decoration and should not snap.
+            className="sticky top-0 z-50 h-16 shrink-0 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px] data-[scrolled]:duration-75"
         >
             <div className="mx-auto flex h-full w-[min(1180px,calc(100%-2.5rem))] items-center gap-6">
                 <Brand href="/" />

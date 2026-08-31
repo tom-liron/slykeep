@@ -27,7 +27,12 @@ export function GitHubSignInButton({ callbackUrl }: { callbackUrl?: string }) {
             {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
             <Button type="submit" variant="outline" className="w-full">
                 <GitHubMark />
-                Sign in with GitHub
+                {/* "Continue", not "Sign in" — the same button now renders on `/register`, and this
+                    control cannot know which of the two it is doing. The OAuth handshake creates the
+                    account or signs into the existing one depending on state Auth.js resolves after
+                    the redirect, so any wording that picks one is wrong half the time. It is also
+                    why the providers all word it this way. */}
+                Continue with GitHub
             </Button>
         </form>
     );
