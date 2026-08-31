@@ -61,34 +61,54 @@ export function PricingPlanCard({
 
             {/* `flex-1` is what pins both CTAs to the bottom of their cards however many lines the
                 feature lists run to. */}
-            <ul className="my-6 grid flex-1 content-start gap-2.5 border-t border-border pt-6 text-[0.9rem] text-muted-foreground">
-                {plan.features.map((feature) => (
-                    <li key={feature.label} className="flex items-start gap-2.5">
-                        {feature.included ? (
-                            <span
-                                aria-hidden="true"
-                                className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border border-[color-mix(in_srgb,var(--type-prompt)_40%,transparent)] bg-[color-mix(in_srgb,var(--type-prompt)_16%,transparent)] text-purple-300"
-                            >
-                                <Check className="size-2.5" strokeWidth={3} />
-                            </span>
-                        ) : (
-                            // Tinted rose rather than left grey. The row it marks is the only thing
-                            // on this card a reader is scanning *for* — what the cheaper plan does
-                            // not include — and a neutral circle on a near-black card is the one
-                            // element that disappeared into it. Rose at 12% is a signal, not an
-                            // error state: the excluded label itself stays `muted-foreground`, so
-                            // nothing here shouts.
-                            <span
-                                aria-hidden="true"
-                                className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border border-rose-500/30 bg-rose-500/12 text-rose-300"
-                            >
-                                <X className="size-2.5" strokeWidth={3} />
-                            </span>
-                        )}
-                        {feature.label}
-                    </li>
-                ))}
-            </ul>
+            <div className="my-6 flex flex-1 flex-col border-t border-border pt-6">
+                {/* Unconditional, so every card spends exactly one line here and the lists below
+                    start on a shared baseline — two feature lists at different heights cannot be
+                    compared row against row, which is the only thing this pair of cards is for. On
+                    Pro it also carries the inheritance, which is what lets that list hold only the
+                    rows Free does not have. */}
+                <p className="mb-4 text-[0.85rem] font-medium text-foreground">
+                    {plan.featuresHeading}
+                </p>
+
+                <ul className="grid content-start gap-2.5 text-[0.9rem] text-muted-foreground">
+                    {plan.features.map((feature) => (
+                        <li key={feature.label} className="flex items-start gap-2.5">
+                            {feature.included ? (
+                                // Accented only on the featured card. Both cards wore the same purple
+                                // tick, which spent the page's one accent colour on the plan it is not
+                                // trying to sell and left the two lists looking interchangeable — the
+                                // colour said "included", which the tick already says. Neutral on Free
+                                // and accented on Pro, the difference is visible before a word is read.
+                                <span
+                                    aria-hidden="true"
+                                    className={`mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border ${
+                                        plan.featured
+                                            ? "border-[color-mix(in_srgb,var(--type-prompt)_40%,transparent)] bg-[color-mix(in_srgb,var(--type-prompt)_16%,transparent)] text-purple-300"
+                                            : "border-foreground/25 bg-foreground/10 text-foreground/75"
+                                    }`}
+                                >
+                                    <Check className="size-2.5" strokeWidth={3} />
+                                </span>
+                            ) : (
+                                // Tinted rose rather than left grey. The row it marks is the only thing
+                                // on this card a reader is scanning *for* — what the cheaper plan does
+                                // not include — and a neutral circle on a near-black card is the one
+                                // element that disappeared into it. Rose at 12% is a signal, not an
+                                // error state: the excluded label itself stays `muted-foreground`, so
+                                // nothing here shouts.
+                                <span
+                                    aria-hidden="true"
+                                    className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border border-rose-500/30 bg-rose-500/12 text-rose-300"
+                                >
+                                    <X className="size-2.5" strokeWidth={3} />
+                                </span>
+                            )}
+                            {feature.label}
+                        </li>
+                    ))}
+                </ul>
+            </div>
 
             {cta}
         </article>
