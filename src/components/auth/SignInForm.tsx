@@ -5,7 +5,9 @@ import { useActionState } from "react";
 
 import { signInWithCredentials } from "@/actions/auth";
 import { ResendVerification } from "@/components/auth/ResendVerification";
+import { AuthField } from "@/components/ui/AuthField";
 import { Button } from "@/components/ui/button";
+import { invalidProps } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { EMPTY_AUTH_STATE } from "@/types/auth";
@@ -23,10 +25,7 @@ export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
                 was invoked from, so the destination has to travel with the form. */}
             {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
 
-            <div className="space-y-1.5">
-                <label htmlFor="email" className="text-sm font-medium">
-                    Email
-                </label>
+            <AuthField id="email" label="Email" error={state.fields?.email}>
                 <Input
                     id="email"
                     name="email"
@@ -36,45 +35,41 @@ export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
                     // default; without the key it keeps the reset-to-empty DOM node.
                     key={state.email}
                     defaultValue={state.email}
-                    // A rejected credential (`state.error`) marks both fields, since which one was
-                    // wrong is deliberately not disclosed. A format problem marks only its own.
+                    {...invalidProps("email", state.fields?.email)}
+                    // Overrides the `aria-invalid` above, and only that one: a rejected credential
+                    // (`state.error`) marks both fields, since which one was wrong is deliberately
+                    // not disclosed, while a format problem marks only its own. The
+                    // `aria-describedby` from the spread is untouched — there is no message to point
+                    // at unless this field itself was rejected.
                     aria-invalid={state.error || state.fields?.email ? true : undefined}
-                    aria-describedby={state.fields?.email ? "email-error" : undefined}
                 />
-                {state.fields?.email && (
-                    <p id="email-error" className="text-sm text-destructive">
-                        {state.fields.email}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
-            <div className="space-y-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                    <label htmlFor="password" className="text-sm font-medium">
-                        Password
-                    </label>
-                    {/* Beside the field it is about, which is where someone looks the moment they
-                        realise they cannot fill it in. */}
+            <AuthField
+                id="password"
+                label="Password"
+                error={state.fields?.password}
+                action={
+                    /* Beside the field it is about, which is where someone looks the moment they
+                       realise they cannot fill it in. This is the one field on any of these forms
+                       with something on its label row, and the reason `AuthField` has an `action`. */
                     <Link
                         href="/forgot-password"
                         className="text-sm text-muted-foreground hover:text-foreground hover:underline"
                     >
                         Forgot password?
                     </Link>
-                </div>
+                }
+            >
                 <PasswordInput
                     id="password"
                     name="password"
                     autoComplete="current-password"
+                    {...invalidProps("password", state.fields?.password)}
+                    // Widened for the same reason as the email field above.
                     aria-invalid={state.error || state.fields?.password ? true : undefined}
-                    aria-describedby={state.fields?.password ? "password-error" : undefined}
                 />
-                {state.fields?.password && (
-                    <p id="password-error" className="text-sm text-destructive">
-                        {state.fields.password}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
             {/* Every failure reports here or against its field. Toasts are for the successful
                 outcome only, so there is exactly one place to look when something goes wrong. */}

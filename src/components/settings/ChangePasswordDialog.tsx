@@ -5,7 +5,9 @@ import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { changePassword } from "@/actions/account";
+import { AuthField } from "@/components/ui/AuthField";
 import { Button } from "@/components/ui/button";
+import { invalidProps } from "@/components/ui/Field";
 import {
     Dialog,
     DialogClose,
@@ -91,63 +93,40 @@ function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
 
     return (
         <form action={formAction} noValidate className="space-y-4">
-            <div className="space-y-1.5">
-                <label htmlFor="currentPassword" className="text-sm font-medium">
-                    Current password
-                </label>
+            <AuthField
+                id="currentPassword"
+                label="Current password"
+                error={state.fields?.currentPassword}
+            >
                 <PasswordInput
                     id="currentPassword"
                     name="currentPassword"
                     autoComplete="current-password"
-                    aria-invalid={state.fields?.currentPassword ? true : undefined}
-                    aria-describedby={
-                        state.fields?.currentPassword ? "currentPassword-error" : undefined
-                    }
+                    {...invalidProps("currentPassword", state.fields?.currentPassword)}
                 />
-                {state.fields?.currentPassword && (
-                    <p id="currentPassword-error" className="text-sm text-destructive">
-                        {state.fields.currentPassword}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
-            <div className="space-y-1.5">
-                <label htmlFor="password" className="text-sm font-medium">
-                    New password
-                </label>
+            <AuthField id="password" label="New password" error={state.fields?.password}>
                 <PasswordInput
                     id="password"
                     name="password"
                     autoComplete="new-password"
-                    aria-invalid={state.fields?.password ? true : undefined}
-                    aria-describedby={state.fields?.password ? "password-error" : undefined}
+                    {...invalidProps("password", state.fields?.password)}
                 />
-                {state.fields?.password && (
-                    <p id="password-error" className="text-sm text-destructive">
-                        {state.fields.password}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
-            <div className="space-y-1.5">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm new password
-                </label>
+            <AuthField
+                id="confirmPassword"
+                label="Confirm new password"
+                error={state.fields?.confirmPassword}
+            >
                 <PasswordInput
                     id="confirmPassword"
                     name="confirmPassword"
                     autoComplete="new-password"
-                    aria-invalid={state.fields?.confirmPassword ? true : undefined}
-                    aria-describedby={
-                        state.fields?.confirmPassword ? "confirmPassword-error" : undefined
-                    }
+                    {...invalidProps("confirmPassword", state.fields?.confirmPassword)}
                 />
-                {state.fields?.confirmPassword && (
-                    <p id="confirmPassword-error" className="text-sm text-destructive">
-                        {state.fields.confirmPassword}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
             {state.error && (
                 <p role="alert" className="text-sm text-destructive">

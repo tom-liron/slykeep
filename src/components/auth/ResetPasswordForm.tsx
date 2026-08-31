@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 
+import { AuthField } from "@/components/ui/AuthField";
+import { invalidProps } from "@/components/ui/Field";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { newPasswordSchema } from "@/lib/auth-schemas";
@@ -79,43 +81,27 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
     return (
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <div className="space-y-1.5">
-                <label htmlFor="password" className="text-sm font-medium">
-                    New password
-                </label>
+            <AuthField id="password" label="New password" error={fieldErrors.password?.[0]}>
                 <PasswordInput
                     id="password"
                     name="password"
                     autoComplete="new-password"
-                    aria-invalid={fieldErrors.password ? true : undefined}
-                    aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                    {...invalidProps("password", fieldErrors.password?.[0])}
                 />
-                {fieldErrors.password && (
-                    <p id="password-error" className="text-sm text-destructive">
-                        {fieldErrors.password[0]}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
-            <div className="space-y-1.5">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm new password
-                </label>
+            <AuthField
+                id="confirmPassword"
+                label="Confirm new password"
+                error={fieldErrors.confirmPassword?.[0]}
+            >
                 <PasswordInput
                     id="confirmPassword"
                     name="confirmPassword"
                     autoComplete="new-password"
-                    aria-invalid={fieldErrors.confirmPassword ? true : undefined}
-                    aria-describedby={
-                        fieldErrors.confirmPassword ? "confirmPassword-error" : undefined
-                    }
+                    {...invalidProps("confirmPassword", fieldErrors.confirmPassword?.[0])}
                 />
-                {fieldErrors.confirmPassword && (
-                    <p id="confirmPassword-error" className="text-sm text-destructive">
-                        {fieldErrors.confirmPassword[0]}
-                    </p>
-                )}
-            </div>
+            </AuthField>
 
             {formError && (
                 <div className="text-sm text-destructive">
