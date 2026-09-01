@@ -66,7 +66,12 @@ export const proxy = auth((req) => {
  * That one path, deliberately — **not** `api/webhook`, which would open every webhook endpoint
  * added after it, including one whose author never read this comment. Each one earns its exclusion
  * by having its own request authentication, so each one is named here separately.
+ *
+ * `monaco` is the editor build in `public/`, and is excluded on different grounds from the rest: it
+ * is not a route and holds nothing of anyone's. Files under `public/` are not covered by the
+ * `_next/static` exclusion, so without this every one of monaco's several hundred chunks makes a
+ * round trip through the session check on its way to being served.
  */
 export const config = {
-    matcher: ["/((?!api/auth|api/webhook/stripe|_next/static|_next/image|favicon.ico).*)"],
+    matcher: ["/((?!api/auth|api/webhook/stripe|_next/static|_next/image|monaco|favicon.ico).*)"],
 };

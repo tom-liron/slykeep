@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
         "next-env.d.ts",
         // Prisma Client — generated on install, never edited by hand.
         "src/generated/**",
+        // The monaco build, copied out of node_modules by `npm run monaco:sync`. Minified
+        // third-party JS: 25,000 findings that are not ours and cannot be acted on.
+        "public/monaco/**",
     ]),
 ]);
 

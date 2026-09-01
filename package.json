@@ -3,7 +3,10 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
+        "monaco:sync": "tsx scripts/sync-monaco.ts",
+        "predev": "npm run monaco:sync",
         "dev": "next dev",
+        "prebuild": "npm run monaco:sync",
         "build": "next build",
         "start": "next start",
         "lint": "eslint",

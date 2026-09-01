@@ -4,3 +4,4 @@ package-lock.json
 *.md
 src/generated
 prisma/migrations
+public/monaco

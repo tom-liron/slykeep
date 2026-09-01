@@ -26,12 +26,16 @@ import { ContentTextarea, EDITOR_PANEL, EDITOR_PANEL_BOUNDS } from "./ContentTex
  * The wrapper ships its own default CDN build, which is a *different* monaco version from the
  * `monaco-editor` package this file's option types come from — and the two do drift: `hover.enabled`
  * is a boolean in one and a string union in the other. Pinning the runtime to the installed version
- * keeps what TypeScript checks and what the browser actually runs the same thing. `monaco-editor` is
- * pinned exactly in `package.json` for that reason — bump it and this string together, or not at all.
+ * keeps what TypeScript checks and what the browser actually runs the same thing.
+ *
+ * Served from this origin rather than from jsdelivr, which is what makes that pin airtight — there
+ * is no version in this string to bump out of step, because the bytes *are*
+ * `node_modules/monaco-editor`, copied into `public/monaco` by `scripts/sync-monaco.ts` on both
+ * `predev` and `prebuild`. The security argument is the larger one and is recorded there: this is
+ * several megabytes of script executing on our origin in every authenticated session, and it should
+ * not arrive from a third party without an integrity check.
  */
-loader.config({
-    paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.56.0/min/vs" },
-});
+loader.config({ paths: { vs: "/monaco/vs" } });
 
 // Shared with `MarkdownEditor` through `config/editor.ts`, so the two content surfaces cannot drift
 // apart on how much of the drawer they take — the colour they share now comes from the theme
