@@ -124,10 +124,22 @@ describe("isInlineDisposition", () => {
         expect(isInlineDisposition("a.json")).toBe(true);
     });
 
-    it("never serves an SVG inline", () => {
-        // An SVG is a document that can carry script; inline means it runs on our own origin.
+    it("never serves an SVG or an XML inline", () => {
+        // Both are documents that can carry script — an SVG directly, an XML through an
+        // `<?xml-stylesheet?>` XSLT that emits HTML. Inline means either runs on our own origin.
         expect(isInlineDisposition("logo.svg")).toBe(false);
         expect(isInlineDisposition("LOGO.SVG")).toBe(false);
+        expect(isInlineDisposition("data.xml")).toBe(false);
+        expect(isInlineDisposition("DATA.XML")).toBe(false);
+    });
+
+    it("keeps both of those previewable, which is a different question", () => {
+        // The drawer fetches the bytes and renders them itself, so the disposition never enters
+        // into it. Refusing to render an SVG on this origin is not refusing to show it at all.
+        const small = 1024;
+
+        expect(filePreviewFor({ name: "logo.svg", size: small }).kind).toBe("code");
+        expect(filePreviewFor({ name: "data.xml", size: small }).kind).toBe("code");
     });
 
     it("ignores the size cap, which is the drawer's rule and not the browser's", () => {

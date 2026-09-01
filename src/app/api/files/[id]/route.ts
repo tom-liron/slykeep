@@ -41,9 +41,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const download = new URL(request.url).searchParams.has("download");
 
-    // Images, PDFs, and every text format are shown rather than downloaded — `isInlineDisposition`
-    // owns that list, and the drawer reads the same module to decide which viewer to open. SVG is
-    // its exception: served as an attachment so it cannot execute on this origin.
+    // Images, PDFs, and most text formats are shown rather than downloaded — `isInlineDisposition`
+    // owns that list, and the drawer reads the same module to decide which viewer to open. SVG and
+    // XML are its exceptions: both are documents that can carry script, so both are served as
+    // attachments rather than rendered on this origin.
     const inline = !download && isInlineDisposition(file.name);
 
     return new NextResponse(object.body, {
