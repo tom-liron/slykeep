@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type Stripe from "stripe";
 
 import { cycleForPriceId, priceIdFor } from "@/config/billing";
 import { prisma } from "@/lib/prisma";
