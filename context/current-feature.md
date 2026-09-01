@@ -2,41 +2,12 @@
 
 ## Status
 
-Not Started — two features queued, in this order.
+Blocked — one decision needed from Tom before feature 2 (tag scoping) can start. Feature 1 (R2
+cleanup on account deletion) shipped; see `feature-history.md` #111.
 
 ## Goals
 
-Both were chosen on 2026-09-01 as "must happen before any real user touches the app". Two of the
-three in that batch are already done (`feature/unverified-account-sweep`, and the production-database
-guard that came out of building it); these are the remainder.
-
-### 1. R2 objects outlive a deleted account — no decision needed, do this first
-
-`deleteAccount()` in `src/actions/account.ts` deletes the `User` row and Postgres cascades every
-item with it, but `deleteObject` in `src/lib/r2.ts` is called from exactly one place —
-`src/actions/items.ts`, in `deleteItem`. So deleting an account leaves every uploaded file in the
-bucket with nothing in the database pointing at it. **"Delete my account" does not delete their
-files**, which is a retention promise the day there are real users, and it is unrecoverable in a way
-the item-delete orphan is not: after the cascade there is no row left to read a key from.
-
-Two approaches, both recorded in §11:
-
-- **Delete up front.** Read the keys before deleting the row, delete the row, then delete the bytes.
-  Accepts that a crash between the two leaves the same orphans it fixes — but bounded, and it makes
-  the common path correct.
-- **Scheduled prefix sweep.** Objects are keyed `users/<id>/…`, so a job can list the bucket by
-  prefix and remove anything whose user no longer exists. Catches the crash case the first approach
-  cannot, and now has somewhere obvious to live: `/api/cron/sweep-unverified` established the cron
-  route + `CRON_SECRET` pattern, and `vercel.json` already holds a schedule to add to.
-
-Doing the first and leaving the second as a follow-up is the likely shape. Note `endBillingRelationship`
-already runs before the row is deleted, so `deleteAccount` has a precedent for "external cleanup,
-best-effort, before the local delete".
-
-**Test note:** `src/actions/account.test.ts` does not exist. The R2 client is mocked in
-`src/lib/r2.test.ts`, so there is a pattern to copy.
-
-### 2. Tag scoping — needs one decision from Tom before any code
+### Tag scoping — needs one decision from Tom before any code
 
 `Tag.name` is `@unique` globally (`prisma/schema.prisma`), so tags are shared rows across every
 account: two users who both write `react` get one row, and autocomplete is polluted across accounts.
@@ -58,6 +29,15 @@ single owning user and failing loudly if any tag is shared. Ask before writing i
 
 Watch out for: `createItem` and `updateItem` in `src/actions/items.ts` both do "ensure these tags
 exist" writes that assume the global uniqueness, and their comments say so. Both change.
+
+## Follow-up from feature 1
+
+**A scheduled orphan sweep.** `deleteUserObjects` handles the common path, but the crash window
+between `prisma.user.delete` and the sweep leaves the same orphans it fixes — bounded now, not
+unbounded. Closing it means a `/api/cron/sweep-orphaned-objects` route that lists the bucket's
+`users/` prefixes and calls `deleteUserObjects` for every id with no `User` row: the same route +
+`CRON_SECRET` + `vercel.json` pattern `/api/cron/sweep-unverified` established, and the mechanism it
+would call already exists and is tested. Not urgent — the account path is correct without it.
 
 ## Notes
 
