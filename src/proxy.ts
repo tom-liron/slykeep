@@ -67,11 +67,21 @@ export const proxy = auth((req) => {
  * added after it, including one whose author never read this comment. Each one earns its exclusion
  * by having its own request authentication, so each one is named here separately.
  *
+ * `api/cron/sweep-unverified` is the third of that kind, and it is named in full for exactly the
+ * reason above — **not** `api/cron`, which would open every scheduled job added after it. Its own
+ * authentication is the `CRON_SECRET` bearer token Vercel sends, verified in the handler. Left
+ * inside the matcher it would fail in the quietest way this file can produce: the cron request
+ * carries no session cookie, the proxy would answer 302 to `/sign-in`, and Vercel records a 302 as
+ * a *successful* invocation — so the schedule would report green every night while the sweep never
+ * ran once.
+ *
  * `monaco` is the editor build in `public/`, and is excluded on different grounds from the rest: it
  * is not a route and holds nothing of anyone's. Files under `public/` are not covered by the
  * `_next/static` exclusion, so without this every one of monaco's several hundred chunks makes a
  * round trip through the session check on its way to being served.
  */
 export const config = {
-    matcher: ["/((?!api/auth|api/webhook/stripe|_next/static|_next/image|monaco|favicon.ico).*)"],
+    matcher: [
+        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|favicon.ico).*)",
+    ],
 };
