@@ -40,6 +40,27 @@ Rules:
 - Never run any operation against `br-cold-frost-asmwwtlg` (production) unless I name production explicitly in that specific request. General approval to "use Neon" is never approval to touch production.
 - Never run destructive SQL (DROP, DELETE, TRUNCATE, UPDATE/INSERT without my go-ahead) or any migration/branch-mutation tool against production — ask first, every time.
 
+## Local runs and the production database
+
+`npm start` sets `NODE_ENV=production`, and **Next then loads `.env.production` in preference to
+`.env`**. That file held the production Neon connection string, so every local production-mode run —
+checking a build, a response header, a route — was silently talking to the live database while
+nothing in the command said so. It surfaced only when a scheduled-deletion endpoint was tested that
+way and reported a row deleted that the same job had just reported zero of against dev.
+
+Two things now prevent it:
+
+- The file is `.env.production.reference`. Next does not auto-load that name, so `npm start` falls
+  back to `.env` and a local production build runs against the development branch, which is what was
+  always intended. Vercel is unaffected — it holds its own environment variables.
+- `src/lib/prisma.ts` refuses to open a connection whose URL names the production endpoint unless
+  `VERCEL` is set. `ALLOW_PRODUCTION_DB=1` is the deliberate override. The Prisma CLI does not import
+  that module, so `db:deploy` against production still works.
+
+The rule this enforces is the one in the Neon section above: production is off-limits unless it is
+named explicitly in the request. That rule was written for MCP calls, and the gap was that a plain
+`npm start` could reach the same database without going near MCP.
+
 ## Course Mapping
 
 This project follows a course, but has deliberately diverged from it where our own refactors landed somewhere better. When a lesson's file path doesn't exist here, this is why:
