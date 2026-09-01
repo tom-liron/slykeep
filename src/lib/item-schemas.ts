@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ITEM_TYPE_CATALOG } from "@/config/item-type-catalog";
+import { MAX_UPLOAD_BYTES } from "@/lib/file-constraints";
 import type { ItemTypeName } from "@/types/item-type";
 
 /**
@@ -226,7 +227,15 @@ export const createItemSchema = z
         url: optionalUrl,
         fileKey: optionalText,
         fileName: optionalText,
-        fileSize: z.number().int().positive().nullable().optional(),
+        // Bounded, because this is a claim rather than a measurement. `createItem` re-derives the
+        // key's owner and pins the name's extension to the stored object — the rule this module
+        // states is that every value that leaves for the browser and comes back is checked again,
+        // and this was the one field exempt from it. It is what `filePreviewFor` tests against
+        // `TEXT_PREVIEW_MAX_BYTES` to decide whether the drawer renders a file, so an unbounded
+        // claim of `1` on a 10 MB object makes the drawer fetch the whole thing and hand it to
+        // monaco. Owner-only in effect, which is why the ceiling is the crude one that needs no
+        // extra query rather than a comparison against the object itself.
+        fileSize: z.number().int().positive().max(MAX_UPLOAD_BYTES).nullable().optional(),
         tags,
         collectionIds,
     })

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { priceIdFor } from "@/config/billing";
 import type { BillingCycle } from "@/config/marketing";
@@ -9,6 +10,15 @@ import { billingOrigin, stripe } from "@/lib/stripe";
 import { getOrCreateCustomerId } from "@/server/billing";
 import { getCurrentUserId } from "@/server/current-user";
 import type { BillingActionResult } from "@/types/billing";
+
+/**
+ * The cycle the checkout payload may name.
+ *
+ * `satisfies` rather than a bare `z.enum`, so the two cannot drift: if `BillingCycle` grows a
+ * third member and this list does not, the assertion fails at compile time rather than the new
+ * cycle being refused at runtime by an action nobody thought to update.
+ */
+const billingCycleSchema = z.enum(["monthly", "yearly"]) satisfies z.ZodType<BillingCycle>;
 
 /**
  * The two user-initiated billing flows.
@@ -33,8 +43,23 @@ import type { BillingActionResult } from "@/types/billing";
  * Redirects rather than returning a URL: `redirect()` throws, so anything after it is unreachable
  * and the caller needs no navigation code. The return type covers the failure paths only.
  */
-export async function startCheckout(cycle: BillingCycle): Promise<BillingActionResult> {
+export async function startCheckout(input: BillingCycle): Promise<BillingActionResult> {
     const userId = await getCurrentUserId();
+
+    // A Server Action is a callable endpoint and `BillingCycle` is erased at runtime, so the
+    // parameter's type is a statement about our own callers rather than about what arrives. Not
+    // exploitable without it — `priceIdFor` maps anything that is not "yearly" onto the monthly
+    // price, which is the more expensive one per month — but `coding-standards.md` says to validate
+    // inputs with Zod and this was the one action taking a payload and parsing nothing. It also
+    // turns a silent fallback into a refusal, which is the behaviour worth having if a third cycle
+    // is ever added and one call site is missed.
+    const parsed = billingCycleSchema.safeParse(input);
+
+    if (!parsed.success) {
+        return { success: false, error: "Choose a billing cycle." };
+    }
+
+    const cycle = parsed.data;
 
     // A Checkout Session is a Stripe API call and possibly a Customer row, on a path behind the
     // session — so this bounds cost rather than anonymity, exactly like `upload`.

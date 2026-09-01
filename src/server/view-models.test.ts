@@ -8,6 +8,7 @@ import {
     buildItemSummaryViewModel,
     buildItemTypeBreakdown,
     buildUserViewModel,
+    requireItemType,
     resolveDominantTypeId,
     sortByEditedAtDesc,
     toItemTypeViewModel,
@@ -333,5 +334,20 @@ describe("collection view models", () => {
         const summary = buildItemSummaryViewModel(rowWithContent, itemTypesById);
 
         expect(summary).not.toHaveProperty("content");
+    });
+});
+
+describe("requireItemType", () => {
+    it("resolves an id the map holds", () => {
+        expect(requireItemType(typeId("snippet"), itemTypesById).name).toBe("snippet");
+    });
+
+    it("throws on an id the map does not hold", () => {
+        // The behaviour the dominant-type call sites now share. It used to be answered two ways —
+        // this throw on the collection cards, `?? null` in the sidebar beside them — so one dangling
+        // id was a 500 on one surface and a colourless dot on another, from the same data.
+        expect(() => requireItemType("type-missing", itemTypesById)).toThrow(
+            "Unknown item type: type-missing",
+        );
     });
 });

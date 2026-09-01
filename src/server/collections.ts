@@ -21,6 +21,7 @@ import {
     buildCollectionViewModel,
     buildItemSummaryViewModel,
     buildItemTypeBreakdown,
+    requireItemType,
     resolveDominantTypeId,
 } from "./view-models";
 
@@ -166,7 +167,9 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
             name: row.name,
             isFavorite: row.isFavorite,
             itemCount: items.length,
-            dominantItemType: dominantTypeId ? (itemTypesById.get(dominantTypeId) ?? null) : null,
+            dominantItemType: dominantTypeId
+                ? requireItemType(dominantTypeId, itemTypesById)
+                : null,
         };
     };
 
@@ -204,7 +207,9 @@ export async function getFavoriteCollections(): Promise<FavoriteCollectionViewMo
             name: row.name,
             itemCount: items.length,
             updatedAt: row.updatedAt.toISOString(),
-            dominantItemType: dominantTypeId ? (itemTypesById.get(dominantTypeId) ?? null) : null,
+            dominantItemType: dominantTypeId
+                ? requireItemType(dominantTypeId, itemTypesById)
+                : null,
         };
     });
 }

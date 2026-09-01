@@ -113,7 +113,20 @@ export function toItemTypeViewModel(row: ItemTypeRow): ItemTypeViewModel {
     };
 }
 
-function requireItemType(itemTypeId: string, itemTypesById: ItemTypeMap): ItemTypeViewModel {
+/**
+ * Exported so the surfaces that resolve a *dominant* type outside this module resolve it the same
+ * way. `collections.ts` used to answer the identical question with `itemTypesById.get(id) ?? null`
+ * on two of its three call sites, which meant one dangling type id was a 500 on the collection
+ * cards and a colourless dot in the sidebar beside them — the same fault reported two ways,
+ * undocumented, with nothing choosing between them.
+ *
+ * It throws, on the same grounds `toItemTypeViewModel` does: an item type id that resolves to
+ * nothing is not a display problem, it is a row referring to something that does not exist, and the
+ * page cannot be rendered correctly either way. The neutral dot bought nothing in practice — the
+ * dashboard and the collections list already threw on the very same data, so a sidebar that
+ * survived it was drawn beside an error page.
+ */
+export function requireItemType(itemTypeId: string, itemTypesById: ItemTypeMap): ItemTypeViewModel {
     const itemType = itemTypesById.get(itemTypeId);
     if (!itemType) {
         throw new Error(`Unknown item type: ${itemTypeId}`);
