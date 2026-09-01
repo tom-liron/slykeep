@@ -92,27 +92,41 @@ export function filePreviewFor(file: { name: string; size: number }): FilePrevie
 }
 
 /**
+ * The extensions this origin may render. Anything absent is served as an attachment.
+ *
+ * An allow-list rather than the list of everything previewable minus its exceptions, which is what
+ * this was and is how `.xml` got in: it was never named, it arrived through
+ * `CODE_LANGUAGE_BY_EXTENSION`, and the `.svg` exception sitting right beside it did not cover it.
+ * Stated this way, a format added to `file-constraints.ts` is a download until somebody decides
+ * otherwise here, and the decision is one line in one place.
+ *
+ * `.svg` and `.xml` are the two deliberately absent, and the reason this is keyed on the filename
+ * rather than the media type. Both are documents that can carry script — an SVG directly, an XML
+ * through an `<?xml-stylesheet?>` XSLT that emits HTML — and serving one inline means a request to
+ * our own origin renders it there, as the signed-in user. `X-Content-Type-Options: nosniff` is no
+ * help: it stops a browser guessing a *different* type, and the declared type is already the
+ * dangerous one. Both stay previewable — as their own source, in the code viewer, which is the more
+ * useful thing to see anyway.
+ */
+const INLINE_EXTENSIONS = new Set([
+    ".pdf",
+    ...IMAGE_EXTENSIONS,
+    ".md",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".csv",
+    ".txt",
+]);
+
+/**
  * Whether `GET /api/files/[id]` may answer with `Content-Disposition: inline`.
  *
  * Independent of the size cap above: this decides what happens when the URL is opened directly,
  * where a large file is the browser's business rather than the drawer's.
- *
- * SVG is the one exception, and the reason this is keyed on the filename rather than the media type.
- * An SVG is a document that can carry script, and serving one inline means a request to our own
- * origin renders it there. It is still previewable — as its own source, in the code viewer, which is
- * the more useful thing to see anyway.
  */
 export function isInlineDisposition(fileName: string): boolean {
-    const extension = extensionOf(fileName);
-
-    if (extension === ".svg") {
-        return false;
-    }
-
-    return (
-        extension === ".pdf" ||
-        isRenderableImage(fileName) ||
-        extension === ".md" ||
-        extension in CODE_LANGUAGE_BY_EXTENSION
-    );
+    return INLINE_EXTENSIONS.has(extensionOf(fileName));
 }
