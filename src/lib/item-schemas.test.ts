@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
+import { MAX_UPLOAD_BYTES } from "./file-constraints";
 import {
     CREATABLE_ITEM_TYPE_NAMES,
     createItemSchema,
@@ -226,6 +227,31 @@ describe("createItemSchema", () => {
             // Whether the key is *this user's* is not decided here — only the server knows who that
             // is, so `createItem` re-checks it with `isOwnedKey`.
             expect(errorFor({ ...newItem, type: "image" }, "fileKey")).toBe("Upload a file first.");
+        });
+
+        it("refuses a size no upload could have produced", () => {
+            // The one round-tripped upload field the write boundary never re-derived. It is what
+            // `filePreviewFor` tests against `TEXT_PREVIEW_MAX_BYTES`, so an unbounded claim decides
+            // whether the drawer fetches a whole object and hands it to monaco.
+            const payload = {
+                ...newItem,
+                type: "file",
+                ...upload,
+                fileSize: MAX_UPLOAD_BYTES + 1,
+            } as CreateItemInput;
+
+            expect(errorFor(payload, "fileSize")).toBeDefined();
+        });
+
+        it("accepts a size at the ceiling", () => {
+            const data = parseNew({
+                ...newItem,
+                type: "file",
+                ...upload,
+                fileSize: MAX_UPLOAD_BYTES,
+            });
+
+            expect(data.fileSize).toBe(MAX_UPLOAD_BYTES);
         });
 
         it("keeps all three file columns together for a file item", () => {

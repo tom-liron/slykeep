@@ -91,6 +91,19 @@ export const FILE_CONSTRAINTS = {
     { maxSize: number; extensions: readonly string[]; mimeTypes: readonly string[] }
 >;
 
+/**
+ * The largest object any type accepts, derived rather than restated.
+ *
+ * For the write boundary, which is checking a *claimed* size rather than a real file: it knows
+ * nothing about which type the claim belongs to at the point it parses, so the ceiling it can apply
+ * is the highest one any type allows. `validateFile` still applies the exact per-type limit to the
+ * bytes in hand, which is the check that matters — this is the bound on what a hand-written payload
+ * may assert about an object it did not upload.
+ */
+export const MAX_UPLOAD_BYTES = Math.max(
+    ...Object.values(FILE_CONSTRAINTS).map(({ maxSize }) => maxSize),
+);
+
 /** The lowercased extension including the dot, or "" when the name has none. */
 export function extensionOf(fileName: string): string {
     return fileName.match(/\.[^./\\]+$/)?.[0].toLowerCase() ?? "";
