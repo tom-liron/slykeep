@@ -1,6 +1,6 @@
 import "server-only";
 
-import { DASHBOARD_COLLECTIONS_LIMIT } from "@/config/dashboard";
+import { DASHBOARD_COLLECTIONS_LIMIT, SIDEBAR_RECENT_COLLECTIONS_LIMIT } from "@/config/dashboard";
 import { COLLECTIONS_PER_PAGE, ITEMS_PER_PAGE } from "@/config/pagination";
 import { Prisma } from "@/generated/prisma-client/client";
 import { buildPagination, paginationSkip } from "@/lib/pagination";
@@ -15,19 +15,27 @@ import type {
     SidebarCollectionsViewModel,
 } from "@/types/view-models";
 import { getCurrentUserId } from "./current-user";
-import { ITEM_SUMMARY_SELECT } from "./items";
+import { ITEM_SUMMARY_SELECT, toItemSummaries } from "./items";
 import { getItemTypesById } from "./item-types";
 import {
+    buildCollectionSummary,
     buildCollectionViewModel,
-    buildItemSummaryViewModel,
     buildItemTypeBreakdown,
-    requireItemType,
-    resolveDominantTypeId,
 } from "./view-models";
 
 /**
- * Everything `CollectionViewModel` derives from. The item join carries only the two columns the
- * dominant-type rule reads — pulling whole items here would drag every item body into a card query.
+ * The two columns the dominant-type rule reads, and nothing else — never an item body.
+ *
+ * Stated once because both selects below need exactly it, and the risk in a join written twice is
+ * not the duplication: it is that one copy grows a column. Widening this by hand is how a card query
+ * starts reading item bodies.
+ */
+const COLLECTION_ITEMS_JOIN = {
+    select: { item: { select: { itemTypeId: true, editedAt: true } } },
+} as const;
+
+/**
+ * Everything `CollectionViewModel` derives from.
  */
 const COLLECTION_SELECT = {
     id: true,
@@ -36,9 +44,7 @@ const COLLECTION_SELECT = {
     isFavorite: true,
     defaultTypeId: true,
     updatedAt: true,
-    items: {
-        select: { item: { select: { itemTypeId: true, editedAt: true } } },
-    },
+    items: COLLECTION_ITEMS_JOIN,
 } as const;
 
 /**
@@ -50,9 +56,7 @@ const SIDEBAR_COLLECTION_SELECT = {
     name: true,
     isFavorite: true,
     defaultTypeId: true,
-    items: {
-        select: { item: { select: { itemTypeId: true, editedAt: true } } },
-    },
+    items: COLLECTION_ITEMS_JOIN,
 } as const;
 
 type CollectionRowWithItems = Prisma.CollectionGetPayload<{ select: typeof COLLECTION_SELECT }>;
@@ -151,7 +155,7 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
         prisma.collection.findMany({
             where: { userId, isFavorite: false },
             orderBy: { updatedAt: "desc" },
-            take: 5,
+            take: SIDEBAR_RECENT_COLLECTIONS_LIMIT,
             select: SIDEBAR_COLLECTION_SELECT,
         }),
         getItemTypesById(userId),
@@ -159,19 +163,14 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
 
     const toSidebarCollection = (
         row: Prisma.CollectionGetPayload<{ select: typeof SIDEBAR_COLLECTION_SELECT }>,
-    ) => {
-        const items = row.items.map(({ item }) => item);
-        const dominantTypeId = resolveDominantTypeId(row, items);
-        return {
-            id: row.id,
-            name: row.name,
-            isFavorite: row.isFavorite,
-            itemCount: items.length,
-            dominantItemType: dominantTypeId
-                ? requireItemType(dominantTypeId, itemTypesById)
-                : null,
-        };
-    };
+    ) => ({
+        ...buildCollectionSummary(
+            row,
+            row.items.map(({ item }) => item),
+            itemTypesById,
+        ),
+        isFavorite: row.isFavorite,
+    });
 
     return {
         favoriteCollections: favorites.map(toSidebarCollection),
@@ -198,20 +197,14 @@ export async function getFavoriteCollections(): Promise<FavoriteCollectionViewMo
         getItemTypesById(userId),
     ]);
 
-    return rows.map((row) => {
-        const items = row.items.map(({ item }) => item);
-        const dominantTypeId = resolveDominantTypeId(row, items);
-
-        return {
-            id: row.id,
-            name: row.name,
-            itemCount: items.length,
-            updatedAt: row.updatedAt.toISOString(),
-            dominantItemType: dominantTypeId
-                ? requireItemType(dominantTypeId, itemTypesById)
-                : null,
-        };
-    });
+    return rows.map((row) => ({
+        ...buildCollectionSummary(
+            row,
+            row.items.map(({ item }) => item),
+            itemTypesById,
+        ),
+        updatedAt: row.updatedAt.toISOString(),
+    }));
 }
 
 /**
@@ -270,11 +263,6 @@ export async function getCollectionPageData(
         itemTypeCounts: buildItemTypeBreakdown(collectionItems, itemTypesById),
         // Ordered by the query now, not in memory — a page of rows sorted after the fact would only
         // be sorted within itself.
-        items: itemRows.map((item) =>
-            buildItemSummaryViewModel(
-                { ...item, tags: item.tags.map((tag) => tag.name) },
-                itemTypesById,
-            ),
-        ),
+        items: toItemSummaries(itemRows, itemTypesById),
     };
 }

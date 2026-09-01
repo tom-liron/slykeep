@@ -5,8 +5,9 @@ import { z } from "zod";
 
 import { priceIdFor } from "@/config/billing";
 import type { BillingCycle } from "@/config/marketing";
+import { appOrigin } from "@/lib/app-origin";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { billingOrigin, stripe } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { getOrCreateCustomerId } from "@/server/billing";
 import { getCurrentUserId } from "@/server/current-user";
 import type { BillingActionResult } from "@/types/billing";
@@ -82,8 +83,8 @@ export async function startCheckout(input: BillingCycle): Promise<BillingActionR
             // these make a session traceable from the dashboard without a database lookup.
             client_reference_id: userId,
             subscription_data: { metadata: { userId } },
-            success_url: `${billingOrigin()}/settings?checkout=success`,
-            cancel_url: `${billingOrigin()}/settings?checkout=cancelled`,
+            success_url: `${appOrigin()}/settings?checkout=success`,
+            cancel_url: `${appOrigin()}/settings?checkout=cancelled`,
             allow_promotion_codes: true,
         });
 
@@ -123,7 +124,7 @@ export async function openBillingPortal(): Promise<BillingActionResult> {
 
         const session = await stripe().billingPortal.sessions.create({
             customer: customerId,
-            return_url: `${billingOrigin()}/settings`,
+            return_url: `${appOrigin()}/settings`,
         });
 
         url = session.url;

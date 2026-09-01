@@ -2,6 +2,8 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { appOrigin } from "./app-origin";
+
 /**
  * Transactional email via Resend.
  *
@@ -19,22 +21,6 @@ function resend(): Resend {
     client ??= new Resend(apiKey);
 
     return client;
-}
-
-/**
- * Origin for links that will be opened from an email client.
- *
- * Cannot be derived from the sending request: the person clicking arrives in a different session,
- * often on a different device, and a relative path is meaningless in an inbox. `AUTH_URL` is already
- * the value NextAuth uses for its own callbacks, so reusing it keeps one source of truth for
- * "where this deployment lives".
- */
-function origin(): string {
-    const url = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
-
-    if (!url) throw new Error("AUTH_URL is not set; verification links cannot be built.");
-
-    return url.replace(/\/$/, "");
 }
 
 /**
@@ -146,7 +132,7 @@ export async function sendVerificationEmail({
     name: string | null;
     token: string;
 }) {
-    const link = `${origin()}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
+    const link = `${appOrigin()}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
 
     await send("verification", {
         from: FROM,
@@ -185,7 +171,7 @@ export async function sendPasswordResetEmail({
     name: string | null;
     token: string;
 }) {
-    const link = `${origin()}/reset-password?token=${encodeURIComponent(token)}`;
+    const link = `${appOrigin()}/reset-password?token=${encodeURIComponent(token)}`;
 
     await send("password reset", {
         from: FROM,
@@ -225,7 +211,7 @@ export async function sendPasswordResetGitHubEmail({
     to: string;
     name: string | null;
 }) {
-    const link = `${origin()}/sign-in`;
+    const link = `${appOrigin()}/sign-in`;
 
     await send("GitHub reset", {
         from: FROM,

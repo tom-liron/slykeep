@@ -9,6 +9,15 @@ import { ITEM_TYPE_COLORS } from "./item-type-catalog";
  * that was explicitly asked for. These two grow on their own as you work, which is why they need
  * bounding and Pinned does not.
  */
+/**
+ * How many non-favourite collections the sidebar's recent list shows.
+ *
+ * Here rather than inline in the query for the reason this file's own comment gives about caps: it
+ * is a presentation decision about how long a list should be, and it was the only one of those left
+ * written as a literal in `server/`.
+ */
+export const SIDEBAR_RECENT_COLLECTIONS_LIMIT = 5;
+
 export const DASHBOARD_COLLECTIONS_LIMIT = 6;
 export const DASHBOARD_RECENT_ITEMS_LIMIT = 10;
 

@@ -77,7 +77,7 @@ export interface UserRow {
     isPro: boolean;
 }
 
-type ItemTypeMap = ReadonlyMap<string, ItemTypeViewModel>;
+export type ItemTypeMap = ReadonlyMap<string, ItemTypeViewModel>;
 
 function toTime(value: Date | string): number {
     return value instanceof Date ? value.getTime() : Date.parse(value);
@@ -200,29 +200,51 @@ export function buildItemDetailViewModel(
     };
 }
 
+/**
+ * What every surface showing a collection needs: its name, how many items it holds, and the type
+ * that colours it.
+ *
+ * Three places derived these four fields independently — the sidebar, the favourites list, and the
+ * cards — and two of them disagreed with the third about what an unresolvable dominant type means.
+ * That disagreement is settled (see `requireItemType`); this is what stops it recurring, since the
+ * next surface to show a collection now takes the rule rather than copying it.
+ *
+ * Each caller adds its own extra fields on top: the sidebar `isFavorite`, the favourites list
+ * `updatedAt`, and the card both plus a description and its icon strip.
+ */
+export function buildCollectionSummary(
+    collection: Pick<CollectionRow, "id" | "name" | "defaultTypeId">,
+    collectionItems: CollectionItemRow[],
+    itemTypesById: ItemTypeMap,
+): { id: string; name: string; itemCount: number; dominantItemType: ItemTypeViewModel | null } {
+    const dominantTypeId = resolveDominantTypeId(collection, collectionItems);
+
+    return {
+        id: collection.id,
+        name: collection.name,
+        itemCount: collectionItems.length,
+        dominantItemType: dominantTypeId ? requireItemType(dominantTypeId, itemTypesById) : null,
+    };
+}
+
 export function buildCollectionViewModel(
     collection: CollectionRow,
     collectionItems: CollectionItemRow[],
     itemTypesById: ItemTypeMap,
 ): CollectionViewModel {
-    const dominantTypeId = resolveDominantTypeId(collection, collectionItems);
-
     const containedTypeIds = new Set(collectionItems.map((item) => item.itemTypeId));
     if (containedTypeIds.size === 0 && collection.defaultTypeId) {
         containedTypeIds.add(collection.defaultTypeId);
     }
 
     return {
-        id: collection.id,
-        name: collection.name,
+        ...buildCollectionSummary(collection, collectionItems, itemTypesById),
         description: collection.description ?? "",
         isFavorite: collection.isFavorite,
         updatedAt: collection.updatedAt.toISOString(),
-        itemCount: collectionItems.length,
         itemTypes: [...itemTypesById.values()].filter((itemType) =>
             containedTypeIds.has(itemType.id),
         ),
-        dominantItemType: dominantTypeId ? requireItemType(dominantTypeId, itemTypesById) : null,
     };
 }
 

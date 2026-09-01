@@ -48,19 +48,3 @@ export function stripe(): Stripe {
 
     return client;
 }
-
-/**
- * Origin for the URLs Stripe redirects back to after Checkout or the customer portal.
- *
- * `AUTH_URL` rather than a new variable, and rather than the request's own host: it is already the
- * deployment's canonical origin for NextAuth's callbacks and for `lib/email.ts`'s links, and a
- * second name for the same value is a second thing to get wrong in production. Read inside the
- * function for the same lazy reason as the client above.
- */
-export function billingOrigin(): string {
-    const url = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
-
-    if (!url) throw new Error("AUTH_URL is not set; Stripe return URLs cannot be built.");
-
-    return url.replace(/\/$/, "");
-}

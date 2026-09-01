@@ -3,9 +3,8 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { SearchDataViewModel } from "@/types/view-models";
 import { getCurrentUserId } from "./current-user";
-import { ITEM_SUMMARY_SELECT } from "./items";
+import { ITEM_SUMMARY_SELECT, toItemSummaries } from "./items";
 import { getItemTypesById } from "./item-types";
-import { buildItemSummaryViewModel } from "./view-models";
 
 /**
  * Defensive upper bound on what the palette is given to search.
@@ -52,12 +51,7 @@ export async function getSearchData(): Promise<SearchDataViewModel> {
     ]);
 
     return {
-        items: itemRows.map((row) =>
-            buildItemSummaryViewModel(
-                { ...row, tags: row.tags.map((tag) => tag.name) },
-                itemTypesById,
-            ),
-        ),
+        items: toItemSummaries(itemRows, itemTypesById),
         collections: collectionRows.map((row) => ({
             id: row.id,
             name: row.name,

@@ -1,4 +1,4 @@
-import { extensionOf } from "./file-constraints";
+import { FILE_CONSTRAINTS, extensionOf } from "./file-constraints";
 
 /**
  * How a file item's object is shown in the drawer, and whether the file route may serve it inline.
@@ -47,7 +47,15 @@ const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
     ".txt": "plaintext",
 };
 
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+/**
+ * Derived from the upload allow-list rather than restated, minus the one extension that is allowed
+ * as an image upload and must never be rendered as one. A hand-written copy is a second list that
+ * has to be remembered whenever `FILE_CONSTRAINTS` gains a format — and the failure is silent: a
+ * newly permitted `.avif` would upload, store, and then render as a name-and-size card.
+ */
+const IMAGE_EXTENSIONS: readonly string[] = FILE_CONSTRAINTS.image.extensions.filter(
+    (extension) => extension !== ".svg",
+);
 
 /**
  * Whether this object may be put in an `<img>`.
