@@ -35,7 +35,7 @@ const PRODUCTION_DB_ENDPOINT = "ep-winter-sound-as575jke";
  * that way, and reporting a row deleted that the same job had just reported zero of against dev,
  * for the difference to surface at all.
  *
- * The file has been renamed to `.env.production.reference` so nothing auto-loads it, which fixes
+ * The file has been renamed to `.env.production.example` so nothing auto-loads it, which fixes
  * that instance. This fixes the class: an exported shell variable, a copied `.env`, or a future file
  * Next decides to read would all arrive here too.
  *

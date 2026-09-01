@@ -50,7 +50,8 @@ way and reported a row deleted that the same job had just reported zero of again
 
 Two things now prevent it:
 
-- The file is `.env.production.reference`. Next does not auto-load that name, so `npm start` falls
+- The file is `.env.production.example`. Next auto-loads `.env`, `.env.local`, `.env.production` and
+  `.env.production.local` — and nothing else — so this name is inert, and `npm start` falls
   back to `.env` and a local production build runs against the development branch, which is what was
   always intended. Vercel is unaffected — it holds its own environment variables.
 - `src/lib/prisma.ts` refuses to open a connection whose URL names the production endpoint unless
