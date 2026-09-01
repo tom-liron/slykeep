@@ -142,13 +142,34 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     const [language, setLanguage] = useState("");
     // Held here rather than inside `FileUpload`, because it is what the payload and the submit gate
     // both read. It survives a type switch, exactly as the typed fields do — an upload made, then
-    // reconsidered, then chosen again is not asked for twice.
+    // reconsidered, then chosen again is not asked for twice. `chooseType` below is the one
+    // exception, and it is about what an upload *is* rather than about keeping state.
     const [file, setFile] = useState<UploadedFile | null>(null);
     const [collectionIds, setCollectionIds] = useState<string[]>([]);
 
     // Fetched when the dialog opens, since Radix mounts this form then — so a collection created
     // from the top bar's other dialog a moment ago is already in the list.
     const collections = useCollectionOptions();
+
+    /**
+     * Switching type keeps everything typed so far, and drops a held upload in exactly one case.
+     *
+     * `file` and `image` have *disjoint* extension lists (`FILE_CONSTRAINTS`), so an object uploaded
+     * as one is never valid as the other. Keeping it across that switch left the submit button
+     * enabled over a payload `createItem` refuses — with "That upload could not be verified. Try
+     * uploading the file again.", which is a dead end: the same file re-uploaded under the same type
+     * fails identically, and nothing on screen says the type is what made it invalid.
+     *
+     * Every other switch is unaffected, including `image → snippet → image`, where the upload is
+     * still valid for the type it was made under and asking for it twice would be the bug.
+     */
+    const chooseType = (next: CreatableItemTypeName) => {
+        if (isFileItemTypeName(type) && isFileItemTypeName(next) && type !== next) {
+            setFile(null);
+        }
+
+        setType(next);
+    };
 
     const {
         content: showsContent,
@@ -248,7 +269,7 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
                                     name="new-item-type"
                                     value={name}
                                     checked={selected}
-                                    onChange={() => setType(name)}
+                                    onChange={() => chooseType(name)}
                                     className="capitalize"
                                     // Type colours are user-facing data, not theme tokens, so they
                                     // cannot be Tailwind classes — the same exception the cards take.
