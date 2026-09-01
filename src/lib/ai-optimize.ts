@@ -32,14 +32,6 @@ import type { ItemDraft } from "@/types/ai";
 export const AI_OPTIMIZE_CONTENT_LIMIT = 4000;
 
 /**
- * The largest payload the action will consider, per field. Not a product limit — an item's content
- * is not capped anywhere and legitimately runs past the limit above, which is why that one
- * truncates rather than refuses. This is a bound on what a hand-made request can make the server
- * hold in memory before the truncation gets to run.
- */
-export const AI_OPTIMIZE_PAYLOAD_LIMIT = 100_000;
-
-/**
  * How much room the model gets, reasoning included.
  *
  * Sized for this call rather than copied from a neighbour, which is what `EXPLAIN_MAX_OUTPUT_TOKENS`

@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import { isItemTypeName } from "@/config/item-type-catalog";
 import {
-    AI_DESCRIPTION_PAYLOAD_LIMIT,
     DESCRIPTION_INSTRUCTIONS,
     DESCRIPTION_MAX_OUTPUT_TOKENS,
     buildDescriptionInput,
@@ -12,7 +11,6 @@ import {
     parseSuggestedDescription,
 } from "@/lib/ai-description";
 import {
-    AI_EXPLAIN_PAYLOAD_LIMIT,
     EXPLAIN_INSTRUCTIONS,
     EXPLAIN_MAX_OUTPUT_TOKENS,
     EXPLAIN_REASONING_EFFORT,
@@ -22,7 +20,6 @@ import {
     parseExplanation,
 } from "@/lib/ai-explain";
 import {
-    AI_OPTIMIZE_PAYLOAD_LIMIT,
     OPTIMIZE_INSTRUCTIONS,
     OPTIMIZE_MAX_OUTPUT_TOKENS,
     buildOptimizeInput,
@@ -31,12 +28,8 @@ import {
     isUnchanged,
     parseOptimizedPrompt,
 } from "@/lib/ai-optimize";
-import {
-    AI_TAG_PAYLOAD_LIMIT,
-    TAG_INSTRUCTIONS,
-    buildTagInput,
-    parseSuggestedTags,
-} from "@/lib/ai-tags";
+import { TAG_INSTRUCTIONS, buildTagInput, parseSuggestedTags } from "@/lib/ai-tags";
+import { AI_PAYLOAD_LIMIT } from "@/lib/ai-text";
 import { canUseAi } from "@/lib/limits";
 import { AI_MODEL, openai } from "@/lib/openai";
 import { type RateLimitName, checkRateLimit, minutesUntilReset } from "@/lib/rate-limit";
@@ -67,20 +60,13 @@ import type {
  * before the prompt builders' truncation gets to run, not a product limit — an item's content is
  * not capped anywhere.
  */
-const PAYLOAD_LIMIT = Math.min(
-    AI_TAG_PAYLOAD_LIMIT,
-    AI_DESCRIPTION_PAYLOAD_LIMIT,
-    AI_EXPLAIN_PAYLOAD_LIMIT,
-    AI_OPTIMIZE_PAYLOAD_LIMIT,
-);
-
 const itemDraftSchema = z.object({
-    title: z.string().max(PAYLOAD_LIMIT).optional(),
-    content: z.string().max(PAYLOAD_LIMIT).optional(),
-    url: z.string().max(PAYLOAD_LIMIT).optional(),
-    fileName: z.string().max(PAYLOAD_LIMIT).optional(),
-    language: z.string().max(PAYLOAD_LIMIT).optional(),
-    tags: z.string().max(PAYLOAD_LIMIT).optional(),
+    title: z.string().max(AI_PAYLOAD_LIMIT).optional(),
+    content: z.string().max(AI_PAYLOAD_LIMIT).optional(),
+    url: z.string().max(AI_PAYLOAD_LIMIT).optional(),
+    fileName: z.string().max(AI_PAYLOAD_LIMIT).optional(),
+    language: z.string().max(AI_PAYLOAD_LIMIT).optional(),
+    tags: z.string().max(AI_PAYLOAD_LIMIT).optional(),
     /**
      * Accepted as a string here and checked against the catalog below rather than constrained by
      * the schema, because the two disagree about what an unrecognized value means. It is

@@ -9,6 +9,22 @@
  */
 
 /**
+ * The largest payload any of the four AI actions will consider.
+ *
+ * **Not a product limit.** An item's content is not capped anywhere and legitimately runs past every
+ * per-feature content limit, which is why the prompt builders truncate rather than refuse. This is a
+ * bound on what a hand-made request can make the server hold in memory before that truncation gets
+ * to run.
+ *
+ * One number, in the module that owns `truncateForModel`. It was four — `AI_TAG_PAYLOAD_LIMIT`,
+ * `AI_DESCRIPTION_PAYLOAD_LIMIT`, `AI_EXPLAIN_PAYLOAD_LIMIT`, `AI_OPTIMIZE_PAYLOAD_LIMIT` — all
+ * `100_000`, and the single consumer took `Math.min` of the set. So the per-feature names promised a
+ * tuning that could not happen: raising one of them alone changed nothing at all, silently, because
+ * the minimum still came from the other three.
+ */
+export const AI_PAYLOAD_LIMIT = 100_000;
+
+/**
  * Cuts `content` to `limit` characters without splitting a character in half.
  *
  * JavaScript string indices are UTF-16 code units, so a plain `slice` can land between the two

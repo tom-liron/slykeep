@@ -31,14 +31,6 @@ export const AI_TAG_CONTENT_LIMIT = 2000;
  */
 export const MAX_SUGGESTED_TAGS = 5;
 
-/**
- * The largest payload the action will consider. Not a product limit — an item's content is not
- * capped anywhere and legitimately runs past `AI_TAG_CONTENT_LIMIT`, which is why this truncates
- * rather than refuses. It is a bound on what a hand-made request can make the server hold in memory
- * before the truncation above gets to run.
- */
-export const AI_TAG_PAYLOAD_LIMIT = 100_000;
-
 /** What the model is told it is doing. Constant, so it is not rebuilt per call. */
 export const TAG_INSTRUCTIONS = [
     "You are a developer tool assistant that labels saved developer content.",

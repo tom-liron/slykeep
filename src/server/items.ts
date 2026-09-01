@@ -14,11 +14,12 @@ import type {
     ItemTypePageViewModel,
 } from "@/types/view-models";
 import { getCurrentUser, getCurrentUserId } from "./current-user";
-import { getItemTypesById } from "./item-types";
+import { findSystemItemType, getItemTypesById } from "./item-types";
 import {
     buildItemDetailViewModel,
     buildItemSummaryViewModel,
     toItemTypeViewModel,
+    type ItemTypeMap,
 } from "./view-models";
 
 /**
@@ -49,6 +50,29 @@ export const ITEM_SUMMARY_SELECT = {
 } as const;
 
 type ItemSummaryRow = Prisma.ItemGetPayload<{ select: typeof ITEM_SUMMARY_SELECT }>;
+
+/**
+ * `ITEM_SUMMARY_SELECT`'s rows as view models — the adapter between the two shapes.
+ *
+ * Here rather than in `view-models.ts` because the input is a Prisma payload, and that module states
+ * as a rule that its inputs are declared structurally so its derivation rules stay decoupled from
+ * the persistence shape. This is the join between the two, so it belongs on the persistence side,
+ * beside the `select` that produces the row.
+ *
+ * The tag flattening is the whole reason it exists. The select joins tags as `{ name }[]` while
+ * `ItemSummaryRow` in `view-models.ts` declares `readonly string[]`, so every list query has to
+ * bridge those two by hand — and it was written out at five call sites across three modules. A copy
+ * that forgets the `.map` does not fail anywhere obvious: it fails inside
+ * `buildItemSummaryViewModel`'s `[...item.tags]`, and renders as `[object Object]` in a badge.
+ */
+export function toItemSummaries(
+    rows: readonly ItemSummaryRow[],
+    itemTypesById: ItemTypeMap,
+): ItemSummaryViewModel[] {
+    return rows.map((row) =>
+        buildItemSummaryViewModel({ ...row, tags: row.tags.map((tag) => tag.name) }, itemTypesById),
+    );
+}
 
 /**
  * The summary columns plus the body — the one query in this module that reads `content`, and only
@@ -114,14 +138,11 @@ export async function getDashboardItems(): Promise<DashboardItemsViewModel> {
         getItemTypesById(userId),
     ]);
 
-    const toViewModel = (row: ItemSummaryRow) =>
-        buildItemSummaryViewModel({ ...row, tags: row.tags.map((tag) => tag.name) }, itemTypesById);
-
     return {
         totalItems,
         favoriteItems,
-        pinnedItems: pinnedRows.map(toViewModel),
-        recentItems: recentRows.map(toViewModel),
+        pinnedItems: toItemSummaries(pinnedRows, itemTypesById),
+        recentItems: toItemSummaries(recentRows, itemTypesById),
     };
 }
 
@@ -162,9 +183,7 @@ export async function getFavoriteItems(): Promise<ItemSummaryViewModel[]> {
         getItemTypesById(userId),
     ]);
 
-    return rows.map((row) =>
-        buildItemSummaryViewModel({ ...row, tags: row.tags.map((tag) => tag.name) }, itemTypesById),
-    );
+    return toItemSummaries(rows, itemTypesById);
 }
 
 /**
@@ -241,10 +260,7 @@ export async function getItemTypePageData(
 
     const user = await getCurrentUser();
 
-    const typeRow = await prisma.itemType.findFirst({
-        where: { name, userId: null },
-        select: { id: true, name: true, icon: true, color: true },
-    });
+    const typeRow = await findSystemItemType(name);
     if (!typeRow) {
         return undefined;
     }
@@ -291,11 +307,6 @@ export async function getItemTypePageData(
         locked: false,
         itemType,
         pagination,
-        items: rows.map((row) =>
-            buildItemSummaryViewModel(
-                { ...row, tags: row.tags.map((tag) => tag.name) },
-                itemTypesById,
-            ),
-        ),
+        items: toItemSummaries(rows, itemTypesById),
     };
 }

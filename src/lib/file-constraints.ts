@@ -1,3 +1,5 @@
+import { formatFileSize } from "./format";
+
 /**
  * What may be uploaded for the two FILE types, and the check that enforces it.
  *
@@ -109,11 +111,6 @@ export function extensionOf(fileName: string): string {
     return fileName.match(/\.[^./\\]+$/)?.[0].toLowerCase() ?? "";
 }
 
-/** Megabytes, for a message — the limits are whole megabytes by construction. */
-function megabytes(bytes: number): number {
-    return bytes / (1024 * 1024);
-}
-
 /** What an `<input type="file">` should offer, e.g. ".png,.jpg,…". */
 export function acceptAttribute(itemType: FileItemTypeName): string {
     return FILE_CONSTRAINTS[itemType].extensions.join(",");
@@ -141,7 +138,7 @@ export function validateUpload(
     }
 
     if (file.size > maxSize) {
-        return { valid: false, error: `Files must be ${megabytes(maxSize)} MB or smaller.` };
+        return { valid: false, error: `Files must be ${formatFileSize(maxSize)} or smaller.` };
     }
 
     const extension = extensionOf(file.name);

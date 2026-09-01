@@ -17,11 +17,36 @@ import { toItemTypeViewModel } from "./view-models";
  * The item types a user can see: the system types (`userId: null`) plus any custom types they own.
  * Returned as a map because callers resolve types by the foreign key on an item or collection.
  */
+/**
+ * The four columns an `ItemTypeViewModel` is built from, and the only ones any caller reads.
+ *
+ * Written out at three call sites across two modules before this. The list is not obvious — the
+ * plural label, the route slug, the content type and the Pro flag are all *configuration* rather
+ * than columns (`project-overview.md` §5) — so a fourth copy is as likely to select too much as too
+ * little.
+ */
+export const ITEM_TYPE_SELECT = { id: true, name: true, icon: true, color: true } as const;
+
+/**
+ * The **system** item type with this name, or null.
+ *
+ * Never `findUnique` by name. A Prisma bug leaks `name` into `ItemTypeWhereUniqueInput` because of
+ * the partial index, so it type-checks — but `name` is unique only among system rows, and a user's
+ * custom type may share it. `CLAUDE.md` and `prisma/schema.prisma` both record this; the point of
+ * the function is that the rule is now obeyed in one place rather than remembered at each.
+ */
+export function findSystemItemType(name: string) {
+    return prisma.itemType.findFirst({
+        where: { name, userId: null },
+        select: ITEM_TYPE_SELECT,
+    });
+}
+
 export const getItemTypesById = cache(
     async (userId: string): Promise<ReadonlyMap<string, ItemTypeViewModel>> => {
         const rows = await prisma.itemType.findMany({
             where: { OR: [{ userId: null }, { userId }] },
-            select: { id: true, name: true, icon: true, color: true },
+            select: ITEM_TYPE_SELECT,
         });
 
         return new Map(
@@ -54,7 +79,7 @@ export async function getItemTypeCounts(user: UserViewModel): Promise<ItemTypeCo
             // `name` alone, which `CLAUDE.md` and the partial index in `schema.prisma` both warn
             // about: `name` is unique only among system rows.
             where: { userId: null },
-            select: { id: true, name: true, icon: true, color: true },
+            select: ITEM_TYPE_SELECT,
         }),
         prisma.item.groupBy({
             by: ["itemTypeId"],

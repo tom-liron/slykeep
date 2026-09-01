@@ -30,15 +30,29 @@ import { getCurrentUser } from "./current-user";
  * The email is passed so the Stripe dashboard is legible, and the user id goes in metadata so a
  * Customer can be traced back to an account even if the column is somehow lost.
  */
-export async function getOrCreateCustomerId(): Promise<string> {
-    const user = await getCurrentUser();
-
-    const existing = await prisma.user.findUnique({
-        where: { id: user.id },
+/**
+ * This account's Stripe customer id, or null when it has never opened checkout.
+ *
+ * Not exported: the three functions below *are* the billing boundary, and nothing outside this
+ * module should be reading the column directly. It exists because all three began with the same
+ * `findUnique` and the same "no customer, nothing to do" guard, and that guard is the one thing here
+ * that must not be got wrong — an account with no customer is the normal case, not an error.
+ */
+async function customerIdFor(userId: string): Promise<string | null> {
+    const row = await prisma.user.findUnique({
+        where: { id: userId },
         select: { stripeCustomerId: true },
     });
 
-    if (existing?.stripeCustomerId) return existing.stripeCustomerId;
+    return row?.stripeCustomerId ?? null;
+}
+
+export async function getOrCreateCustomerId(): Promise<string> {
+    const user = await getCurrentUser();
+
+    const existing = await customerIdFor(user.id);
+
+    if (existing) return existing;
 
     const customer = await stripe().customers.create({
         email: user.email,
@@ -210,15 +224,12 @@ function willBillAgain(subscription: Stripe.Subscription): boolean {
  * opened checkout has no customer, so the common path costs no API call at all.
  */
 export async function hasBillableSubscription(userId: string): Promise<boolean> {
-    const row = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { stripeCustomerId: true },
-    });
+    const customerId = await customerIdFor(userId);
 
-    if (!row?.stripeCustomerId) return false;
+    if (!customerId) return false;
 
     const subscriptions = await stripe().subscriptions.list({
-        customer: row.stripeCustomerId,
+        customer: customerId,
         status: "all",
         limit: 10,
     });
@@ -252,14 +263,9 @@ export async function hasBillableSubscription(userId: string): Promise<boolean> 
  * success everywhere — it is the state this function exists to produce.
  */
 export async function endBillingRelationship(userId: string): Promise<void> {
-    const row = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { stripeCustomerId: true },
-    });
+    const customerId = await customerIdFor(userId);
 
-    if (!row?.stripeCustomerId) return;
-
-    const customerId = row.stripeCustomerId;
+    if (!customerId) return;
 
     // Cancelled *now*, not at period end. The gate has already established nothing further will be
     // charged, but a subscription scheduled to lapse next month would otherwise sit there live
