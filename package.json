@@ -21,6 +21,7 @@
         "db:test": "tsx scripts/test-db.ts",
         "email:test": "tsx scripts/test-email.ts",
         "user:verify": "tsx scripts/verify-user.ts",
+        "users:sweep": "tsx --conditions=react-server scripts/sweep-unverified.ts",
         "db:status": "prisma migrate status",
         "db:studio": "prisma studio",
         "db:deploy": "prisma migrate deploy"
