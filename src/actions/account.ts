@@ -6,6 +6,7 @@ import { signOut } from "@/auth";
 import { changePasswordSchema } from "@/lib/auth-schemas";
 import { fieldErrorsOf } from "@/lib/field-errors";
 import { prisma } from "@/lib/prisma";
+import { deleteUserObjects } from "@/lib/r2";
 import { endBillingRelationship, hasBillableSubscription } from "@/server/billing";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import { hashPassword } from "@/server/passwords";
@@ -86,9 +87,13 @@ export async function changePassword(
 /**
  * Deletes the signed-in account and everything hanging off it.
  *
- * One `delete` is the whole operation: items, collections, their join rows, and the NextAuth
- * `Account` / `Session` rows all cascade from `User` (see the schema's `onDelete: Cascade`). Tag
- * rows are global and have no owner, so they are left behind by design rather than by oversight.
+ * One `delete` is the whole operation *in Postgres*: items, collections, their join rows, and the
+ * NextAuth `Account` / `Session` rows all cascade from `User` (see the schema's `onDelete: Cascade`).
+ * Tag rows are global and have no owner, so they are left behind by design rather than by oversight.
+ *
+ * R2 is not in that cascade and has to be swept separately, or "delete my account" would leave every
+ * file the account uploaded sitting in the bucket with nothing pointing at it — a retention promise
+ * broken the day there are real users to make it to.
  *
  * Nothing invalidates a JWT held elsewhere, but nothing needs to: the row is gone, so
  * `getCurrentUser` throws for any surviving token and every authenticated read fails closed.
@@ -151,6 +156,22 @@ export async function deleteAccount(
         console.error("Account deletion failed:", error);
 
         return { error: "Could not delete your account. Try again." };
+    }
+
+    // *After* the row, unlike the Stripe cleanup above, and for the opposite reason: the cascade
+    // destroys the only copy of `stripeCustomerId`, but it destroys nothing R2 needs — the objects
+    // are keyed by user id, so the prefix outlives every row. Sweeping first would mean a failed
+    // `user.delete` had just destroyed a live account's files, which is the one outcome worse than
+    // an orphan. This is `deleteItem`'s trade at account scale.
+    //
+    // Best-effort and outside the try, like the item path: the account is already gone and the
+    // user's request succeeded, so a bucket that is briefly unreachable is not something to report
+    // to them or to roll back — there is nothing to roll back to. The leftover objects are what the
+    // scheduled prefix sweep is for.
+    try {
+        await deleteUserObjects(user.id);
+    } catch (error) {
+        console.error(`Orphaned R2 objects after deleting account ${user.id}:`, error);
     }
 
     // Outside the try: `signOut` leaves by throwing NEXT_REDIRECT, which the catch above would

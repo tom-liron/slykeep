@@ -3,7 +3,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import {
     DeleteObjectCommand,
+    DeleteObjectsCommand,
     GetObjectCommand,
+    ListObjectsV2Command,
     PutObjectCommand,
     S3Client,
 } from "@aws-sdk/client-s3";
@@ -149,4 +151,77 @@ export async function getObject(key: string): Promise<StoredObject> {
  */
 export async function deleteObject(key: string): Promise<void> {
     await r2().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
+}
+
+/** What one `DeleteObjects` request accepts. The S3 API's limit, which R2 implements. */
+const DELETE_BATCH_SIZE = 1000;
+
+/**
+ * Removes every object belonging to `userId`, and answers how many went.
+ *
+ * This is what makes "delete my account" also delete the account's files. It works off the key
+ * prefix rather than off `Item.fileKey`, which is the point: deleting a `User` cascades its items
+ * away, so by the time cleanup could run there is no row left holding a key. `buildObjectKey` is the
+ * only thing that mints a key and `isOwnedKey` already treats the prefix as proof of ownership, so
+ * the prefix is the authority on what belongs to this user — and it also catches the objects
+ * `deleteItem` orphans on purpose when its own delete fails, which a `fileKey` read never could.
+ *
+ * Listed and deleted a page at a time rather than gathering every key first: an account is bounded
+ * only by its plan, and one page in memory is enough to delete a page.
+ *
+ * Partial failures are collected and raised at the end rather than aborting the loop — a single key
+ * R2 refuses must not strand the thousand behind it.
+ */
+export async function deleteUserObjects(userId: string): Promise<number> {
+    // A blank id would sweep the prefix `users//`, which matches no real key — so this cannot
+    // currently over-delete. It is refused anyway, because reaching here without a user is a bug in
+    // the caller, and a bulk delete is the wrong place to find out quietly.
+    if (!userId.trim()) {
+        throw new Error("deleteUserObjects requires a user id.");
+    }
+
+    const Bucket = bucket();
+    const Prefix = prefixFor(userId);
+
+    let deleted = 0;
+    let failures = 0;
+    let ContinuationToken: string | undefined;
+
+    do {
+        const page = await r2().send(
+            new ListObjectsV2Command({
+                Bucket,
+                Prefix,
+                MaxKeys: DELETE_BATCH_SIZE,
+                ContinuationToken,
+            }),
+        );
+
+        // Paginating while deleting is safe: the continuation token resumes from the last key
+        // *listed*, so removing keys already behind it cannot skip one in front of it.
+        ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+
+        const keys = (page.Contents ?? [])
+            .map((object) => object.Key)
+            .filter((key): key is string => Boolean(key));
+
+        if (keys.length === 0) continue;
+
+        const result = await r2().send(
+            new DeleteObjectsCommand({
+                Bucket,
+                // `Quiet` keeps successes out of the response; `Errors` still comes back.
+                Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+            }),
+        );
+
+        failures += result.Errors?.length ?? 0;
+        deleted += keys.length - (result.Errors?.length ?? 0);
+    } while (ContinuationToken);
+
+    if (failures > 0) {
+        throw new Error(`R2 refused to delete ${failures} object(s) under "${Prefix}".`);
+    }
+
+    return deleted;
 }
