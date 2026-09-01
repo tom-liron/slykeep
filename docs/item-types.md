@@ -20,7 +20,7 @@ An item type is assembled from **two sources**, and neither is complete on its o
 
 `name` is the natural key that joins them — lowercase singular (`snippet`, `prompt`, …). The join
 happens at the server boundary, in `toItemTypeViewModel()`
-([src/server/view-models.ts:74](../src/server/view-models.ts#L74)), which produces the
+([src/server/view-models.ts:94](../src/server/view-models.ts#L94)), which produces the
 `ItemTypeViewModel` every component consumes. No component ever sees a Prisma `ItemType` row.
 
 Two consequences worth internalising:
@@ -106,17 +106,20 @@ Free-form Markdown notes and explanations.
 
 Uploaded files: context files, templates, documents.
 
-- **Populates:** `fileUrl`, `fileName`, `fileSize` (Cloudflare R2 object)
+- **Populates:** `fileKey`, `fileName`, `fileSize` (Cloudflare R2 object)
 - **Seed examples:** *none.*
-- **Status:** **schema only.** The three columns exist in `init`, but nothing in the application
-  reads or writes them — R2 is roadmap Phase 4, and `src/lib/r2.ts` is planned, not present.
+- **Status:** **shipped.** `POST /api/upload` authorizes the request and puts the object itself, so
+  the browser never talks to R2; `GET /api/files/[id]` streams it back, authorized per request. The
+  column is `fileKey` rather than `fileUrl` — migration `20260806081153_rename_file_url_to_file_key`
+  — because what is stored is an object key, never a URL: a URL would either be public or expire,
+  and both are decisions the route should make per request.
 
 ### 6. Image — `#ec4899`, `Image`, FILE — **Pro**
 
 Screenshots and diagrams. Identical persistence to `file`; separated for its own route, color, and
 eventual thumbnail rendering.
 
-- **Populates:** `fileUrl`, `fileName`, `fileSize`
+- **Populates:** `fileKey`, `fileName`, `fileSize`
 - **Seed examples:** *none.*
 - **Status:** same as `file` — schema only.
 
@@ -184,7 +187,7 @@ easiest invariant in the codebase to break, because breaking it requires only th
 
 ## 5. Properties every type shares
 
-All seven types are the same `items` row ([schema.prisma:99](../prisma/schema.prisma#L99)). There is
+All seven types are the same `items` row ([schema.prisma:123](../prisma/schema.prisma#L123)). There is
 no per-type table and no subtyping.
 
 | Field | Type | Notes |
@@ -192,9 +195,9 @@ no per-type table and no subtyping.
 | `id` | `String` | cuid |
 | `title` | `String` | Required, the only required body-ish field |
 | `contentType` | `ContentType` | Discriminator — see §4 |
-| `content` / `url` / `fileUrl` / `fileName` / `fileSize` | nullable | Exactly one branch populated |
+| `content` / `url` / `fileKey` / `fileName` / `fileSize` | nullable | Exactly one branch populated |
 | `description` | `String?` | Normalised to `""` in the view model |
-| `language` | `String?` | Code highlighting; set by the seed, **not yet read by anything** |
+| `language` | `String?` | Free text; `lib/code-language.ts` maps it to a monaco language id, and `CodeEditor` highlights with it |
 | `isFavorite` | `Boolean` | Default `false` |
 | `isPinned` | `Boolean` | Default `false` |
 | `userId` | FK → `users` | `onDelete: Cascade` |
@@ -236,7 +239,7 @@ body at all (§7). Type-specific rendering arrives with the item drawer in Phase
 ### Dominant type
 
 A collection's accent comes from its dominant type
-([view-models.ts:108](../src/server/view-models.ts#L108)):
+([view-models.ts:141](../src/server/view-models.ts#L141)):
 
 1. The most common item type among the collection's items.
 2. Ties break toward the type of the **most recently updated** tied item.
@@ -248,19 +251,21 @@ A collection's accent comes from its dominant type
 ## 7. Reads, counts, and access
 
 **List queries never select a body.** `ITEM_SUMMARY_SELECT`
-([items.ts:16](../src/server/items.ts#L16)) omits `content`, `url`, and `fileUrl`, keeping list reads
-off the large columns. Detail reads will select them only where a drawer needs them.
+([items.ts:34](../src/server/items.ts#L34)) omits `content`, `url`, and `fileUrl`, keeping list reads
+off the large columns. Detail reads select them only where the drawer needs them.
 
 **Counting includes empty types.** `getItemTypeCounts` uses a single `groupBy` plus `?? 0`
-([item-types.ts:72](../src/server/item-types.ts#L72)) — `groupBy` emits no row for an empty group, so
+([item-types.ts:85](../src/server/item-types.ts#L85)) — `groupBy` emits no row for an empty group, so
 without the fallback the zero-item types (note, file, image) would vanish from the sidebar and the
 profile breakdown rather than read `0`.
 
-**Pro gating is scaffolded but off.** `canAccessItemType(userIsPro, itemTypeIsPro)` short-circuits on
-`ENFORCE_PRO_LIMITS`, which is `false`
-([config/access.ts](../src/config/access.ts)) — so all seven types are currently visible to everyone,
-by design, until billing state is authoritative. When flipped on, `file` and `image` disappear from
-the sidebar and their routes 404 via `getItemTypePageData` returning `undefined`.
+**Pro gating is on.** `canAccessItemType(userIsPro, itemTypeIsPro)` short-circuits on
+`ENFORCE_PRO_LIMITS`, which is now `true`
+([config/access.ts](../src/config/access.ts)) — it was flipped once billing state became
+authoritative, so an account that is not Pro is a fact about what was paid for rather than an
+artefact of an unfinished integration. For a free account `file` and `image` are absent from the
+sidebar and their routes 404 via `getItemTypePageData` returning `undefined`, and the same switch
+also enforces the free tier's item and collection caps (`lib/limits.ts`).
 
 ---
 

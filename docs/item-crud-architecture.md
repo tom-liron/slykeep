@@ -1,5 +1,13 @@
 # Item CRUD Architecture
 
+
+> **As shipped (2026-09-01): this is the plan, not the result.** Item CRUD is live and the design
+> largely held, with two path differences worth knowing before following a link below: the
+> body-column routing landed as `itemTypeOwns()` in `src/lib/item-schemas.ts` rather than as a
+> separate `src/lib/item-content.ts`, and the form pattern it points at is now
+> `src/components/settings/ChangePasswordDialog.tsx`, not `src/components/profile/ChangePasswordForm.tsx`.
+> The text below is left as written, as a record of what was planned.
+
 A design for creating, reading, updating, and deleting items across all seven system types —
 following this project's structure, not the course's.
 

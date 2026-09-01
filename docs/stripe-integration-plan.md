@@ -1,5 +1,11 @@
 # Stripe Integration Plan — DevStash Pro
 
+
+> **As shipped (2026-09-01): implemented.** The line below — "nothing here has been implemented" —
+> was true when this was written and is not now: Stripe checkout, the customer portal, the webhook,
+> the account-deletion billing gate and the free-tier caps are all live (roadmap Phase 6), and
+> `npm run billing:test` exercises them against Stripe test mode. The plan is left as written.
+
 > Research output for `context/research/stripe-integration-research.md`.
 > Documentation only: nothing here has been implemented, no branch was created, no source file was
 > modified.

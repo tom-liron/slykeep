@@ -1,5 +1,14 @@
 # AI Integration Plan — DevStash Pro
 
+
+> **As shipped (2026-09-01): this is the plan, not the result.** The four features are live, in a
+> different shape from the one proposed below — Server Actions in `src/actions/ai.ts` rather than
+> `src/app/api/ai/*/route.ts`, one prompt module per feature in `src/lib/ai-{tags,description,explain,optimize}.ts`
+> rather than `src/server/ai/`, the client and model id in `src/lib/openai.ts` rather than
+> `src/config/ai.ts`, and per-user buckets in the existing `src/lib/rate-limit.ts` rather than a new
+> `src/lib/usage-limits.ts`. The paths below are left as written: this is a record of what was
+> planned. Read the code for what exists.
+
 A design for the four Pro AI features — auto-tagging, summaries, "explain this code", and the prompt
 optimizer — built on OpenAI's `gpt-5-nano`, following this project's structure.
 

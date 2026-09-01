@@ -259,9 +259,12 @@ devstash/
 │   ├── test-db.ts               # database smoke test (`npm run db:test`)
 │   ├── test-email.ts            # sends through Resend and polls the real outcome (`npm run email:test`)
 │   ├── verify-user.ts           # marks a dev account verified by hand (`npm run user:verify`)
+│   ├── sync-monaco.ts           # copies the pinned monaco build into `public/` (`predev`,
+│   │                            # `prebuild`), so the editor is served from this origin
 │   └── clear-users.ts           # deletes every account but the demo user; `npm run db:reset`
 │                                # runs it and reseeds. Host-confirmed, never production
-├── public/                      # (planned, when static assets are needed)
+├── public/                      # the monaco build, copied out of node_modules by
+│                                # `npm run monaco:sync`; gitignored, never edited
 ├── prototypes/
 │   └── homepage/                # marketing homepage mockup: plain HTML/CSS/JS, no build step,
 │                                # opened directly in a browser. Outside the Next.js app entirely.
@@ -298,10 +301,11 @@ devstash/
 │   │   │   ├── auth/reset-password/ # spend a reset token
 │   │   │   ├── auth/stale-session/  # clear a cookie whose account no longer exists
 │   │   │   ├── items/[id]/      # item detail the drawer fetches (404 vs retryable)
-│   │   │   ├── collections/     # (planned)
+│   │   │   ├── collections/     # collection creation from the forms' picker
 │   │   │   ├── upload/          # stores one file/image object in R2, returns its key
 │   │   │   ├── files/[id]/      # streams an item's object back, authorized per request
-│   │   │   ├── ai/              # (planned) tag, summarize, explain, optimize
+│   │   │   │                    # (no `ai/` route: the four AI features are Server Actions in
+│   │   │   │                    # `actions/ai.ts`, since no caller needs an HTTP status)
 │   │   │   ├── export/          # (planned) JSON / ZIP
 │   │   │   └── webhook/stripe/  # Stripe's subscription events; the one path excluded from
 │   │   │                        # the proxy, authenticated by its stripe-signature header
@@ -351,9 +355,17 @@ devstash/
 │   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
 │   │   ├── file-preview.ts      # which viewer a file opens in, and what may be served inline
-│   │   ├── openai.ts            # (planned) AI client + prompt helpers
+│   │   ├── openai.ts            # lazy OpenAI client, the model id, and the shared call wrapper
+│   │   ├── ai-text.ts           # what an item draft contributes to a prompt, and its bounds
+│   │   ├── ai-tags.ts           # the auto-tag prompt and the parsing of what comes back
+│   │   ├── ai-description.ts    # the same, for a generated description
+│   │   ├── ai-explain.ts        # the same, for "explain this code"
+│   │   ├── ai-optimize.ts       # the same, for the prompt optimizer
+│   │   ├── markdown-plugins.ts  # the remark/rehype set every markdown surface renders with
+│   │   ├── editor-preferences.ts# the editor settings' defaults and their bounds
 │   │   └── stripe.ts            # lazy Stripe client, pinned API version, billing return origin
 │   ├── actions/                 # Server Actions for mutations
+│   │   ├── ai.ts                # the four Pro AI actions: tag, describe, explain, optimize
 │   │   ├── auth.ts              # sign-in / sign-out
 │   │   ├── account.ts           # change password, delete account (refused while billing)
 │   │   ├── billing.ts           # open Stripe checkout, open the customer portal
@@ -370,14 +382,21 @@ devstash/
 │   │   ├── current-user.ts      # signed-in user resolution from the session
 │   │   ├── profile.ts           # profile read: identity + usage; settings read: hasPassword + totals
 │   │   ├── passwords.ts         # the one bcrypt cost factor and the decoy hash pinned to it
+│   │   ├── prisma-errors.ts     # the Prisma error codes the write paths translate into messages
 │   │   ├── verification.ts      # issue, look up, and spend verification/reset tokens
 │   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
 │   │   ├── view-models.ts       # persistence-independent view-model builders
 │   │   └── search.ts            # the command palette's prefetch: items + collections
 │   ├── hooks/
-│   │   └── use-file-upload.ts   # the XHR upload behind the file field, and its progress
+│   │   ├── use-file-upload.ts   # the XHR upload behind the file field, and its progress
+│   │   ├── use-coarse-pointer.ts# whether this is a touch pointer, for the editor fallback
+│   │   └── use-collection-options.ts # the collections a form's picker offers
 │   ├── types/
 │   │   ├── item-type.ts         # item-type contracts
+│   │   ├── item.ts              # item Server Action result shapes
+│   │   ├── collection.ts        # collection Server Action result shapes
+│   │   ├── editor.ts            # editor preference contracts
+│   │   ├── ai.ts                # the AI actions' draft input and their result shapes
 │   │   ├── view-models.ts       # persistence-independent UI models
 │   │   ├── auth.ts              # auth Server Action result shape
 │   │   ├── account.ts           # account Server Action result shape
@@ -388,6 +407,7 @@ devstash/
 │       ├── billing.ts           # Stripe price ids by cycle, and which statuses entitle Pro
 │       ├── dashboard.ts         # dashboard presentation values
 │       ├── editor.ts            # the surface and height bounds both content editors share
+│       ├── item-placeholders.ts  # the title placeholder each item type's form shows
 │       ├── item-type-catalog.ts # built-in item types: colors, icons, routes
 │       ├── marketing.ts         # the landing page's copy, and the two pricing plans
 │       └── pagination.ts        # how many rows one page of a listing renders
@@ -421,28 +441,43 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 - Dark mode (default) + light mode toggle — dark ships; there is no theme provider or toggle yet
 - Deferred out of this phase: rate limiting on the auth endpoints, and session revocation (see §11)
 
-**Phase 2 — Core CRUD (next)**
-- Create / read / update / delete items via the quick-access drawer
-- Markdown editor for text types, syntax highlighting for code
-- Collections: create, color-coding logic, add/remove items, many-to-many
+**Phase 2 — Core CRUD ✅ done, bar "recently used"**
+- ~~Create / read / update / delete items via the quick-access drawer~~
+- ~~Markdown editor for text types, syntax highlighting for code~~ — monaco for code, served from
+  this origin rather than a CDN; a plain textarea replaces it on a coarse pointer
+- ~~Collections: create, color-coding logic, add/remove items, many-to-many~~
 - ~~Favorites~~ — items and collections both toggle from their existing star controls, and
-  `/favorites` lists everything starred. Pinning and "recently used" are still open; `Item.isPinned`
-  is persisted and rendered but nothing writes it, which is exactly where favouriting was before this
+  `/favorites` lists everything starred
+- ~~Pinning~~ — `toggleItemPin` writes `Item.isPinned`, and pinned items sort first on every listing
+- **"Recently used" is the one thing still open here**, and it is really the `updatedAt` question in
+  §11: nothing moves a collection's timestamp on activity, so "recent" currently means "newest"
 
 **Phase 3 — Search & Polish**
 - ~~Search across tags, titles, types~~ — the ⌘K command palette, matching client-side over
   prefetched summaries. Item **content** is deliberately not searched: list queries never read the
   body (§5), so full-content search needs a server-side query rather than a wider prefetch
-- Toasts, loading skeletons, hover states, transitions
-- Mobile responsiveness (sidebar → drawer)
+- ~~Toasts, hover states, transitions~~ — sonner with `richColors`, and the micro-interactions in §8.
+  Loading *skeletons* are the exception: there are no route-level `loading.tsx` files, so navigation
+  waits on the server component rather than showing a placeholder
+- ~~Mobile responsiveness (sidebar → drawer)~~ — plus the phone-width passes on the item drawer, the
+  dialogs, and the file rows, and the 44px touch-target policy in `ui/button.tsx`
 
-**Phase 4 — Files (Pro scaffolding)**
-- Cloudflare R2 uploads (presigned URLs) for file/image types
-- Import code from a file
-- Export data (JSON / ZIP)
+**Phase 4 — Files (Pro) — uploads done, the two import/export lines open**
+- ~~Cloudflare R2 uploads for file/image types~~ — through `POST /api/upload`, which authorizes the
+  request and puts the object itself. **Not** presigned URLs, as this line originally said: the
+  browser never talks to R2, so the bucket needs no public write path and the size, extension and
+  MIME rules in `lib/file-constraints.ts` are enforced somewhere the client cannot skip.
+  `GET /api/files/[id]` streams an object back, authorized per request
+- Import code from a file — still open; nothing reads a local file into the content field
+- Export data (JSON / ZIP) — still open. Note that the Pro pricing card no longer promises it: the
+  row was pulled rather than left advertising a feature with no route behind it
 
-**Phase 5 — AI (Pro)**
-- OpenAI `gpt-5-nano` integration: auto-tagging, summaries, explain-this-code, prompt optimizer
+**Phase 5 — AI (Pro) ✅ done**
+- ~~OpenAI `gpt-5-nano` integration: auto-tagging, summaries, explain-this-code, prompt optimizer~~ —
+  all four ship as Server Actions in `actions/ai.ts`, not as API routes: no caller needs an HTTP
+  status. Each is gated by `canUseAi` and rate-limited per user through its own bucket, and each
+  prompt and its response parsing lives in its own `lib/ai-*.ts` module so the rules are unit-testable
+  without a network call
 
 **Phase 6 — Monetization ✅ done**
 - ~~Stripe checkout + customer portal + webhook~~ — plus the account-deletion gate, which refuses
@@ -482,7 +517,7 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 - **A collection read transfers one row per item in it.** **Decided 2026-09-01: left as it is, deliberately.** `COLLECTION_SELECT` and `SIDEBAR_COLLECTION_SELECT` join every item of every collection they read — two scalars each, no bodies — and `itemCount`, `dominantItemType` and the type breakdown are all derived from those rows in JavaScript. `getSidebarCollections()` runs on **every** dashboard page view, and `getCollections`, `getDashboardCollections`, `getFavoriteCollections` and `getCollectionPageData` do the same on theirs, so an account with five thousand items across its collections moves five thousand rows to render a count and a coloured dot. The clean fix is one grouped aggregate — `COUNT(*)` and `MAX(editedAt)` per `(collection, itemType)`, from which all three values fall out — and Prisma's typed API cannot express it across the many-to-many for a *list* of collections: `groupBy` on `Item` cannot carry `collectionId`, because items have no such column, and `groupBy` on `ItemCollection` cannot reach `item.itemTypeId`. So it needs `$queryRaw`, which would be the first raw SQL in `src/` (`scripts/test-db.ts` has the only existing use). That is the whole trade, and it was declined for now on one ground: the free tier caps an account at fifty items, so every free account is bounded by construction and the unbounded case exists only for Pro. Worth revisiting the moment a real Pro profile is large enough to measure — the single-collection page is separable and *can* be done Prisma-natively with `prisma.item.groupBy`, since one fixed `collectionId` makes `itemTypeId` a valid group key on its own.
 
 - **Read-only monaco has never been touched by a finger.** Small, and listed only so it is not forgotten. Writing on a coarse pointer falls back to a plain textarea, but *reading* keeps monaco, and monaco handles its own touch scrolling — so on a snippet long enough to scroll inside the editor, a drag that starts over the code may scroll the editor and never hand the drawer back. Emulation cannot answer it: the fallback was verified by stubbing `matchMedia`, and real touch chaining is a device behaviour. The editor's viewport-aware ceiling makes it rarer (the editor only scrolls itself on genuinely long content), and the fix if it does bite is one line — let reading fall back too, losing highlighting on phones. **Check it on a real phone against the deployed app**, not before.
-- **AI cost controls.** Rate limits / usage caps per Pro user, and graceful handling when the OpenAI call fails or times out.
+- **AI cost controls.** Mostly answered; one half left. Per-user rate limits ship — each of the four actions takes a token from its own bucket in `lib/rate-limit.ts`, keyed by user id, so the budget is per person rather than per address — and the failure side is handled too: `lib/openai.ts` pins a 30-second timeout and two retries, and every action turns a refusal into a message rather than an unhandled throw. What is still open is *usage accounting*. Rate limits bound the shape of the spend, not its total: nothing records what an account has consumed, so nothing can answer "what has this user cost" or stop someone who stays inside every window from being expensive all month. That needs a counter per user per period, which is a schema question rather than a tuning one.
 - **Soft vs hard delete.** Whether deleted items are recoverable (a trash view) or gone immediately — affects schema (`deletedAt`) if you want undo.
 - **Data export scope.** Does export include files (ZIP with the actual R2 objects) or just metadata/text (JSON)? The spec implies both formats.
 - **Caching strategy.** Redis is marked "maybe" — defer until there's a measured hot path (likely the collections grid and recently-used) rather than adding it upfront.

@@ -13,6 +13,9 @@ Read the following to get the full context of the project:
 ## Commands
 
 - `npm run dev` — start the dev server (http://localhost:3000) with hot reload
+- `npm run monaco:sync` — copy the pinned monaco build into `public/`, so the editor is served
+  from this origin rather than a CDN. Runs automatically from `predev` and `prebuild`; it is a
+  no-op when the copy already matches the installed version, so it is rarely run by hand
 - `npm run build` — production build
 - `npm start` — serve the production build (run `build` first)
 - `npm run lint` — ESLint over the project
