@@ -26,6 +26,43 @@ import type {
 } from "@/types/item";
 
 /**
+ * Moves `updatedAt` on the collections an item write just affected.
+ *
+ * Every "recent collections" listing orders by that column, but membership lives in
+ * `item_collections` and is written as a nested write on the **Item** — so Postgres never touches the
+ * `collections` row, and `updatedAt` sat equal to `createdAt` for every collection nobody had
+ * renamed. "Recent" therefore meant "newest", and the one thing that did move it was a rename, which
+ * is metadata rather than activity. This is what makes the column mean what §8 always claimed.
+ *
+ * Deliberately a write rather than a read-time aggregate: deriving recency from the greatest of the
+ * collection's own timestamp, its items' and `ItemCollection.addedAt` would put a joined aggregate no
+ * index can serve into the `ORDER BY` of two queries that run on every dashboard page view, to save
+ * one `UPDATE` on a path that is already writing. See `project-overview.md` §11.
+ *
+ * Scoped to the owner even though every caller has already established ownership — the ids reaching
+ * a bulk `updateMany` are worth pinning to the account at the statement itself.
+ *
+ * Best-effort: the item write it follows has already succeeded and been reported, so a failure here
+ * costs a sidebar ordering, not the user's work. Failing the action would be a lie about what
+ * happened.
+ */
+async function touchCollections(collectionIds: readonly string[], userId: string): Promise<void> {
+    if (collectionIds.length === 0) return;
+
+    try {
+        await prisma.collection.updateMany({
+            where: { id: { in: [...collectionIds] }, userId },
+            // Written by hand even though `updatedAt` is `@updatedAt`: Prisma only moves that column
+            // for a row it is actually updating, and "touch this row and change nothing else" needs
+            // something in `data` to be an update at all.
+            data: { updatedAt: new Date() },
+        });
+    } catch (error) {
+        console.error("Could not update collection recency:", error);
+    }
+}
+
+/**
  * How both write paths point at a tag: by `(userId, normalized)`, never by name.
  *
  * The compound unique is the whole scoping guarantee at the write boundary — a bare `{ name }` no
@@ -198,6 +235,9 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
             select: { id: true },
         });
 
+        // Filing an item into a collection is activity for that collection.
+        await touchCollections(collectionIds ?? [], userId);
+
         return { success: true, data: { id: item.id } };
     } catch (error) {
         console.error("Item create failed:", error);
@@ -251,7 +291,13 @@ export async function updateItem(
         // theirs must be indistinguishable from one that does not exist.
         const existing = await prisma.item.findFirst({
             where: { id: itemId, userId },
-            select: { itemType: { select: { name: true } } },
+            select: {
+                itemType: { select: { name: true } },
+                // The membership *before* the edit, which is half of what recency needs: a collection
+                // the item leaves has changed exactly as much as the one it joins, and after the
+                // write there is nothing left to say it was ever a member.
+                collections: { select: { collectionId: true } },
+            },
         });
 
         if (!existing) {
@@ -327,6 +373,22 @@ export async function updateItem(
                 },
             },
         });
+
+        // The union of where the item was and where it now is. Both halves matter and for different
+        // reasons: a collection it *left* changed as much as one it joined, and when the payload
+        // carries no membership at all (`collectionIds` undefined, the relation untouched) editing
+        // the item is still activity for every collection holding it. That is the case a naive
+        // `touchCollections(collectionIds)` would miss — and it is the common one, since most edits
+        // are to content rather than to filing.
+        await touchCollections(
+            [
+                ...new Set([
+                    ...existing.collections.map((row) => row.collectionId),
+                    ...(collectionIds ?? []),
+                ]),
+            ],
+            userId,
+        );
     } catch (error) {
         if (isRecordNotFound(error)) {
             return { success: false, error: "This item no longer exists." };
@@ -463,8 +525,20 @@ export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
     const userId = await getCurrentUserId();
 
     let fileKey: string | null = null;
+    let collectionIds: string[] = [];
 
     try {
+        // Read before the delete, unlike `fileKey`, which the delete hands back. It has to be: the
+        // `item_collections` rows cascade with the item, so afterwards there is nothing left to say
+        // which collections it belonged to. The race this opens — membership changing between the
+        // two statements — costs at most a stale sidebar ordering.
+        collectionIds = (
+            await prisma.itemCollection.findMany({
+                where: { itemId, item: { userId } },
+                select: { collectionId: true },
+            })
+        ).map((row) => row.collectionId);
+
         // Ownership in the `where` for the same reason `updateItem` puts it there: another user's id
         // is rejected by the same path as one that does not exist, so neither confirms the other.
         // The deleted row comes back, which is where the key to clean up comes from — reading it
@@ -482,6 +556,9 @@ export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
 
         return { success: false, error: "Could not delete this item. Try again." };
     }
+
+    // Removing an item from a collection is activity for it, exactly as adding one is.
+    await touchCollections(collectionIds, userId);
 
     if (fileKey) {
         try {
