@@ -220,8 +220,8 @@ model Collection {
   @@index([userId])
   @@index([defaultTypeId])
   // The dashboard's recent cards, the sidebar's two lists, /collections, and /favorites. Collections
-  // have no `editedAt`: whether their recency should mean *activity* — an item added, edited, or
-  // removed — is still open (`project-overview.md` §11). These index what the queries do today.
+  // have no `editedAt` and do not need one: `updatedAt` *is* the activity timestamp, moved by
+  // `touchCollections()` from the three item write paths as well as by a rename.
   @@index([userId, updatedAt])
   @@index([userId, isFavorite])
   @@map("collections")

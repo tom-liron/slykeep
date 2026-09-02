@@ -2,28 +2,29 @@
 
 ## Status
 
-Not Started — nothing queued. Both features chosen on 2026-09-01 as "must happen before any real
-user touches the app" have shipped (`feature-history.md` #111, #112).
+Not Started — nothing queued.
 
 ## Goals
 
-Nothing queued. The next item worth taking is **the domain**, which is the only thing still blocking
-real users — see the Notes below and §10 Phase 7. It is not a coding task until a domain exists.
+Nothing queued. **The domain is the blocker for real users** and is not a coding task until one
+exists — see the Notes below and §10 Phase 7.
 
-Two features fall out of the tag scoping just completed, neither on the roadmap yet, both now
-cheap in a way they were not before:
+Since the 2026-09-01 batch closed, four more went with it: the R2 sweep on account deletion (#111),
+tag scoping with case folding (#112), the shorter session lifetime (#113), and collection activity
+recency (#114). What is left is in `project-overview.md` §10 and §11; the decisions still genuinely
+open, none of them blocking, are:
 
-- **Tag autocomplete.** A `getUserTags(userId)` query in `src/server/`, names with usage counts, and
-  the tag input becomes a combobox suggesting from the account's own vocabulary. This is the real
-  defence against `react` / `reactjs` / `react-js` drift, which case folding deliberately does not
-  touch. It should also feed the AI tagger: `lib/ai-tags.ts` never tells the model which tags the
-  account already uses, so auto-tagging currently *generates* drift rather than resisting it.
-- **Tag filtering.** The badges on `ItemCard` are inert text. Clicking one should reach
-  `/items?tag=react`, plus probably a tag index page with counts. Worth doing *after* autocomplete —
-  filtering a drifted vocabulary reads as a broken feature even when the filter is correct.
+- **Account linking + OAuth email normalization** (§11) — GitHub emails are not normalized,
+  credentials emails are, so one person can be two rows. Must be settled *with* linking, since the
+  two answers have to agree.
+- **Session revocation** (§11) — the real fix, now that #113 has bounded the idle window. Reopens
+  the JWT-vs-database session decision rather than patching it.
+- **Soft vs hard delete** (§11), **export scope** (§11 + §10 Phase 4), **search depth free vs Pro**
+  (§11 + §10 Phase 3), **AI usage accounting** (§11).
 
-A **merge/rename** control is the third piece and the cleanup half of the same story: now that tags
-have an owner, merging `reactjs` into `react` is repointing join rows and deleting the loser.
+And three features that #112 unblocked and that nothing else depends on: **tag autocomplete**
+(which should also feed the AI tagger, since `lib/ai-tags.ts` never shows the model the account's
+existing vocabulary), then **tag filtering**, then **merge/rename**.
 
 ## Notes
 

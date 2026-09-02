@@ -25,6 +25,8 @@ type ItemRow = {
     isFavorite?: boolean;
     /** The same, for `toggleItemPin`. */
     isPinned?: boolean;
+    /** Which collections hold this item, for the recency-touch tests. */
+    collectionIds?: string[];
 };
 
 type ItemTypeRow = { id: string; name: string; userId: string | null };
@@ -39,6 +41,8 @@ const db = vi.hoisted(() => ({
     lastTagCreateMany: null as unknown,
     /** The nested tag write the last `item.create` or `item.update` was given. */
     lastTagRelation: null as unknown,
+    /** Every `collection.updateMany` the actions issued, as the id lists they named. */
+    touched: [] as string[][],
     // What the last `item.update` was asked to write, so a test can assert on the columns that were
     // left out as well as the ones that were sent.
     lastUpdateData: null as Record<string, unknown> | null,
@@ -101,7 +105,29 @@ vi.mock("@/lib/prisma", async () => {
                     return Promise.resolve({ count: 0 });
                 },
             },
+            itemCollection: {
+                // Honours the `item: { userId }` scope the real query carries, so this fixture cannot
+                // make a membership read look safe that is not — the same rule every other matcher
+                // here follows.
+                findMany: ({ where }: { where: { itemId: string; item: { userId: string } } }) =>
+                    Promise.resolve(
+                        (
+                            db.items.find(
+                                (candidate) =>
+                                    candidate.id === where.itemId &&
+                                    candidate.userId === where.item.userId,
+                            )?.collectionIds ?? []
+                        ).map((collectionId) => ({ collectionId })),
+                    ),
+            },
             collection: {
+                // The recency touch. Recorded rather than applied: what these tests ask is *which*
+                // collections an item write decided had changed, which is the whole rule.
+                updateMany: ({ where }: { where: { id: { in: string[] }; userId: string } }) => {
+                    db.touched.push(where.id.in);
+
+                    return Promise.resolve({ count: where.id.in.length });
+                },
                 // Counts on both keys, like the real query: drop `userId` and every id in the
                 // payload starts counting as the caller's, which is the bug these tests exist for.
                 count: ({ where }: { where: { id: { in: string[] }; userId: string } }) =>
@@ -156,7 +182,14 @@ vi.mock("@/lib/prisma", async () => {
                     return Promise.resolve(
                         // `snippet` by default, so the tests that are about ownership rather than
                         // about columns can keep declaring a row with nothing but an id and a title.
-                        row ? { itemType: { name: row.itemTypeName ?? "snippet" } } : null,
+                        row
+                            ? {
+                                  itemType: { name: row.itemTypeName ?? "snippet" },
+                                  collections: (row.collectionIds ?? []).map((collectionId) => ({
+                                      collectionId,
+                                  })),
+                              }
+                            : null,
                     );
                 },
                 update: ({ where, data }: { where: ItemWhere; data: Record<string, unknown> }) => {
@@ -599,6 +632,107 @@ describe("deleteItem", () => {
 
         await expect(deleteItem("item-1")).resolves.toEqual({ success: true });
         expect(db.items).toHaveLength(0);
+    });
+});
+
+describe("collection recency", () => {
+    /**
+     * `updatedAt` is what every "recent collections" listing orders by, and nothing used to move it:
+     * membership is written as a nested write on the **Item**, so Postgres never touched the
+     * `collections` row. "Recent" therefore meant "newest", and the only thing that did move the
+     * column was a rename — metadata, not activity.
+     *
+     * These pin the rule that fixes it, and specifically the two halves that are easy to get wrong:
+     * an edit must touch the collection an item *left* as well as the one it joined, and an edit that
+     * carries no membership at all must still touch the collections already holding the item. The
+     * second is the common case — most edits change content, not filing — and the naive
+     * implementation misses it entirely.
+     */
+    beforeEach(() => {
+        db.items = [];
+        db.touched = [];
+        db.itemTypes = [{ id: "type-snippet", name: "snippet", userId: null }];
+        db.collections = [
+            { id: "collection-a", userId: "user-owner" },
+            { id: "collection-b", userId: "user-owner" },
+        ];
+    });
+
+    it("touches the collections a new item is filed into", async () => {
+        await createItem({
+            type: "snippet",
+            title: "Filed",
+            collectionIds: ["collection-a", "collection-b"],
+        });
+
+        expect(db.touched).toEqual([["collection-a", "collection-b"]]);
+    });
+
+    it("issues no recency write for an item filed nowhere", async () => {
+        await createItem({ type: "snippet", title: "Unfiled" });
+
+        expect(db.touched).toEqual([]);
+    });
+
+    it("touches both the collection an item left and the one it joined", async () => {
+        // The half a naive implementation misses: moving an item out of a collection changed that
+        // collection just as much as it changed the destination.
+        db.items = [
+            { id: "item-1", userId: "user-owner", title: "Moved", collectionIds: ["collection-a"] },
+        ];
+
+        await updateItem("item-1", { title: "Moved", collectionIds: ["collection-b"] });
+
+        expect(db.touched).toHaveLength(1);
+        expect([...db.touched[0]].sort()).toEqual(["collection-a", "collection-b"]);
+    });
+
+    it("touches the current collections when an edit does not mention membership at all", async () => {
+        // The common case: editing an item's content is activity for wherever it is filed, and the
+        // payload carries no `collectionIds` because the filing did not change.
+        db.items = [
+            {
+                id: "item-1",
+                userId: "user-owner",
+                title: "Edited",
+                collectionIds: ["collection-a"],
+            },
+        ];
+
+        await updateItem("item-1", { title: "Edited again" });
+
+        expect(db.touched).toEqual([["collection-a"]]);
+    });
+
+    it("touches the collections an item is removed from when it is deleted", async () => {
+        db.items = [
+            {
+                id: "item-1",
+                userId: "user-owner",
+                title: "Doomed",
+                collectionIds: ["collection-a", "collection-b"],
+            },
+        ];
+
+        await deleteItem("item-1");
+
+        expect(db.touched).toEqual([["collection-a", "collection-b"]]);
+    });
+
+    it("does not touch anything when the delete is refused", async () => {
+        // Another user's item. Nothing was removed from anything, so nothing became more recent.
+        db.items = [
+            {
+                id: "item-theirs",
+                userId: "user-other",
+                title: "Theirs",
+                collectionIds: ["collection-a"],
+            },
+        ];
+
+        await deleteItem("item-theirs");
+
+        expect(db.touched).toEqual([]);
     });
 });
 
