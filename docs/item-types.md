@@ -291,8 +291,8 @@ also enforces the free tier's item and collection caps (`lib/limits.ts`).
 6. **Custom types are Pro and unbuilt.** The schema supports them (`userId`, `isSystem`), and
    `getItemTypesById` already returns `{ userId: null } OR { userId }`. But `isItemTypeName()` gates
    on the catalog, so a custom type would throw at the view-model boundary today. Roadmap Phase 7.
-7. **Tags are global, not per-user** (`Tag.name @unique`) — a known open question in
-   `project-overview.md` §11, deferred to keep the migration path aligned with the course.
+7. ~~**Tags are global, not per-user**~~ — **resolved 2026-09-02.** `Tag` now carries `userId` and
+   `normalized`, with `@@unique([userId, normalized])`. See `project-overview.md` §5.
 
 ---
 

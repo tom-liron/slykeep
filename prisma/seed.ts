@@ -4,6 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "../src/config/item-type-catalog";
+import { normalizeTagName } from "../src/lib/item-schemas";
 import type { ItemTypeName } from "../src/types/item-type";
 import { PrismaClient } from "../src/generated/prisma-client/client";
 import { DEMO_USER, SEED_COLLECTIONS } from "./seed-data";
@@ -110,12 +111,19 @@ async function seedCollections(userId: string, itemTypeIds: Record<ItemTypeName,
                     isPinned: item.isPinned ?? false,
                     userId,
                     itemTypeId: itemTypeIds[item.type],
-                    // Tag.name is globally unique, so tags are shared rows — connect if the tag
-                    // already exists, create it otherwise.
+                    // Tags are per-account, so the uniqueness this connects on is
+                    // `(userId, normalized)` — the seed user's own `react`, never another
+                    // account's. `normalized` is what the constraint is on; `name` is the spelling
+                    // that gets rendered.
                     tags: {
                         connectOrCreate: item.tags.map((name) => ({
-                            where: { name },
-                            create: { name },
+                            where: {
+                                userId_normalized: {
+                                    userId,
+                                    normalized: normalizeTagName(name),
+                                },
+                            },
+                            create: { name, normalized: normalizeTagName(name), userId },
                         })),
                     },
                     collections: { create: { collectionId: collection.id } },

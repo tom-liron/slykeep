@@ -6,6 +6,7 @@ import { FILE_CONSTRAINTS, extensionOf, isFileItemTypeName } from "@/lib/file-co
 import {
     createItemSchema,
     itemTypeOwns,
+    normalizeTagName,
     updateItemSchema,
     type CreateItemInput,
     type UpdateItemInput,
@@ -23,6 +24,17 @@ import type {
     ToggleItemPinResult,
     UpdateItemResult,
 } from "@/types/item";
+
+/**
+ * How both write paths point at a tag: by `(userId, normalized)`, never by name.
+ *
+ * The compound unique is the whole scoping guarantee at the write boundary — a bare `{ name }` no
+ * longer identifies a row, and if it somehow still compiled it would connect whichever account's tag
+ * matched first. Curried over `userId` so neither call site can forget to pass it.
+ */
+const tagRef = (userId: string) => (name: string) => ({
+    userId_normalized: { userId, normalized: normalizeTagName(name) },
+});
 
 /**
  * Whether every submitted collection id belongs to the signed-in user.
@@ -156,10 +168,12 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
         }
 
         if (tags?.length) {
-            // Same "ensure these exist" as `updateItem`: `Tag.name` is globally unique, so a name
-            // another user already coined is a duplicate rather than a fresh row.
+            // Same "ensure these exist" as `updateItem`. Tags are per-account now, so a name another
+            // user coined is *not* a duplicate — `skipDuplicates` fires on this user's own
+            // `@@unique([userId, normalized])`, which is also what makes re-typing `React` when
+            // `react` is already held a no-op rather than a second row.
             await prisma.tag.createMany({
-                data: tags.map((name) => ({ name })),
+                data: tags.map((name) => ({ name, normalized: normalizeTagName(name), userId })),
                 skipDuplicates: true,
             });
         }
@@ -172,7 +186,7 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
                 itemType: { connect: { id: itemType.id } },
                 // `connect` rather than the `set` an edit uses: a row that does not exist yet has no
                 // relation to replace.
-                tags: tags?.length ? { connect: tags.map((name) => ({ name })) } : undefined,
+                tags: tags?.length ? { connect: tags.map(tagRef(userId)) } : undefined,
                 // `create` rather than `connect`, because `ItemCollection` is an explicit join
                 // model: what is being made here is the membership row itself, and its `itemId` is
                 // the item this same statement is writing. Nested, so an item is never left created
@@ -253,12 +267,12 @@ export async function updateItem(
 
         const owns = itemTypeOwns(existing.itemType.name);
 
-        // Tag rows have to exist before the relation can point at them, and `Tag.name` is globally
-        // unique, so a name another user already coined is a duplicate rather than a fresh row —
-        // `skipDuplicates` is what makes this an "ensure these exist" rather than an insert.
+        // Tag rows have to exist before the relation can point at them, and `skipDuplicates` is what
+        // makes this an "ensure these exist" rather than an insert. It fires on this account's own
+        // `@@unique([userId, normalized])` — another user holding the same name is irrelevant now.
         if (tags?.length) {
             await prisma.tag.createMany({
-                data: tags.map((name) => ({ name })),
+                data: tags.map((name) => ({ name, normalized: normalizeTagName(name), userId })),
                 skipDuplicates: true,
             });
         }
@@ -288,7 +302,7 @@ export async function updateItem(
                 // `set` replaces the whole relation in one operation: everything currently attached
                 // is disconnected and exactly this list is connected. An empty array is meaningful
                 // (clear every tag); `undefined` leaves the relation alone.
-                tags: tags && { set: tags.map((name) => ({ name })) },
+                tags: tags && { set: tags.map(tagRef(userId)) },
                 // Membership is replaced with exactly what was submitted, but not by clearing and
                 // re-inserting: the rows that survive keep their `addedAt`, which is the only thing
                 // recording when an item was filed somewhere.
