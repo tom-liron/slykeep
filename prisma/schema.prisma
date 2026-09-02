@@ -61,6 +61,7 @@ model User {
   items       Item[]
   collections Collection[]
   itemTypes   ItemType[] // custom types; null owner = system type
+  tags        Tag[]
   accounts    Account[]
   sessions    Session[]
 
@@ -242,9 +243,34 @@ model ItemCollection {
 
 // ----- Tag -----
 model Tag {
-  id    String @id @default(cuid())
-  name  String @unique
+  id String @id @default(cuid())
+
+  // What the user typed, and what every badge renders. Kept as spelled so `PostgreSQL` and
+  // `TypeScript` survive; uniqueness is judged on `normalized` instead, so it is *not* unique here.
+  name       String
+  // `lower(trim(name))` — the identity of the tag, and what the unique constraint below is on.
+  // Written by `normalizeTagName`, which is also what the write paths connect through.
+  //
+  // A column rather than a functional index or `citext`: the write paths have to *connect* by it,
+  // and Prisma can only target a real column in a `where` — `connect: { userId_normalized: … }` is
+  // the whole point. It also makes the rule visible in the schema rather than hidden in a collation.
+  normalized String
+
   items Item[] @relation("ItemTags")
 
+  // Per-user, not global. A shared `Tag.name @unique` made two users who both wrote `react` share
+  // one row, which makes "this user's tags" a question the database cannot answer — so tag
+  // autocomplete cannot be built without leaking the names other accounts have coined.
+  //
+  // `onDelete: Cascade`, so a deleted account takes its tags with it. Under the old global model
+  // they had no owner and were deliberately left behind; now they have one.
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The identity of a tag: one `react` per account, whatever case it was typed in. Case folding is
+  // deliberately the *only* collapsing done — `react` and `reactjs` are different strings with no
+  // mechanical way to tell they mean the same thing, and guessing is worse than not trying.
+  @@unique([userId, normalized])
+  @@index([userId])
   @@map("tags")
 }

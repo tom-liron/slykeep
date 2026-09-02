@@ -2,42 +2,28 @@
 
 ## Status
 
-Blocked — one decision needed from Tom before feature 2 (tag scoping) can start. Feature 1 (R2
-cleanup on account deletion) shipped; see `feature-history.md` #111.
+Not Started — nothing queued. Both features chosen on 2026-09-01 as "must happen before any real
+user touches the app" have shipped (`feature-history.md` #111, #112).
 
 ## Goals
 
-### Tag scoping — needs one decision from Tom before any code
+Nothing queued. The next item worth taking is **the domain**, which is the only thing still blocking
+real users — see the Notes below and §10 Phase 7. It is not a coding task until a domain exists.
 
-`Tag.name` is `@unique` globally (`prisma/schema.prisma`), so tags are shared rows across every
-account: two users who both write `react` get one row, and autocomplete is polluted across accounts.
-The target is `@@unique([userId, name])`.
+Two features fall out of the tag scoping just completed, neither on the roadmap yet, both now
+cheap in a way they were not before:
 
-**The migration is a data migration, not just DDL, and that is the part to think about.** Tags reach
-items through the implicit `_ItemTags` join, so an existing shared tag row may be referenced by two
-different users' items. Scoping it means splitting one row into one row *per user who uses it* and
-repointing the join rows accordingly. Rough shape:
+- **Tag autocomplete.** A `getUserTags(userId)` query in `src/server/`, names with usage counts, and
+  the tag input becomes a combobox suggesting from the account's own vocabulary. This is the real
+  defence against `react` / `reactjs` / `react-js` drift, which case folding deliberately does not
+  touch. It should also feed the AI tagger: `lib/ai-tags.ts` never tells the model which tags the
+  account already uses, so auto-tagging currently *generates* drift rather than resisting it.
+- **Tag filtering.** The badges on `ItemCard` are inert text. Clicking one should reach
+  `/items?tag=react`, plus probably a tag index page with counts. Worth doing *after* autocomplete —
+  filtering a drifted vocabulary reads as a broken feature even when the filter is correct.
 
-1. Add `userId` as nullable.
-2. For each `(tag, user)` pair present in the join, ensure a tag row owned by that user.
-3. Repoint `_ItemTags` rows at the owning user's tag.
-4. Make `userId` non-null, add `@@unique([userId, name])`, drop `name @unique`.
-
-**The decision:** whether to write that backfill properly, or — since production currently holds two
-accounts, one of them a demo — take the far simpler path of assigning every existing tag to its
-single owning user and failing loudly if any tag is shared. Ask before writing it.
-
-Watch out for: `createItem` and `updateItem` in `src/actions/items.ts` both do "ensure these tags
-exist" writes that assume the global uniqueness, and their comments say so. Both change.
-
-## Follow-up from feature 1
-
-**A scheduled orphan sweep.** `deleteUserObjects` handles the common path, but the crash window
-between `prisma.user.delete` and the sweep leaves the same orphans it fixes — bounded now, not
-unbounded. Closing it means a `/api/cron/sweep-orphaned-objects` route that lists the bucket's
-`users/` prefixes and calls `deleteUserObjects` for every id with no `User` row: the same route +
-`CRON_SECRET` + `vercel.json` pattern `/api/cron/sweep-unverified` established, and the mechanism it
-would call already exists and is tested. Not urgent — the account path is correct without it.
+A **merge/rename** control is the third piece and the cleanup half of the same story: now that tags
+have an owner, merging `reactjs` into `react` is repointing join rows and deleting the loser.
 
 ## Notes
 

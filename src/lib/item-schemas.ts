@@ -63,11 +63,25 @@ const optionalUrl = z.preprocess(
 );
 
 /**
+ * A tag's identity, as opposed to its spelling.
+ *
+ * `Tag.name` holds what was typed — `PostgreSQL`, `React` — because that is what every badge renders.
+ * `Tag.normalized` holds this, and the unique constraint is on it, so one account cannot end up with
+ * `react` and `React` as two tags. The write paths connect through it too, which is why it is a real
+ * column rather than a functional index: `connect` can only target one.
+ *
+ * Case folding is the *only* collapsing done. `react` and `reactjs` are different strings and no rule
+ * can know they mean the same thing; that is what tag autocomplete is for, not this.
+ */
+export const normalizeTagName = (name: string): string => name.trim().toLowerCase();
+
+/**
  * Tags arrive as an array the drawer split out of a comma-separated input, so blanks ("a,,b") and
  * repeats ("react, React") are ordinary typing rather than misuse — they are dropped rather than
- * rejected. Deduplication is case-insensitive but keeps the first spelling: `Tag.name` is globally
- * unique, so two casings are two rows, and letting both through would also make the `set` below
- * connect the same tag twice.
+ * rejected. Deduplication is case-insensitive but keeps the first spelling, which is the same rule
+ * the database now enforces across submissions: `@@unique([userId, normalized])` means the row for
+ * `React` is the row for `react`, so letting both through would make the `set` below connect one tag
+ * twice.
  */
 const normalizeTags = (value: unknown) => {
     if (!Array.isArray(value)) {

@@ -35,6 +35,10 @@ const db = vi.hoisted(() => ({
     collections: [] as { id: string; userId: string }[],
     /** The nested collection write the last `item.create` was given, if any. */
     lastCreateCollections: null as unknown,
+    /** The rows the last `tag.createMany` was asked to insert. */
+    lastTagCreateMany: null as unknown,
+    /** The nested tag write the last `item.create` or `item.update` was given. */
+    lastTagRelation: null as unknown,
     // What the last `item.update` was asked to write, so a test can assert on the columns that were
     // left out as well as the ones that were sent.
     lastUpdateData: null as Record<string, unknown> | null,
@@ -85,11 +89,18 @@ vi.mock("@/lib/prisma", async () => {
         user: { connect: { id: string } };
         itemType: { connect: { id: string } };
         collections?: unknown;
+        tags?: unknown;
     };
 
     return {
         prisma: {
-            tag: { createMany: () => Promise.resolve({ count: 0 }) },
+            tag: {
+                createMany: ({ data }: { data: unknown }) => {
+                    db.lastTagCreateMany = data;
+
+                    return Promise.resolve({ count: 0 });
+                },
+            },
             collection: {
                 // Counts on both keys, like the real query: drop `userId` and every id in the
                 // payload starts counting as the caller's, which is the bug these tests exist for.
@@ -123,6 +134,7 @@ vi.mock("@/lib/prisma", async () => {
                     ),
                 create: ({ data }: { data: CreateData }) => {
                     db.lastCreateCollections = data.collections;
+                    db.lastTagRelation = data.tags;
 
                     const row = {
                         id: `item-${db.items.length + 1}`,
@@ -494,6 +506,69 @@ describe("updateItem", () => {
 
             expect(db.lastUpdateData).toBeNull();
         });
+    });
+});
+
+describe("tag scoping", () => {
+    /**
+     * Tags used to be global rows keyed by `name @unique`, so both write paths identified one with a
+     * bare `{ name }`. They are per-account now, and the property these pin is that neither path ever
+     * names a tag without also naming its owner: a `connect: { name }` that survived a refactor would
+     * attach one account's item to another account's tag row, which is precisely the leak scoping
+     * exists to prevent. TypeScript catches it today; it would not if `name` were ever made unique
+     * again for some other reason, which is the shape of the Prisma bug the schema already warns
+     * about for `ItemType`.
+     */
+    beforeEach(() => {
+        db.items = [];
+        db.collections = [];
+        db.lastTagCreateMany = null;
+        db.lastTagRelation = null;
+        db.lastUpdateData = null;
+        db.itemTypes = [{ id: "type-snippet", name: "snippet", userId: null }];
+    });
+
+    it("creates tag rows owned by the caller, with the normalized form beside the spelling", async () => {
+        await createItem({ type: "snippet", title: "Hooks", tags: ["React", "TypeScript"] });
+
+        // The spelling is kept for display; `normalized` is what the unique constraint is on.
+        expect(db.lastTagCreateMany).toEqual([
+            { name: "React", normalized: "react", userId: "user-owner" },
+            { name: "TypeScript", normalized: "typescript", userId: "user-owner" },
+        ]);
+    });
+
+    it("connects by (userId, normalized), never by name alone", async () => {
+        await createItem({ type: "snippet", title: "Hooks", tags: ["React"] });
+
+        expect(db.lastTagRelation).toEqual({
+            connect: [{ userId_normalized: { userId: "user-owner", normalized: "react" } }],
+        });
+    });
+
+    it("uses the same scoped reference when an edit replaces the tag set", async () => {
+        db.items = [
+            { id: "item-1", userId: "user-owner", title: "Hooks", itemTypeName: "snippet" },
+        ];
+
+        await updateItem("item-1", { title: "Hooks", tags: ["React"] });
+
+        // `set` replaces the whole relation, so an unscoped reference here would be the same leak as
+        // on create — just harder to notice, because the item already exists.
+        expect(db.lastUpdateData?.tags).toEqual({
+            set: [{ userId_normalized: { userId: "user-owner", normalized: "react" } }],
+        });
+    });
+
+    it("resolves a differently-cased spelling to the same tag identity", async () => {
+        // What makes `react` and `React` one tag per account rather than two rows: the connect target
+        // is the normalized form, so the second spelling finds the row the first one made.
+        await createItem({ type: "snippet", title: "One", tags: ["react"] });
+        const first = db.lastTagRelation;
+
+        await createItem({ type: "snippet", title: "Two", tags: ["REACT"] });
+
+        expect(db.lastTagRelation).toEqual(first);
     });
 });
 

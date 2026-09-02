@@ -87,9 +87,10 @@ export async function changePassword(
 /**
  * Deletes the signed-in account and everything hanging off it.
  *
- * One `delete` is the whole operation *in Postgres*: items, collections, their join rows, and the
- * NextAuth `Account` / `Session` rows all cascade from `User` (see the schema's `onDelete: Cascade`).
- * Tag rows are global and have no owner, so they are left behind by design rather than by oversight.
+ * One `delete` is the whole operation *in Postgres*: items, collections, their tags, their join rows,
+ * and the NextAuth `Account` / `Session` rows all cascade from `User` (see the schema's
+ * `onDelete: Cascade`). Tags used to be the exception — global rows with no owner, left behind by
+ * design — until they were scoped per account, which gave them an owner to cascade from.
  *
  * R2 is not in that cascade and has to be swept separately, or "delete my account" would leave every
  * file the account uploaded sitting in the bucket with nothing pointing at it — a retention promise

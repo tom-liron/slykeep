@@ -5,6 +5,7 @@ import { MAX_UPLOAD_BYTES } from "./file-constraints";
 import {
     CREATABLE_ITEM_TYPE_NAMES,
     createItemSchema,
+    normalizeTagName,
     updateItemSchema,
     type CreateItemInput,
     type UpdateItemInput,
@@ -104,6 +105,21 @@ describe("updateItemSchema", () => {
         it("still accepts both schemes a link may use, in any case", () => {
             expect(parse({ ...base, url: "http://example.com" }).url).toBe("http://example.com");
             expect(parse({ ...base, url: "HTTPS://Example.com" }).url).toBe("HTTPS://Example.com");
+        });
+    });
+
+    describe("normalizeTagName", () => {
+        it("folds case and trims, which is what the unique constraint is on", () => {
+            expect(normalizeTagName("  React  ")).toBe("react");
+            expect(normalizeTagName("PostgreSQL")).toBe("postgresql");
+        });
+
+        it("collapses only case, never spelling", () => {
+            // The line this project draws: `react` and `React` are one tag, `react` and `reactjs`
+            // are two. Nothing can mechanically know the second pair mean the same thing, and
+            // guessing is worse than not trying — that is what tag autocomplete is for.
+            expect(normalizeTagName("reactjs")).not.toBe(normalizeTagName("react"));
+            expect(normalizeTagName("react-js")).not.toBe(normalizeTagName("react"));
         });
     });
 
