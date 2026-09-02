@@ -54,3 +54,7 @@ next-env.d.ts
 
 # the monaco build, copied out of node_modules by `npm run monaco:sync`
 /public/monaco
+
+# private planning notes: direction, priorities, and what is deliberately not being built.
+# Kept on disk and read every session, deliberately never committed.
+/context/portfolio-direction.md

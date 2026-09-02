@@ -6,13 +6,8 @@ Not Started — nothing queued.
 
 ## Goals
 
-> **Read `context/portfolio-direction.md` first.** Recorded 2026-09-02: DevStash is a portfolio
-> project, not a real SaaS. It holds the agreed sequence and the backlog items formally **dropped**
-> rather than deferred, and it outranks the §11 backlog.
-
-Nothing queued. Next in the agreed sequence is the **documentation overhaul** — a real feature with
-a written spec, not a cleanup pass — and it should land *before* the `devstash` branch is cut, so
-that snapshot is the tidy version.
+Nothing queued. Next up is the **documentation overhaul** — a real feature with a written spec
+rather than a cleanup pass, covering the drift listed in the Notes below.
 
 ## Notes
 
