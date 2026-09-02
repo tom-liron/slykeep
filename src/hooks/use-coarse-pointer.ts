@@ -1,36 +1,20 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useMediaQuery } from "./use-media-query";
 
 /**
  * Whether the primary pointer is a finger rather than a mouse.
  *
  * The same test the `pointer-coarse:` Tailwind variant compiles to, asked from JavaScript because
- * some decisions cannot be made in CSS: which editor to render at all is one, and a stylesheet
- * cannot stop monaco from fetching several megabytes off a CDN for a surface it is about to hide.
+ * which editor to render at all is a decision CSS cannot make — see `useMediaQuery`.
  *
- * Not a width breakpoint, for the reason the touch-target work settled on: a touch laptop at 1440px
- * has a finger on it and a mouse at 390px does not.
- *
- * `useSyncExternalStore` rather than `useState` in an effect — the React Compiler rejects that shape
- * (`set-state-in-effect`), and this is what it is for. The server snapshot is `false`, so SSR and
- * first paint agree on the mouse case and a phone corrects itself on hydration; the alternative is
- * rendering nothing until mounted, which costs every desktop a layout shift to spare phones one.
+ * Not a width breakpoint: a touch laptop at 1440px has a finger on it and a mouse at 390px does not,
+ * and what the editors need to know is whether the input is a finger. That is genuinely a different
+ * question from how much room there is, which is why `FilePreview` asks about width instead — an
+ * iPad has a coarse pointer and ample room for a page.
  */
 const COARSE_POINTER = "(pointer: coarse)";
 
 export function useCoarsePointer(): boolean {
-    const subscribe = useCallback((onStoreChange: () => void) => {
-        const query = window.matchMedia(COARSE_POINTER);
-
-        query.addEventListener("change", onStoreChange);
-
-        return () => query.removeEventListener("change", onStoreChange);
-    }, []);
-
-    return useSyncExternalStore(
-        subscribe,
-        () => window.matchMedia(COARSE_POINTER).matches,
-        () => false,
-    );
+    return useMediaQuery(COARSE_POINTER);
 }
