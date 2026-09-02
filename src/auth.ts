@@ -115,7 +115,31 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         "id" in provider && provider.id === "credentials" ? credentials : provider,
     ),
     adapter: PrismaAdapter(prisma),
-    session: { strategy: "jwt" },
+    session: {
+        strategy: "jwt",
+        /**
+         * Seven days, down from Auth.js's thirty.
+         *
+         * This is a *bound on exposure*, not a fix. Nothing can invalidate a JWT that has already
+         * been issued — the token carries no version claim — so changing a password from `/settings`
+         * or a reset link leaves every other device signed in, and a compromised password cannot
+         * actually be locked out. The real fix is `sessionVersion` (or `passwordChangedAt`) on
+         * `User`, compared on each request; that is a database read per request, which is most of
+         * why `strategy: "jwt"` was chosen over `"database"` above, so it reopens the session
+         * strategy rather than patching it. See `project-overview.md` §11.
+         *
+         * Be precise about what this buys, because it is easy to overstate: Auth.js re-issues the
+         * token on activity (`updateAge`, 24h by default), so this is the **idle** window. It closes
+         * the abandoned-browser and stolen-laptop cases four times sooner than thirty days did. It
+         * does *not* bound a session someone is actively using — that one refreshes itself, and only
+         * revocation ends it.
+         *
+         * Seven rather than fourteen or thirty because the cost of being wrong is asymmetric: a
+         * re-login is an inconvenience, an un-evictable session on a device you no longer control is
+         * not. Raise it here if it proves annoying in practice.
+         */
+        maxAge: 7 * 24 * 60 * 60,
+    },
     events: {
         /**
          * Marks a GitHub sign-up verified.
