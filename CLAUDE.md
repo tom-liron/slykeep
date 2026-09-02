@@ -25,6 +25,11 @@ Read the following to get the full context of the project:
   assert what our own code writes at each step. Needs `STRIPE_SECRET_KEY` to be an `sk_test_` key
   and refuses otherwise; creates and deletes its own throwaway user and customer, so no existing
   account is touched. Run it before and after any change to billing.
+- `npm run r2:test` — put a few objects in the real R2 bucket under a synthetic `users/<id>/` prefix,
+  sweep them with `deleteUserObjects`, and verify with a second client that the prefix is empty.
+  It exists because `ListObjectsV2` and `DeleteObjects` are sent from nowhere else in the app, so a
+  call shape Cloudflare rejects would leave every unit test green and fail only at deletion time.
+  The prefix cannot collide with a real account, and the test cleans up after itself.
 
 ## Neon MCP
 
