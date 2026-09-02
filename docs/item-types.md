@@ -1,5 +1,10 @@
 # Item Types
 
+> **Generated reference — last regenerated 2026-09-02. Not maintained between regenerations.**
+> Describes the code rather than proposing it, but nothing keeps it in step: the `file.ts#L42` line
+> anchors below are unchecked and rot whenever a file moves. `config/item-type-catalog.ts` and
+> `prisma/schema.prisma` are authoritative wherever this disagrees.
+
 Reference for DevStash's seven system item types: what each one is, what it persists, and how it
 renders.
 
@@ -221,7 +226,7 @@ The type drives **color and icon**, and nothing else. Every surface applies thos
 | Surface | How the type shows up |
 |---------|----------------------|
 | [ItemCard](../src/components/items/ItemCard.tsx) | 4px left border in `itemType.color`; icon tile using `withAlpha(accent)` (10% alpha) as background and the full color as foreground |
-| [Item type page](../src/app/(dashboard)/items/[slug]/page.tsx) | Header icon tinted with the type color, `label` as `<h1>`, item count, then a flat `ItemCard` list |
+| [Item type page](<../src/app/(dashboard)/items/[slug]/page.tsx>) | Header icon tinted with the type color, `label` as `<h1>`, item count, then a flat `ItemCard` list |
 | [SidebarNav](../src/components/layout/SidebarNav.tsx) | One row per type: tinted `TypeIcon`, `label`, live item count, linking to `/items/${slug}` |
 | [CollectionCard](../src/components/collections/CollectionCard.tsx) | Left border in the **dominant** type's color; a footer row of tinted icons, one per contained type |
 | Sidebar collection dot | Solid dot in the dominant type's color, titled `Mostly {label}`; a hollow bordered dot when there is none |

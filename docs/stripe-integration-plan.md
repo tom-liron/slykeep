@@ -1,5 +1,8 @@
 # Stripe Integration Plan — DevStash Pro
 
+> **Plan record — written 2026-08-17. Not maintained.**
+> The design as proposed *before* the work, kept for its reasoning rather than as a description of
+> the code. Where it disagrees with `src/`, the code wins. See the note below for what shipped.
 
 > **As shipped (2026-09-01): implemented.** The line below — "nothing here has been implemented" —
 > was true when this was written and is not now: Stripe checkout, the customer portal, the webhook,

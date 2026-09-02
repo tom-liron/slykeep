@@ -1,5 +1,10 @@
 # REFACTOR_COMPONENTS
 
+> **Audit record — `refactor-scanner` agent output, 2026-08-31. Not maintained.**
+> A point-in-time scan proposing extractions; it never edited anything. Some proposals have since
+> been applied, some deliberately declined, and nothing re-checks which. Re-run the agent rather
+> than working from the list below.
+
 Scanned `src/components/` — 86 `.tsx` files across 11 subfolders (82 components, 4 co-located
 tests; no `.ts` files). Read for extraction targets: `src/lib/`, `src/hooks/`, `src/config/`,
 `src/types/`, `src/server/`, and `src/components/ui/`.

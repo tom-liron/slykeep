@@ -1,5 +1,10 @@
 # REFACTOR — `src/server/` and `src/lib/`
 
+> **Audit record — `refactor-scanner` agent output, 2026-09-01. Not maintained.**
+> A point-in-time scan proposing extractions; it never edited anything. Some proposals have since
+> been applied, some deliberately declined, and nothing re-checks which. Re-run the agent rather
+> than working from the list below.
+
 Scanned two folders in one pass: **`src/server/`** (10 source modules, 7 co-located `*.test.ts` read
 as context) and **`src/lib/`** (32 source modules, 17 co-located `*.test.ts` read as context). Read
 for extraction targets and to check whether a home already exists: `src/config/`, `src/types/`,

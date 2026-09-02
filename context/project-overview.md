@@ -95,11 +95,11 @@ Email / password **or** GitHub sign-in.
 - Favorite collections and items
 - Pin items to the top
 - Recently used
-- Import code from a file
+- Import code from a file *(not built — Phase 4)*
 - Markdown editor for text types
 - File upload for file types (file / image)
-- Export data in multiple formats
-- Dark mode (default for devs), light mode optional
+- Export data in multiple formats *(not built — Phase 4; deliberately not promised on the pricing card)*
+- Dark mode (default for devs), light mode optional *(dark ships; there is no toggle yet — Phase 1)*
 - Add / remove items to / from multiple collections
 - View which collections an item belongs to
 
@@ -149,7 +149,7 @@ Models, in order: `User`, `Account`, `Session`, `VerificationToken`, `ContentTyp
 | **Backend** | Next.js API routes | Items, file uploads, AI calls |
 | **Database** | Neon (PostgreSQL) | Cloud Postgres |
 | **ORM** | Prisma 7 | Migrations only — never `db push` (fetch latest docs) |
-| **Caching** | Redis | *Maybe* — for caching hot reads |
+| **Rate limiting** | Upstash Redis | Sliding windows on the auth and AI entry points. Redis rather than process memory because this deploys serverless. *Caching* hot reads is still only a maybe — see §11 |
 | **File Storage** | Cloudflare R2 | File / image uploads |
 | **Auth** | NextAuth v5 | Email/password + GitHub OAuth |
 | **AI** | OpenAI `gpt-5-nano` | Tagging, summaries, explain, prompt optimize |
@@ -168,14 +168,19 @@ Models, in order: `User`, `Account`, `Session`, `VerificationToken`, `ContentTyp
 | System types | All except file/image | All |
 | File & image uploads | ❌ | ✅ |
 | Custom types | ❌ | ✅ *(later)* |
-| Search | Basic | Basic |
+| ⌘K search | ✅ | ✅ |
 | AI auto-tagging | ❌ | ✅ |
 | AI code explanation | ❌ | ✅ |
 | AI prompt optimizer | ❌ | ✅ |
-| Export (JSON / ZIP) | ❌ | ✅ |
 | Support | — | Priority |
 
-> **During development:** scaffold the Pro gating, but let all users access everything. Flip the gates on before launch.
+> **This table is the shipped state, not a plan.** `ENFORCE_PRO_LIMITS` is `true`, so the item and
+> collection caps, the file/image type gate, and the four AI actions all refuse for real. It matches
+> the pricing cards in `config/marketing.ts`, which are what a visitor actually reads — keep the two
+> in step. Two rows were wrong until the documentation overhaul: search was listed as `Basic | Basic`,
+> comparing nothing, and export was promised on both sides after its row had been deliberately pulled
+> from the shipped card for having no route behind it. Search is one feature for everyone,
+> deliberately; export is Phase 4 work that has not been built.
 
 ---
 
@@ -211,7 +216,7 @@ Models, in order: `User`, `Account`, `Session`, `VerificationToken`, `ContentTyp
 - **Top bar:** brand, responsive sidebar controls, search, and create actions.
 - **Sidebar:** item types (each linking to its items list), favorite collections, and recently updated collections.
 - **Main:** collection cards use a colored left accent for their dominant type. Items use a matching colored left border.
-- **Drawer (planned):** individual items will open in a fast slide-out drawer for view / edit / create.
+- **Drawer:** an item opens in a fast slide-out drawer for view / edit / create — `ItemDrawer` plus `ItemDrawerToolbar`, which carries Favorite, Pin, Copy, Download and Edit on one row over whatever page you were already on.
 
 Collection recency is based on `updatedAt`. The dominant type is the most common item type in the collection; if counts tie, the type of the most recently updated tied item wins. Empty collections use `defaultTypeId`.
 
@@ -261,6 +266,8 @@ devstash/
 │   ├── verify-user.ts           # marks a dev account verified by hand (`npm run user:verify`)
 │   ├── sync-monaco.ts           # copies the pinned monaco build into `public/` (`predev`,
 │   │                            # `prebuild`), so the editor is served from this origin
+│   ├── sweep-unverified.ts      # deletes unverified accounts past their TTL by hand
+│   │                            # (`npm run users:sweep`); the cron route calls the same function
 │   └── clear-users.ts           # deletes every account but the demo user; `npm run db:reset`
 │                                # runs it and reseeds. Host-confirmed, never production
 ├── public/                      # the monaco build, copied out of node_modules by
@@ -307,6 +314,8 @@ devstash/
 │   │   │   │                    # (no `ai/` route: the four AI features are Server Actions in
 │   │   │   │                    # `actions/ai.ts`, since no caller needs an HTTP status)
 │   │   │   ├── export/          # (planned) JSON / ZIP
+│   │   │   ├── cron/sweep-unverified/ # nightly Vercel Cron: deletes abandoned registrations.
+│   │   │   │                    # Refuses with 503 unless `CRON_SECRET` is set
 │   │   │   └── webhook/stripe/  # Stripe's subscription events; the one path excluded from
 │   │   │                        # the proxy, authenticated by its stripe-signature header
 │   │   ├── layout.tsx           # root shell and default dark theme
@@ -352,6 +361,8 @@ devstash/
 │   │   ├── type-color-vars.ts   # the item-type palette as CSS variables, for the surfaces
 │   │   │                        # designed out of it (the landing page and /upgrade)
 │   │   ├── utils.ts             # `cn` class merging
+│   │   ├── app-origin.ts        # this deployment's own origin, for email links and Stripe
+│   │   │                        # return URLs; throws rather than defaulting
 │   │   ├── r2.ts                # Cloudflare R2 client, object keys, put/get/delete
 │   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
 │   │   ├── file-preview.ts      # which viewer a file opens in, and what may be served inline
@@ -385,10 +396,14 @@ devstash/
 │   │   ├── prisma-errors.ts     # the Prisma error codes the write paths translate into messages
 │   │   ├── verification.ts      # issue, look up, and spend verification/reset tokens
 │   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
+│   │   ├── unverified.ts        # the rule for which abandoned registrations the sweep deletes
 │   │   ├── view-models.ts       # persistence-independent view-model builders
 │   │   └── search.ts            # the command palette's prefetch: items + collections
 │   ├── hooks/
 │   │   ├── use-file-upload.ts   # the XHR upload behind the file field, and its progress
+│   │   ├── use-file-text.ts     # a stored file's own bytes, for the formats rendered inline
+│   │   ├── use-item-detail.ts   # the parts of an item a list summary cannot carry
+│   │   ├── use-media-query.ts   # a media query as state, where the choice is which element exists
 │   │   ├── use-coarse-pointer.ts# whether this is a touch pointer, for the editor fallback
 │   │   └── use-collection-options.ts # the collections a form's picker offers
 │   ├── types/
@@ -413,12 +428,14 @@ devstash/
 │       └── pagination.ts        # how many rows one page of a listing renders
 ├── .env                         # secrets (gitignored)
 ├── .env.example                 # documented placeholders, committed
+├── vercel.json                  # the nightly cron schedule for `/api/cron/sweep-unverified`
 ├── vitest.config.ts             # unit tests; tests sit beside the module as `*.test.ts`.
 │                                # Excludes `*.integration.test.ts`, so `npm test` stays offline
 ├── vitest.integration.config.ts # tests that talk to real services (`npm run billing:test`,
 │                                # `npm run r2:test`): credentials, seconds not milliseconds, a
 │                                # real Stripe account and a real bucket. Each script names its
 │                                # own file, so one does not drag in the other's cost
+├── vitest.server-only.ts        # stubs the `server-only` import so server modules are testable
 └── package.json
 ```
 
@@ -509,7 +526,7 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 
 Worth nailing down before or early in the build, so they don't force a rewrite later:
 
-- **Search depth, free vs Pro.** The spec lists "Basic search" for free and the same search engine elsewhere. Decide what actually differs — e.g. free gets title/tag search, Pro gets full-content or AI-semantic search — or drop the distinction.
+- ~~**Search depth, free vs Pro.**~~ **Decided 2026-09-02: the distinction is dropped.** §7 listed `Basic | Basic`, which compared nothing, while the shipped pricing card had already settled it — Free reads "Instant ⌘K search" and Pro reads "Everything in Free, plus". One search for everyone. §7 now says so. What remains is a *depth* question with no tier in it: the palette matches client-side over prefetched summaries and deliberately never reads item bodies, because list queries do not select content (§5). Full-content search therefore needs a server-side query, not a wider prefetch — and if it is ever built, it is built for both tiers.
 - ~~**Tag scoping.**~~ **Resolved 2026-09-02.** Tags were global rows keyed by `name @unique`, so two users who both wrote `react` shared one row — which made "this user's tags" a question the database could not answer, and therefore made tag autocomplete unbuildable without leaking the names other accounts had coined. `Tag` now carries `userId` and `normalized`, with `@@unique([userId, normalized])`; see §5. The migration does a full per-user split and a case collapse, both proven against manufactured data since no environment actually held either case. **What this unblocks, and what is still open:** autocomplete (suggest from the user's own vocabulary, which is the real defence against `react`/`reactjs` drift — and it should also feed the AI tagger, which currently invents fresh spellings because the prompt never sees the tags the account already uses) and tag filtering (the badges on `ItemCard` are inert; nothing turns a tag into a query). Neither is on the roadmap yet. A **merge/rename** control is the third piece, and is cheap now that tags have an owner.
 - ~~**Free-tier limit enforcement.**~~ **Decided 2026-08-17.** Limits are checked at the *write boundary* — the Server Action, not the data layer — which is the same division `contentType` follows: the UI may show the cap, the action is the authority. Hitting the cap is a **hard block** with an upgrade-flavoured error toast, because the pricing page already promises "Up to 50 items" and a 51st that succeeds turns the number into decoration. The rules themselves are pure functions in `src/lib/limits.ts` beside `canAccessItemType`, taking the count rather than querying, so they stay unit-testable without a database. See `context/features/stripe-phase-1-spec.md` (the rules) and `stripe-phase-2-spec.md` (the call sites). `ENFORCE_PRO_LIMITS` is now `true`, so all of this refuses for real. One thing stays open and is noted there: the accepted race where two concurrent creates both read 49.
 - **File handling.** Max file size, allowed MIME types, and whether deleting an item also deletes the R2 object (orphan cleanup).
@@ -523,7 +540,7 @@ Worth nailing down before or early in the build, so they don't force a rewrite l
 - **AI cost controls.** Mostly answered; one half left. Per-user rate limits ship — each of the four actions takes a token from its own bucket in `lib/rate-limit.ts`, keyed by user id, so the budget is per person rather than per address — and the failure side is handled too: `lib/openai.ts` pins a 30-second timeout and two retries, and every action turns a refusal into a message rather than an unhandled throw. What is still open is *usage accounting*. Rate limits bound the shape of the spend, not its total: nothing records what an account has consumed, so nothing can answer "what has this user cost" or stop someone who stays inside every window from being expensive all month. That needs a counter per user per period, which is a schema question rather than a tuning one.
 - **Soft vs hard delete.** Whether deleted items are recoverable (a trash view) or gone immediately — affects schema (`deletedAt`) if you want undo.
 - **Data export scope.** Does export include files (ZIP with the actual R2 objects) or just metadata/text (JSON)? The spec implies both formats.
-- **Caching strategy.** Redis is marked "maybe" — defer until there's a measured hot path (likely the collections grid and recently-used) rather than adding it upfront.
+- **Caching strategy.** Redis is now a real dependency, but for *throttling*, not caching — `lib/rate-limit.ts` runs five sliding windows on Upstash. Using it as a read cache is still deferred until there is a measured hot path (likely the collections grid and recently-used) rather than added upfront. The instance is already provisioned, so the cost of the decision is now only the invalidation design.
 - **Session revocation.** Sessions are JWTs with no version claim, so nothing can invalidate one that is already issued. Changing a password — from `/settings` or a reset link — leaves any session held on another device signed in, which means a compromised password cannot actually be locked out. Account deletion is unaffected: the row is gone, so `getCurrentUser()` throws and every authenticated read fails closed. The fix is a `sessionVersion` (or `passwordChangedAt`) on `User`, carried in the token and compared on each request — but that comparison is a database read per request, which is most of the reason `strategy: "jwt"` was chosen over `"database"` (the edge proxy authorizes without touching Postgres). So this reopens the session-strategy decision rather than being a patch, and is deliberately deferred until the account-linking work settles. **Done 2026-09-02:** `maxAge` is now seven days (`src/auth.ts`), down from thirty, which bounds the exposure without committing to anything. Be precise about what that buys — Auth.js re-issues the token on activity, so seven days is the **idle** window: it closes the abandoned-browser and stolen-laptop cases four times sooner, and does nothing about a session someone is actively using. Only revocation ends that one.
 
 ---

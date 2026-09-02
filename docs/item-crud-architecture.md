@@ -1,5 +1,10 @@
 # Item CRUD Architecture
 
+> **Plan record — written 2026-08-04. Not maintained.**
+> The design as proposed *before* the work, kept for its reasoning rather than as a description of
+> the code. Where it disagrees with `src/`, the code wins. Two known staleness sources: the
+> `file.ts#L42` line anchors below are unchecked and rot whenever a file moves, and the tag model
+> described here is the pre-#112 global one — `Tag` now carries `userId` and `normalized`.
 
 > **As shipped (2026-09-01): this is the plan, not the result.** Item CRUD is live and the design
 > largely held, with two path differences worth knowing before following a link below: the
@@ -295,6 +300,11 @@ from the client is not authority to flip a flag on it.
 
 ### Tags
 
+> **Superseded by feature #112 (2026-09-02).** `Tag` is no longer global. It carries `userId` and a
+> `normalized` column (`lower(trim(name))`) under `@@unique([userId, normalized])`, so tags are
+> per-account and one account cannot hold both `react` and `React`. The "known wart" below is fixed;
+> the paragraph is left as the record of why the migration was taken.
+
 `Tag.name` is globally unique, so tags are shared rows. The seed's `connectOrCreate` is the pattern
 to reuse ([seed.ts:115](../prisma/seed.ts#L115)) — it connects an existing row or creates one, and
 cannot race into a duplicate. Note the known wart: tags are global, so one user's tag names pollute
@@ -411,7 +421,7 @@ compile error, which is the behaviour you want.
 state before. Two facts shape the design:
 
 1. `export const dynamic = "force-dynamic"` on the dashboard layout
-   ([layout.tsx:12](../src/app/(dashboard)/layout.tsx#L12)) applies to every child segment, so
+   ([layout.tsx:12](<../src/app/(dashboard)/layout.tsx#L12>)) applies to every child segment, so
    nothing under `(dashboard)` is prerendered or served from a full-route cache.
 2. Next's **client-side Router Cache** still holds RSC payloads for already-visited routes. So a
    mutation that changes another route's content still needs an explicit invalidation, even though
@@ -458,6 +468,7 @@ at all.
    populated table later.
 4. **Tag scoping.** Global tags leak across users. Not CRUD's problem to fix, but CRUD is what makes
    the leak visible, since it is the first feature that lets a user create a tag.
+   *(Resolved by feature #112 — see the note in the Tags section above.)*
 
 ---
 

@@ -6,8 +6,14 @@ Not Started — nothing queued.
 
 ## Goals
 
-Nothing queued. Next up is the **documentation overhaul** — a real feature with a written spec
-rather than a cleanup pass, covering the drift listed in the Notes below.
+Nothing queued. One documentation feature remains specced and waiting:
+
+1. `/feature load code-docs-overhaul-spec` — the comments and JSDoc inside `src/`, which are a lab
+   notebook rather than an operating manual: 8,240 comment lines of 27,860 non-blank, 29.6%, with
+   several files over 70%. Runs directory by directory, never as one sweep. Three decisions open.
+
+Also independent of the rebrand, so they can land before the `devstash` branch is cut: **demo
+content for a new account** and the missing **`error.tsx` / `not-found.tsx` / `loading.tsx`**.
 
 ## Notes
 
@@ -16,20 +22,20 @@ rather than a cleanup pass, covering the drift listed in the Notes below.
 - **Set `CRON_SECRET` in Vercel** (Settings → Environment Variables → Production), then redeploy.
   Generate with `openssl rand -base64 32`. Until then the nightly sweep answers 503 and does
   nothing. `vercel.json` schedules it for 03:17 daily.
-- **Confirm `AUTH_URL` is set in Vercel.** It is in the local `.env` but not in
-  `.env.production.example`, so the record does not say whether production has it.
+- **Confirm `AUTH_URL` is set in Vercel.** It is in the local `.env` and in `.env.example`, but not
+  in `.env.production.example`, so the record does not say whether production has it.
 - The next production deploy runs `prisma migrate deploy` — the tag migration is DDL plus a
   row-rewriting backfill.
 
-**Known, and waiting for the documentation feature rather than a patch:**
+**Left over from the documentation overhaul (#117), deliberately not fixed there:**
 
-- `context/feature-history.md` has **two entries numbered 113**. Left alone deliberately: renumbering
-  is an edit to the record, and it belongs in the docs pass with everything else.
-- `project-overview.md` §7 still reads `Search | Basic | Basic` and still promises
-  `Export (JSON / ZIP)`, a row deliberately pulled from the shipped pricing card. The card itself is
-  correct; only the spec table drifted. See `portfolio-direction.md` §5.
-- `docs/stripe-integration-plan.md` cites a research file that does not exist, and markdown line
-  anchors (`file.ts#L42`) rot silently with nothing checking them.
+- **Line anchors still rot silently.** 17 `file.ts#L42` anchors across two tracked `docs/` files
+  are unchecked by anything. They are now covered by each file's "not maintained" banner, which was
+  the decision — but a link checker in CI would close it properly.
+- **`docs/item-crud-architecture.md` links to `src/components/profile/ChangePasswordForm.tsx`**,
+  which no longer exists. Its own banner already names the replacement
+  (`src/components/settings/ChangePasswordDialog.tsx`), so the dead link is documented rather than
+  repaired — correcting the body of a record falsifies it.
 
 ## History
 

@@ -1,5 +1,10 @@
 # REFACTOR — `src/actions/`
 
+> **Audit record — `refactor-scanner` agent output, 2026-08-30. Not maintained.**
+> A point-in-time scan proposing extractions; it never edited anything. Some proposals have since
+> been applied, some deliberately declined, and nothing re-checks which. Re-run the agent rather
+> than working from the list below.
+
 Scanned `src/actions/` — 7 source modules (`account.ts`, `ai.ts`, `auth.ts`, `billing.ts`,
 `collections.ts`, `editor-preferences.ts`, `items.ts`) plus 3 `*.test.ts` files read as context.
 **5 extraction opportunities**, of which 3 are worth doing.

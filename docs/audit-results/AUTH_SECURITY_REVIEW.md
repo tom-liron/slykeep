@@ -1,5 +1,9 @@
 # Auth Security Review
 
+> **Audit record — `auth-auditor` agent output, 2026-08-03, revised 2026-09-01. Not maintained.**
+> A point-in-time scan. Findings may since have been fixed, rejected, or superseded, and nothing
+> re-checks them. Re-run the agent rather than trusting the list below as current.
+
 **Last audited:** 2026-09-01
 **Scope:** NextAuth v5 config, credentials, email verification, password reset, profile account
 actions, and — new since the 2026-08-03 audit — account mutations' billing interaction, Stripe

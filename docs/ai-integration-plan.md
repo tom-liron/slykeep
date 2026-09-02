@@ -1,5 +1,9 @@
 # AI Integration Plan — DevStash Pro
 
+> **Plan record — written 2026-08-24. Not maintained.**
+> The design as proposed *before* the work, kept for its reasoning rather than as a description of
+> the code. Where it disagrees with `src/`, the code wins. See the note below for what shipped
+> differently.
 
 > **As shipped (2026-09-01): this is the plan, not the result.** The four features are live, in a
 > different shape from the one proposed below — Server Actions in `src/actions/ai.ts` rather than
@@ -542,6 +546,9 @@ press, which keeps the cost and the surprise both bounded.
   and auto-tagging will multiply the volume of tags substantially. That makes the per-user scoping
   question more pressing than it is today, though not a blocker — the write path already handles a
   name another user coined as a duplicate rather than a new row.
+  > **Resolved since, by feature #112 (2026-09-02).** `Tag` now carries `userId` and a `normalized`
+  > column under `@@unique([userId, normalized])`, so tags are per-account and case-folded. The
+  > paragraph above describes the model as it was when this plan was written.
 - **A monthly usage cap.** §9.
 - **Does the free tier get a taste?** The pricing table says no, and this plan follows it. Worth
   noting only that three free suggestions is a known conversion lever, and the gate is one function.
