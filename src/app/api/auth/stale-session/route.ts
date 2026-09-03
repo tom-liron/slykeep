@@ -7,17 +7,17 @@ import { prisma } from "@/lib/prisma";
  * Clears a session whose user row no longer exists, then returns the visitor to the sign-in form.
  *
  * A JWT outlives the account it names — deleted from another device, or a dev database re-seeded —
- * and nothing about the token itself goes stale when that happens (see the session-revocation entry
- * in `context/project-overview.md` §11). `getCurrentUser` in `src/server/current-user.ts` sends the
- * request here instead of throwing, because a render cannot fix this on its own: server components
- * may not write cookies, so the one thing that would end the loop is unavailable exactly where the
- * problem is detected. A route handler may, so the sign-out happens here.
+ * and the token itself does not go stale (see the session-revocation entry in
+ * `context/project-overview.md` §11). `getCurrentUser` in `src/server/current-user.ts` sends the
+ * request here rather than throwing, because a server component cannot write a cookie and the
+ * cleared cookie is the only thing that ends the redirect loop. This route can, and does the
+ * sign-out.
  *
- * Redirecting straight to `/sign-in` would not have worked either. The proxy sees a structurally
- * valid token, treats the visitor as signed in, and bounces them off `/sign-in` back to `/`, which
- * fails the same way — the cookie has to go first. `api/auth` is outside the proxy's matcher, and a
- * static segment beside the `[...nextauth]` catch-all wins over it: the same two reasons `register`
- * and `verify-email` live here.
+ * @remarks
+ * Redirecting to `/sign-in` alone does not help: the proxy sees a structurally valid token, treats
+ * the visitor as signed in, and bounces them back to `/`. The cookie has to go first. `api/auth` is
+ * outside the proxy's matcher and this static segment wins over the `[...nextauth]` catch-all, as
+ * with `register` and `verify-email`.
  */
 export async function GET(request: Request) {
     const session = await auth();

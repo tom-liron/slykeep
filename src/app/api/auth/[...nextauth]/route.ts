@@ -1,5 +1,12 @@
 import { handlers } from "@/auth";
 
-// NextAuth's own routes: sign-in, callback, sign-out, session, csrf. This phase uses the built-in
-// pages, so `/api/auth/signin` is the sign-in UI too — custom pages land in Auth Phase 3.
+/**
+ * The NextAuth catch-all: callback, sign-out, session and CSRF endpoints, plus the GitHub OAuth
+ * dance.
+ *
+ * `handlers` is built in `src/auth.ts` from the shared config. The sign-in UI is the custom
+ * `/sign-in` page (`auth.config.ts` sets `pages.signIn`), not `/api/auth/signin`. The static
+ * `register`, `verify-email`, `forgot-password`, `reset-password` and `stale-session` segments
+ * beside this file win over the catch-all and are handled by their own route files.
+ */
 export const { GET, POST } = handlers;
