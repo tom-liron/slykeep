@@ -9,9 +9,16 @@ import { getEditorPreferences } from "@/server/profile";
 import { getSearchData } from "@/server/search";
 
 /**
- * Every route under this layout reads per-user, mutable data. Without this, Next prerenders the
- * dashboard and /collections at build time and bakes the rows into the HTML. Auth will force this
- * anyway once the session is read from cookies, but it is not in place yet.
+ * The signed-in application shell: top bar, collapsible sidebar, and the scrolling main pane.
+ *
+ * `src/proxy.ts` has already required a session before any route in this group renders. This layout
+ * reads the per-user data the whole shell needs — the sidebar nav and collections, the command
+ * palette's prefetch, the editor preferences — once, in parallel, and hands them down through
+ * context providers so the client controls scattered across the tree do not each fetch.
+ *
+ * @remarks
+ * `force-dynamic` because every route here reads per-user, mutable data; without it Next would
+ * prerender the dashboard and `/collections` at build time and bake the rows into the HTML.
  */
 export const dynamic = "force-dynamic";
 
@@ -52,23 +59,13 @@ export default async function DashboardLayout({
                         <TopBar searchData={searchData} isPro={nav.user.isPro} />
                         <div className="flex min-h-0 flex-1">
                             <Sidebar data={sidebarData} />
-                            {/* The container everything inside measures itself against.
-                            `container-type: inline-size` makes this the query container, so a
-                            component asks "how much room do I have" instead of asking the viewport
-                            how wide it is and subtracting a guessed sidebar. Named `app` so a
-                            component states which box it meant; an anonymous container would silently
-                            re-target if anything between here and the component ever declared one.
-
-                            An inline-size query measures the *content* box, so the padding below is
-                            already excluded from every stop written against it — `@min-[860px]/app`
-                            means 860px to lay out in, not 860px minus whatever the chrome takes.
-
-                            `p-4` narrow: 24px each side is 48px of a 390px screen spent on margin,
-                            which every list and card inside then does without.
-
-                            `overflow-y-auto` only from `md`, where this is a pane inside a pinned
-                            frame. Below that the document scrolls and a second scroller here would
-                            trap the page inside a box the size of the screen. */}
+                            {/* The named container (`@container/app`) that content inside measures
+                            itself against, so a component asks how much room it has rather than
+                            guessing a sidebar width off the viewport. The name pins which box —
+                            an anonymous container would re-target if anything between here and the
+                            component declared one. `overflow-y-auto` only from `md`, where this is a
+                            pane in a pinned frame; below that the document scrolls and a second
+                            scroller here would trap the page in a screen-sized box. */}
                             <main className="@container/app min-w-0 flex-1 p-4 sm:p-6 md:overflow-y-auto">
                                 {children}
                             </main>

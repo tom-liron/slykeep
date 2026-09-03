@@ -9,15 +9,15 @@ export const metadata: Metadata = {
 };
 
 /**
- * Where a reset link lands.
+ * Where a reset link lands: it checks the token and then renders either a dead-link message or
+ * `ResetPasswordForm`.
  *
- * The token is checked here but deliberately *not* consumed: it still has to work when the form this
- * renders is submitted. Checking first is what stops someone choosing and confirming a password only
- * to be told afterwards that the link died an hour ago.
- *
- * It is a page rather than a route handler — unlike `GET /api/auth/verify-email`, which can finish
- * its whole job on the click — because a reset needs the person to type something first.
+ * A page rather than a route handler because a reset needs the person to type a new password, where
+ * `GET /api/auth/verify-email` finishes on the click. The token is checked here but not consumed —
+ * it still has to work when the form is submitted — so nobody chooses and confirms a password only
+ * to be told the link expired.
  */
+
 const DEAD_LINK_MESSAGE = {
     expired: "That reset link has expired. Links are good for 1 hour, and this one is past it.",
     invalid: "That reset link is not valid or has already been used.",

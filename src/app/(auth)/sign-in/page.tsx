@@ -7,6 +7,16 @@ import { SignInForm } from "@/components/auth/SignInForm";
 import { getSignInErrorMessage } from "@/lib/auth-errors";
 import { resolveCallbackUrl } from "@/lib/auth-redirects";
 
+/**
+ * The `/sign-in` page: GitHub, the credentials form, and every status banner the auth flows
+ * redirect back here with.
+ *
+ * The banners are driven entirely by `searchParams` that other routes set — the register form's
+ * redirect, `deleteAccount`'s sign-out, the reset form, and the `?error=` Auth.js appends on a
+ * failed sign-in, which {@link getSignInErrorMessage} turns into a sentence. The `callbackUrl`
+ * `src/proxy.ts` adds when it bounces a signed-out visitor is validated here through
+ * {@link resolveCallbackUrl}, and again in the sign-in action.
+ */
 export const metadata: Metadata = {
     title: "Sign in · DevStash",
 };
@@ -60,11 +70,10 @@ export default async function SignInPage({
 
     return (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            {/* Deliberately not "Welcome back". Until a homepage exists, `src/proxy.ts` bounces every
-                signed-out visitor here, so this page is the app's front door and greets first-time
-                arrivals as often as returning ones. The subtitle says what DevStash is for the same
-                reason. The post-sign-in toast can still say "welcome back" — by then the account has
-                authenticated, so the assumption is earned. */}
+            {/* "Sign in to DevStash", not "Welcome back": this page greets first-time arrivals as
+                often as returning ones, and the subtitle says what the product is for the same
+                reason. The post-sign-in toast can say "welcome back" — by then the account has
+                authenticated. */}
             <div className="mb-6 space-y-1">
                 <h1 className="text-xl font-semibold">Sign in to DevStash</h1>
                 <p className="text-sm text-muted-foreground">

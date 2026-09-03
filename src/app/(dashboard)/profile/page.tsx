@@ -18,15 +18,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * The account page: who you are and what you have stashed.
+ * `/profile` — a read-only account page: identity, plan, join date, and usage totals.
  *
- * Read-only, and entirely a server component — the account *actions* live on `/settings`, which is
- * where the client components that perform them went. Nothing here links across to them: the account
- * menu already lists both pages, and a page that ends by explaining where its buttons went is a
- * migration note, not a design.
- *
- * Two panels rather than a stack of cards, sharing the shell the settings page uses, so the two
- * halves of the account read as one product.
+ * Entirely a server component; the account *actions* live on `/settings`. Two `Panel`s sharing the
+ * shell the settings page uses, so the two halves of the account read as one surface.
  */
 export default async function ProfilePage() {
     const { user, createdAt, totalItems, totalCollections, itemTypeCounts } = await getProfile();
@@ -53,17 +48,10 @@ export default async function ProfilePage() {
             </Panel>
 
             <Panel id="usage" title="Usage" description="What is in your stash right now.">
-                {/* The two totals, as one band split down the middle rather than two bordered cards
-                    inside a bordered panel. The dashboard's summary has since become a band too,
-                    for a different reason — cards there looked clickable and were not — so the two
-                    pages now agree. This one keeps its own cells rather than importing `Stat` from
-                    `StatBand`: it is already inside a `Panel` that draws the border and the padding,
-                    and the shared cell brings both of its own.
-
-                    One column on a phone, where half of the band is ~145px of content box for an
-                    icon, a label, and a 2xl number. The divider turns with it: `divide-y` stacked
-                    and `divide-x` side by side, because a vertical rule between two rows is a line
-                    drawn between nothing. */}
+                {/* The two totals as one band split down the middle, not two bordered cards inside a
+                    bordered panel. Its own cells rather than `Stat` from `StatBand`, which brings a
+                    border and padding this `Panel` already draws. One column on a phone; the
+                    divider turns with it — `divide-y` stacked, `divide-x` side by side. */}
                 <dl className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
                     <Total
                         label="Items"

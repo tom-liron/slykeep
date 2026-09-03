@@ -4,6 +4,13 @@ import { AuthDivider } from "@/components/auth/AuthDivider";
 import { GitHubSignInButton } from "@/components/auth/GitHubSignInButton";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
+/**
+ * The `/register` page: GitHub sign-up above the credentials form, in the same order `/sign-in`
+ * uses so the two screens do not feel mismatched.
+ *
+ * The card only — no `searchParams`, and no `callbackUrl`, since a registration that resolves to an
+ * existing account lands on the dashboard, the sign-in action's own default.
+ */
 export const metadata: Metadata = {
     title: "Create an account · DevStash",
 };
@@ -18,13 +25,8 @@ export default function RegisterPage() {
                 </p>
             </div>
 
-            {/* Above the form, in the order `/sign-in` uses. The two pages are the same screen with
-                one field's difference, and a GitHub button that sits on top on one of them and
-                underneath on the other is the kind of asymmetry nobody reports and everybody feels.
-
-                No `callbackUrl`: this route takes no search params, and there is nowhere to come
-                back to — a registration that resolves to an existing account lands on the dashboard,
-                which is the action's own default. */}
+            {/* Above the form, matching `/sign-in`: the two screens differ by one field, and a
+                GitHub button that swapped sides between them would read as an inconsistency. */}
             <GitHubSignInButton />
 
             <AuthDivider />

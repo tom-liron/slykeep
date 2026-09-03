@@ -13,6 +13,13 @@ import { getDashboardCollections } from "@/server/collections";
 import { getCurrentUser } from "@/server/current-user";
 import { getDashboardItems } from "@/server/items";
 
+/**
+ * The dashboard overview, served at `/` for a signed-in visitor.
+ *
+ * A server component that reads the four summary counts, the recent collections, and the pinned and
+ * recent item lists in parallel, then composes them. `WelcomeToast` is the one client island, in a
+ * `Suspense` boundary so its `useSearchParams` does not opt the whole page into client rendering.
+ */
 export default async function DashboardPage() {
     // `getCurrentUser` is request-cached, so this shares the read the sidebar already performs.
     const [collections, items, user] = await Promise.all([

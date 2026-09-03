@@ -3,22 +3,19 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { TYPE_COLOR_VARS } from "@/lib/type-color-vars";
 
 /**
- * The signed-out marketing shell: no sidebar, no app chrome.
+ * The signed-out marketing shell: `MarketingNav`, the page, and `MarketingFooter`, with no app
+ * chrome. Wraps `/welcome`.
  *
- * This owns its own scroll container. The root layout pins the body to the viewport from `md` up,
- * because the app shell scrolls its own main pane — a marketing page has to scroll something, and
- * unpinning the body there would give the app two nested scrollbars. Two things follow from that and
- * are easy to get wrong: the anchor links scroll *this* element (hence `scroll-smooth` here and
- * `scroll-mt-*` on the section ids), and `MarketingNav` listens to it for scroll position rather
- * than to `window`, which never scrolls at all.
+ * This element is its own scroll container, because the root layout pins the body from `md` up and
+ * a marketing page still has to scroll something. Two things depend on that: the anchor links
+ * scroll this element (`scroll-smooth` here, `scroll-mt-*` on the section ids), and `MarketingNav`
+ * reads its scroll position from this element rather than from `window`.
  *
- * `h-dvh` rather than `h-full`, and that is load-bearing rather than cosmetic. Below `md` the body
- * is no longer a fixed height — the app switched to document scroll there — so `height: 100%` would
- * resolve to `auto`, this element would grow to fit its content, and its `overflow-y-auto` would
- * never fire. The page would still scroll, on the document instead, and both of the things above
- * would quietly stop working: the anchors would jump rather than glide, and the nav would never
- * see a scroll event, so its background would never appear. A viewport-relative height keeps this
- * container definite at every width and leaves the marketing page exactly as it was.
+ * @remarks
+ * `h-dvh`, not `h-full`: below `md` the body is not a fixed height, so `height: 100%` would resolve
+ * to `auto`, this element would grow to its content, and `overflow-y-auto` would never fire — the
+ * anchors would jump instead of glide and the nav would never see a scroll event. A
+ * viewport-relative height keeps the container definite at every width.
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
     return (
