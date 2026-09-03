@@ -13,19 +13,18 @@ import type { ItemDetailViewModel, ItemSummaryViewModel } from "@/types/view-mod
 type CopySource = { url: string; kind: "detail" | "file" };
 
 /**
- * How to copy this item, or null if there is nothing about it worth putting on the clipboard.
+ * Where to read this item's body from for a copy, or `null` when it has nothing to copy.
  *
- * The rule is the drawer's, deliberately: a TEXT or URL item copies its body, and a FILE item copies
- * its object only when that object is text — an image or a PDF has nothing to write to a clipboard,
- * which is why the drawer hides Copy for them rather than offering a control that can never do
- * anything. Same test, `filePreviewFor` over the name and size the card already carries.
+ * Applies the same rule the drawer's Copy control uses: a TEXT or URL item copies its body; a FILE
+ * item copies its object only when that object is text (an image or PDF returns `null`). The FILE
+ * test is `filePreviewFor` over the name and size the summary already carries.
  *
- * The source differs because the body does. A file's contents are an object in R2, and its `content`
- * and `url` columns are empty, so it is read from the file route; everything else is read from the
- * item route. That is the only thing item type changes here.
+ * The URL depends on the type because the body does: a file's contents are an object in R2 with
+ * empty `content` / `url` columns, so it reads from the file route; everything else reads from the
+ * item route.
  *
- * Exported for its own test: it is the one part of this component with branches, and the branch that
- * matters — a file that must not offer a copy — is invisible until someone stashes a PNG.
+ * @remarks
+ * Exported for its own unit test — the file-that-offers-no-copy branch has no other coverage.
  */
 export function copyableSourceFor(item: ItemSummaryViewModel): CopySource | null {
     if (item.itemType.contentType !== "FILE") {
@@ -64,20 +63,19 @@ async function fetchBody(source: CopySource): Promise<string> {
 }
 
 /**
- * Copy an item's body without opening it.
+ * Copies an item's body from a card, without opening the drawer.
  *
- * The drawer has had this button since it was built; the difference here is that a card has no body
- * to copy. List queries never select `content` / `url` — that is the rule the summary view model
- * exists to enforce — so the body is fetched when the icon is clicked, from the same routes the
- * drawer reads. Nothing is loaded for a card nobody copies.
+ * List queries never select `content` / `url` (the rule the summary view model enforces), so the
+ * body is fetched when the icon is clicked, from the same routes the drawer reads. Nothing loads
+ * for a card nobody copies.
  *
- * The fetch is handed to `copyToClipboard` unawaited, which is what keeps this working in Safari:
- * see `writeClipboardText`. It also means an item with an empty body has to be reported by rejecting
- * rather than by disabling the control up front, the way the drawer disables its Copy — the drawer
- * knows the body is empty because it already has it, and this one cannot know until it asks.
+ * @remarks
+ * The pending fetch is passed to `copyToClipboard` unawaited — see `writeClipboardText` in
+ * `lib/clipboard.ts` for why Safari needs the clipboard write to start synchronously. A
+ * consequence: an empty body is reported by the fetch rejecting, not by disabling the button up
+ * front, since this cannot know the body is empty until it asks.
  *
- * Placement is the caller's: this renders a bare button, and `ItemList` positions it over the card
- * and decides when it appears.
+ * Renders a bare button; `ItemList` positions it over the card and decides when it appears.
  */
 export function CopyItemButton({
     item,
@@ -109,8 +107,8 @@ export function CopyItemButton({
             onClick={copy}
             disabled={isCopying}
             title="Copy"
-            // Named with the item, because a list of these is otherwise a column of identically
-            // labelled buttons to anyone reading it one control at a time.
+            // Named with the item so a column of these does not read as identically labelled
+            // buttons to assistive tech.
             aria-label={`Copy ${item.title}`}
             className={cn("text-muted-foreground", className)}
         >

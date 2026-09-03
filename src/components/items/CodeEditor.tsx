@@ -23,31 +23,37 @@ import type { EditorThemeId } from "@/types/editor";
 import { ContentTextarea, EDITOR_PANEL, EDITOR_PANEL_BOUNDS } from "./ContentTextarea";
 
 /**
- * The wrapper ships its own default CDN build, which is a *different* monaco version from the
- * `monaco-editor` package this file's option types come from — and the two do drift: `hover.enabled`
- * is a boolean in one and a string union in the other. Pinning the runtime to the installed version
- * keeps what TypeScript checks and what the browser actually runs the same thing.
+ * The Monaco-based code editor for the item types whose content is code — the third of the three
+ * content surfaces, beside `MarkdownEditor` and the plain `ContentTextarea` both share.
  *
- * Served from this origin rather than from jsdelivr, which is what makes that pin airtight — there
- * is no version in this string to bump out of step, because the bytes *are*
- * `node_modules/monaco-editor`, copied into `public/monaco` by `scripts/sync-monaco.ts` on both
- * `predev` and `prebuild`. The security argument is the larger one and is recorded there: this is
- * several megabytes of script executing on our origin in every authenticated session, and it should
- * not arrive from a third party without an integrity check.
+ * Used in both directions: read-only in the drawer (replacing a `<pre>`) and editable in the
+ * create and edit forms. Dressed as a small macOS window — window dots, a language label, and,
+ * when the `explain` prop is passed (only by the drawer), the AI "explain this code" action as a
+ * second tab. On a coarse pointer the *editable* direction falls back to `ContentTextarea`, since
+ * Monaco does not support touch; the frame stays the same, so only the highlighting changes.
+ *
+ * Monaco itself is served from this origin (`public/monaco`, copied from `node_modules` by
+ * `scripts/sync-monaco.ts`), not bundled and not from a CDN.
+ *
+ * @remarks
+ * `@monaco-editor/react` ships its own default CDN build, a different Monaco version from the
+ * `monaco-editor` package this file's option types come from, and the two drift (`hover.enabled` is
+ * a boolean in one, a string union in the other). {@link loader}`.config` pins the runtime to the
+ * installed copy so the checked types and the running code match.
  */
 loader.config({ paths: { vs: "/monaco/vs" } });
 
-// Shared with `MarkdownEditor` through `config/editor.ts`, so the two content surfaces cannot drift
-// apart on how much of the drawer they take — the colour they share now comes from the theme
-// catalog in the same file. Aliased to the short name this file already reads by; the ceiling is no
-// longer a constant, since it depends on the viewport (see `editorMaxHeight`).
+// The editor's minimum height. Shared with `MarkdownEditor` through `config/editor.ts` so the two
+// content surfaces take the same amount of the drawer. Aliased to the short name this file reads
+// by. The ceiling is not a constant — it depends on the viewport, via `editorMaxHeight`.
 const MIN_HEIGHT = EDITOR_MIN_HEIGHT;
 
 /**
- * The one theme this app owns: chrome from its palette, syntax colours inherited from `vs-dark`.
+ * The one editor theme this app owns: chrome from its palette, syntax colours inherited from
+ * `vs-dark`.
  *
- * Deliberately not a full theme, and its colours stay pinned to `EDITOR_SURFACE` rather than the
- * selected theme's — this *is* the app's theme, not a copy of whatever is switched on.
+ * Not a full theme — its colours are pinned to `EDITOR_SURFACE` rather than to the selected
+ * theme's, so it stays the app's own surface whatever else is switched on.
  */
 const THEME_NAME: EditorThemeId = "devstash-dark";
 
@@ -65,25 +71,19 @@ const SLIDER_COLORS = {
 };
 
 /**
- * Registers the three themes that are not monaco's own, on every mount.
+ * Registers the three themes that are not Monaco's own, on every mount.
  *
- * All three are `vs-dark` with `inherit: true`, which is what makes them small: monaco falls back to
- * `vs-dark` for every token type and UI colour not named below, so a theme is the handful of colours
- * that actually distinguish it rather than a table covering every language. They are all registered
- * regardless of which one is selected — defining a theme is assigning an object, and the alternative
- * is registering on demand and having nothing to switch *to* when the preference changes.
+ * All three are `vs-dark` with `inherit: true`, so each is only the handful of colours that
+ * distinguish it — Monaco falls back to `vs-dark` for everything else. All three are registered
+ * regardless of which is selected, so the preference always has a theme to switch to.
  *
- * `beforeMount` and not `onMount`: monaco resolves the `theme` prop as it creates the editor, so a
- * theme registered afterwards is unknown at exactly the moment it is first needed.
+ * @remarks
+ * `beforeMount`, not `onMount`: Monaco resolves the `theme` prop as it creates the editor, so a
+ * theme registered afterwards is unknown when first needed.
  *
- * The token colours are the two themes' own published palettes, trimmed to the scopes monaco's
- * tokenizers actually emit. Backgrounds are duplicated in `EDITOR_THEME_CATALOG` as `surface`,
- * which is what the frame around the editor is painted with — the two must agree.
- *
- * Each name is `satisfies EditorThemeId` rather than a bare string, because monaco does not complain
- * about a theme it was never given: rename an id in the catalog and the preference would resolve to
- * nothing, monaco would quietly fall back, and the failure would be a wrong colour rather than an
- * error. This makes that a compile error instead.
+ * Each background is duplicated in `EDITOR_THEME_CATALOG` as `surface`, which paints the frame
+ * around the editor, and the two must agree. Each name is `satisfies EditorThemeId` so renaming an
+ * id in the catalog is a compile error rather than a silent fallback to the wrong colour.
  */
 const defineTheme: BeforeMount = (monaco) => {
     monaco.editor.defineTheme(THEME_NAME, {
@@ -168,22 +168,13 @@ const defineTheme: BeforeMount = (monaco) => {
 };
 
 /**
- * Monaco, dressed as a small macOS window, for the item types whose content is code.
+ * The code editor described in the module header: one component for reading and writing, so a
+ * snippet's header, chrome, and syntax colours do not change under the user mid-edit.
  *
- * It is used in both directions: read-only in the drawer, where it replaces the plain `<pre>`, and
- * editable in the create and edit forms, where it replaces the monospace textarea. One component for
- * both keeps a snippet looking identical whether it is being read or written — the header, the
- * chrome, and the syntax colours do not change under the user mid-edit.
- *
- * Monaco itself is not bundled. `@monaco-editor/react` fetches it from a CDN on first mount, which
- * is why this costs a few kB here rather than the several megabytes monaco actually weighs; the
- * trade is that the editor needs a network the first time it is shown, and nothing renders offline.
- * That is the one thing to revisit if the app ever has to run air-gapped.
- *
- * One exception to "one component for both": under a coarse pointer the *editable* direction is a
- * plain textarea, because monaco does not support touch. The frame, the header and the language
- * label are the same either way, so what changes between reading and writing on a phone is the
- * highlighting and nothing else.
+ * @remarks
+ * On a coarse pointer the editable direction renders `ContentTextarea` instead of Monaco — the
+ * frame, header, and language label are the same, so only the highlighting differs between reading
+ * and writing on a phone.
  */
 export function CodeEditor({
     value,
@@ -221,9 +212,8 @@ export function CodeEditor({
 }) {
     const [height, setHeight] = useState(MIN_HEIGHT);
     /**
-     * Whether the content is taller than the ceiling — i.e. the editor is scrolling itself, and the
-     * last visible line is a cut rather than the end of the file. Drives the fade below; see the
-     * note there for why it is measured rather than always on.
+     * Whether the content is taller than the ceiling — the editor is scrolling itself and the last
+     * visible line is a cut. Drives the bottom fade.
      */
     const [isClipped, setIsClipped] = useState(false);
     /** The explanation this editor has been given, or null while it has none. */
@@ -231,17 +221,15 @@ export function CodeEditor({
     const [isExplaining, startExplaining] = useTransition();
     const [tab, setTab] = useState("code");
 
-    // Font size, tab size, wrapping, the minimap, and the theme are the account's, not this
-    // component's — see `settings/EditorPreferencesContext`. Outside the dashboard layout there is
-    // no provider, and the hook falls back to the same values this file used to hardcode.
+    // Font size, tab size, wrapping, the minimap, and the theme are the account's, from
+    // `settings/EditorPreferencesContext`. Outside the dashboard layout there is no provider, and
+    // the hook falls back to defaults.
     const preferences = useEditorPreferences();
 
-    // Monaco does not support touch. It renders its own DOM and drives a hidden textarea, so the
-    // platform's caret handle, selection grips, magnifier and autocorrect bar have nothing to attach
-    // to — placing a cursor mid-word on a phone is a fight, which is not a state to leave someone in
-    // while they are trying to save a snippet. Writing therefore falls back to the plain textarea
-    // the markdown editor already uses; reading keeps monaco, because the highlighting is the point
-    // of the read-only surface and there is no caret to place.
+    // Monaco does not support touch: it drives a hidden textarea the platform's caret handle,
+    // selection grips and autocorrect bar cannot attach to, so placing a cursor mid-word on a
+    // phone is a fight. Writing falls back to the plain textarea; reading keeps Monaco, since the
+    // highlighting is what the read-only surface is for and there is no caret to place.
     const coarsePointer = useCoarsePointer();
     const plainText = coarsePointer && !readOnly;
 
@@ -252,13 +240,10 @@ export function CodeEditor({
     // changes underneath them.
     const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
 
-    // What is shown, not what is enforced: `explainCode` runs this same check server-side, and it
-    // also re-checks the item type, so a free account that reaches the action by hand is refused.
-    // Unlike the two AI buttons in the forms — which hide themselves from a free account — this one
-    // stays on screen wearing a crown, because the surface it sits on is different: a form's field
-    // row reads as complete without it, while a control missing from the editor's chrome is a
-    // feature nobody discovers. That is the spec's call, and it is why `canExplain` gates the
-    // *action* here rather than the button's existence.
+    // Controls appearance, not access: `explainCode` re-checks entitlement and item type
+    // server-side. Unlike the AI buttons in the forms, this one stays visible for a free account,
+    // disabled with a crown, so the feature is discoverable in the editor's chrome. `canExplain`
+    // therefore gates the action, not the button.
     const canExplain = canUseAi(useIsPro());
 
     // Pinned to the code tab until there is a second tab to switch to, so nothing can leave the
@@ -277,20 +262,17 @@ export function CodeEditor({
             }
 
             setExplanation(result.data.explanation);
-            // Switches on arrival rather than waiting to be clicked. The user asked a question and
-            // this is the answer; leaving them on the code with a new tab quietly added beside it
-            // would make them ask for it twice.
+            // Switches to the answer on arrival rather than adding a tab the user has to notice and
+            // click.
             setTab("explain");
         });
     };
 
-    // Fluid up to a ceiling: monaco reports how tall its content actually is — wrapped lines
-    // included — and the wrapper follows it until the ceiling, past which the editor scrolls itself.
-    //
-    // The ceiling depends on the viewport now, so this also listens for `resize` — rotating a phone
-    // is exactly the case it exists for, and monaco's `automaticLayout` only watches the *width* of
-    // the box it was given. `onDidDispose` rather than an effect cleanup because monaco owns this
-    // listener's lifetime: the editor is what the closure measures.
+    // Fluid up to a ceiling: Monaco reports its content height (wrapped lines included) and the
+    // wrapper follows it until the ceiling, past which the editor scrolls itself. The ceiling
+    // depends on the viewport, so this also listens for `resize` — Monaco's `automaticLayout`
+    // watches only the width of its box. `onDidDispose`, not an effect cleanup, because Monaco owns
+    // the editor this closure measures.
     const handleMount: OnMount = (editor) => {
         const measure = () => {
             const ceiling = editorMaxHeight(window.innerHeight);
@@ -313,10 +295,9 @@ export function CodeEditor({
     };
 
     return (
-        // A tabs root even when there is only ever one tab, which is every editor outside the
-        // drawer. Radix renders a plain div and the header's list is what is conditional, so the
-        // alternative — a div here and a root there — would be two versions of the frame to keep
-        // matching. `MarkdownEditor` is built the same way for the same reason.
+        // A tabs root even when there is only one tab (every editor outside the drawer): Radix
+        // renders a plain div, and the conditional tab list is the only difference, so the frame
+        // stays one piece of markup. `MarkdownEditor` is built the same way.
         <TabsPrimitive.Root
             value={activeTab}
             onValueChange={setTab}
@@ -325,12 +306,11 @@ export function CodeEditor({
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
         >
-            {/* `flex-wrap`, because this row lives inside an `overflow-hidden` box and the drawer
-                that hosts it is `overflow-x-hidden` too — so a row that does not fit is not a
-                scrollbar, it is the right-hand end silently disappearing. With both tabs showing
-                it needs ~330px between the window dots, the two tabs, the AI button and the
-                language, and the drawer offers 288px at 320px wide. Wrapping moves the trailing
-                group down a line at that width and changes nothing at any other. */}
+            {/* `flex-wrap` because this row is inside an `overflow-hidden` box within an
+                `overflow-x-hidden` drawer, so a row that does not fit loses its right-hand end
+                rather than gaining a scrollbar. With both tabs, the AI button and the language
+                label it is wider than the drawer at phone width; wrapping drops the trailing group
+                to a second line there and changes nothing wider. */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-border px-3 py-2">
                 {/* Window dots — decoration, not controls, so they are hidden from assistive tech. */}
                 <div className="flex items-center gap-1.5" aria-hidden="true">
@@ -339,9 +319,8 @@ export function CodeEditor({
                     <span className="size-2.5 rounded-full bg-[#28c840]" />
                 </div>
 
-                {/* Only once there is something to switch to. A lone "Code" tab beside the dots
-                    would be chrome that does nothing, and it would appear on every form in the app
-                    to serve a feature only the drawer has. */}
+                {/* Only once there is an explanation to switch to — a lone "Code" tab would be
+                    chrome that does nothing, on every form in the app. */}
                 {explanation !== null && (
                     <TabsPrimitive.List className="flex items-center gap-1" aria-label={label}>
                         <Tab value="code">Code</Tab>
@@ -349,15 +328,10 @@ export function CodeEditor({
                     </TabsPrimitive.List>
                 )}
 
-                {/* No copy button here. The drawer's action bar already has one, in the same place
-                    for every item type, and it copies this exact content; a second one on the block
-                    itself was the same action twice. In the create and edit forms it would be the
-                    only one — but copying is not what those are for.
-
-                    Explain is the exception, and the reason is that same action bar: it holds what
-                    is true of *every* item type, and this is true of two. A button there would have
-                    to be absent for five of the seven types, which is a worse thing for a toolbar
-                    to be than short. */}
+                {/* No copy button here: the drawer's action bar already has one that copies this
+                    content, in the same place for every item type. Explain lives in this header
+                    rather than that bar because it applies to only two of the seven types, and the
+                    bar holds what is true of all of them. */}
                 <div className="ml-auto flex items-center gap-2">
                     {explain && (
                         <ExplainButton
@@ -376,21 +350,15 @@ export function CodeEditor({
                 </div>
             </div>
 
-            {/* Force-mounted and hidden by class rather than unmounted, the way `MarkdownEditor`
-                keeps its Write tab alive. Monaco is not a control that can be thrown away and
-                rebuilt cheaply: it fetches several megabytes from a CDN, measures its own content
-                height on mount, and holds the scroll position the reader left off at. Unmounting it
-                to look at the explanation would lose all three, and coming back would flash a
-                re-measuring editor at someone who only switched tabs. */}
+            {/* Force-mounted and hidden by class rather than unmounted, as `MarkdownEditor` keeps
+                its Write tab alive. Monaco loads several megabytes, measures its content height on
+                mount, and holds the reader's scroll position; unmounting it to look at the
+                explanation would lose all three and flash a re-measuring editor on return. */}
             <TabsPrimitive.Content value="code" forceMount className="data-[state=inactive]:hidden">
-                {/* The fallback keeps the frame, the header and the language label — everything except
-                the highlighting, which is what a plain textarea cannot do. It stays honest about
-                what the content is: the label above still says `typescript`, and the item reads back
-                highlighted the moment it is saved and viewed.
-
-                Rendering it *instead of* `<Editor>`, rather than hiding one of the two, is also what
-                keeps monaco off the phone: `@monaco-editor/react` fetches several megabytes from a
-                CDN when the editor mounts, and a surface that never mounts never asks. */}
+                {/* The fallback keeps the frame, header and language label — only the highlighting
+                    is lost, and the item reads back highlighted once saved and viewed. Rendered
+                    *instead of* `<Editor>`, not hidden alongside it, so Monaco never mounts on a
+                    phone and never loads its several megabytes. */}
                 {plainText ? (
                     <ContentTextarea
                         id={id}
@@ -447,11 +415,10 @@ export function CodeEditor({
                                 glyphMargin: false,
                                 lineNumbersMinChars: 3,
                                 lineDecorationsWidth: 8,
-                                // Wrapping rather than a horizontal scrollbar is the default, because the drawer
-                                // is narrow and a long line scrolled sideways is worse than a wrapped one — but
-                                // it is a preference now, since that trade is the user's to make for their own
-                                // content. Turning it off also shortens the measured content height, which is
-                                // the height of the box: the editor gets smaller, not just narrower in reach.
+                                // A preference, defaulting to wrapping: the drawer is narrow, and a
+                                // long line scrolled sideways is worse than a wrapped one. Turning
+                                // it off also shortens the measured content height, so the editor
+                                // box gets smaller, not just narrower in reach.
                                 wordWrap: preferences.wordWrap ? "on" : "off",
                                 fontFamily: "var(--font-mono)",
                                 // Floored under a finger, which here is the read-only drawer: monaco's textarea
@@ -465,22 +432,16 @@ export function CodeEditor({
                                 stickyScroll: { enabled: false },
                             }}
                         />
-                        {/* A cut line is the one thing a reader cannot tell from a finished one, and
-                            this editor cuts mid-glyph — the drawer scrolls, the editor scrolls
-                            inside it, and the bottom edge of a clipped snippet looked like a
-                            rendering fault rather than an invitation to keep scrolling.
+                        {/* A bottom fade marking that the content is clipped, so the cut last line
+                            reads as "scroll for more" rather than a rendering fault. Shown only
+                            when `isClipped` — the box is fluid up to a ceiling, so most snippets
+                            end where their content ends and need no fade.
 
-                            Measured rather than always on: the box is fluid up to a ceiling, so most
-                            snippets end where their content ends, and a permanent fade would dim the
-                            last line of every one of them to solve a problem they do not have.
-
-                            Faded to `${surface}00` rather than `transparent`, because `transparent`
-                            is transparent *black*: browsers interpolate in premultiplied sRGB and
-                            the midpoint of `#272822 → transparent` is a grey haze over Monokai. The
-                            same hue at zero alpha interpolates cleanly.
-
-                            `pointer-events-none` so it never eats a click, a drag, or a text
-                            selection reaching the lines underneath it. */}
+                            Faded to `${surface}00`, not `transparent`: `transparent` is transparent
+                            *black*, and browsers interpolate in premultiplied sRGB, so
+                            `#272822 → transparent` passes through a grey haze. The same hue at zero
+                            alpha interpolates cleanly. `pointer-events-none` so it never eats a
+                            click, drag, or selection reaching the lines under it. */}
                         {isClipped && (
                             <div
                                 aria-hidden="true"
@@ -494,14 +455,10 @@ export function CodeEditor({
                 )}
             </TabsPrimitive.Content>
 
-            {/* Rendered only once it exists, so there is no empty panel to reach — `activeTab` also
-                refuses to select it before then, and the two agree on purpose rather than one
-                covering for the other.
-
-                The same surface, bounds and `.markdown-preview` ramp the markdown editor's Preview
-                tab uses. An explanation of a snippet and a rendered note are the same kind of thing
-                on screen — prose in the drawer's content slot — and they read as one surface because
-                they *are* one, not because two sets of classes were kept in step. */}
+            {/* Rendered only once the explanation exists; `activeTab` also refuses to select it
+                before then. Uses the same surface, bounds and `.markdown-preview` ramp as
+                `MarkdownEditor`'s Preview tab, so an explanation and a rendered note read as one
+                surface. */}
             {explanation !== null && (
                 <TabsPrimitive.Content
                     value="explain"
@@ -519,7 +476,7 @@ export function CodeEditor({
     );
 }
 
-/** A header tab: quiet until selected, and never loud — the content below it is the point. */
+/** One tab in the editor's header row: muted until selected. */
 function Tab({ value, children }: { value: string; children: React.ReactNode }) {
     return (
         <TabsPrimitive.Trigger
@@ -532,36 +489,23 @@ function Tab({ value, children }: { value: string; children: React.ReactNode }) 
 }
 
 /**
- * The one control in the editor's chrome.
+ * The "explain this code" control in the editor's chrome, shown only when `CodeEditor` has an
+ * `explain` prop.
  *
- * Sized and styled as `ItemFormFields`' `SuggestButton` is — ghost, `h-7`, `text-xs`, an icon at
- * `size-3.5` — so the three AI buttons in the app are recognizably one control in three places,
- * even though this one lives in a window header rather than beside a field label.
+ * Sized and styled as `ItemFormFields`' `SuggestButton` — ghost, `h-7`, `text-xs`, a `size-3.5`
+ * icon — so the app's three AI buttons read as one control in three places.
  *
- * `MessageSquareText`, and **not** the `Sparkles` the spec asked for. Sparkles is the Prompt
- * *type's* icon in `item-type-catalog.ts`, and reusing it here was rejected once already: `e0487ed`
- * took it off the Suggest Tags button for exactly this reason. The argument for keeping it the
- * second time — that this button only ever renders on a snippet or a command, so the prompt type is
- * never on screen beside it — is true and still not enough. An icon is learned across the whole
- * app, not per surface, and one glyph meaning "prompt" in the sidebar and "explain" in a window
- * header has to be read twice wherever it appears.
+ * `MessageSquareText`, not `Sparkles`: `Sparkles` is the Prompt type's icon, and a glyph learned
+ * as "prompt" elsewhere in the app must not also mean "explain" here. A speech bubble with text is
+ * the answer coming back, which is what this produces — prose about the code, not a transformation
+ * of it, so it names the action the way the description button's `PenLine` does.
  *
- * It names the *action*, which is the rule `PenLine` set for the description button — "write this
- * for me" — and the reason none of the three AI controls wears a generic AI glyph. A bubble with
- * text in it is the answer coming back, which is what this button produces: prose about the code,
- * not a transformation of it.
+ * A free account gets `Crown` and a disabled button, keeping the word "Explain".
  *
- * **Weight is a real constraint here, not a preference.** This is the only icon in the editor's
- * chrome, and everything around it is spare — three flat dots, two quiet tabs, a mono language
- * label. `BookOpen` was tried first and rejected on sight for exactly that: a pictorial,
- * many-stroke glyph reads as heavy next to that much restraint, and at `size-3.5` its detail turns
- * to mush. The rule for replacing this icon is therefore *light and geometric before clever* — the
- * word "Explain" sits right beside it and carries the meaning, so the glyph only has to stay
- * legible and stay out of the way.
- *
- * A free account gets `Crown` and a disabled button rather than no button. It says "Explain" either
- * way — the crown is what marks it as bought, and swapping the word for "Upgrade" would make a
- * control that never says what it does.
+ * @remarks
+ * This is the only icon in an otherwise spare header (flat dots, muted tabs, a mono label), so a
+ * replacement stays light and geometric: the word beside it carries the meaning, and a
+ * many-stroke glyph turns to mush at `size-3.5`.
  */
 function ExplainButton({
     canExplain,
@@ -589,29 +533,17 @@ function ExplainButton({
             variant="ghost"
             size="sm"
             onClick={onClick}
-            // A free account's button is inert rather than a route to the upgrade page. The action
-            // behind it would refuse, and a control that navigates away from an item someone is
-            // reading is a bigger surprise than one that does nothing.
+            // Inert for a free account, not a link to the upgrade page: navigating away from an
+            // item someone is reading is the bigger surprise.
             disabled={!canExplain || isExplaining}
             aria-label={label}
             title={label}
-            // The hover fill is a **white alpha**, overriding the ghost variant's `bg-muted`, and
-            // for the same reason `SLIDER_COLORS` above is written in white alphas: this header is
-            // not painted with a theme token. It takes its colour from `EDITOR_THEME_CATALOG`, which
-            // is five hard-coded monaco surfaces — `#171717`, `#272822`, `#0d1117`, `#1e1e1e`,
-            // `#000000` — so a grey mixed from `--muted` lands somewhere different on each of them:
-            // nearly invisible on the darkest, and washing Monokai's warm brown toward grey.
-            //
-            // It also has to survive light mode, which is still on the roadmap. Every monaco theme
-            // here is `vs-dark`-based, so this header stays dark even when the app around it turns
-            // light — at which point `--muted` flips to a *light* grey and a token-based hover would
-            // vanish into the dark chrome entirely. A white alpha is immune to that by construction,
-            // which is why this is not simply a contrast tweak.
-            //
-            // 10%, which is `scrollbarSlider.background` above to the digit — `#ffffff1a`. 15% was
-            // tried first and read as too bright for chrome this quiet, and landing on the alpha the
-            // scrollbar already uses means the two things that light up in this frame light up by
-            // the same amount.
+            // The hover fill is a white alpha, overriding the ghost variant's `bg-muted`, for the
+            // reason `SLIDER_COLORS` above is: this header's colour comes from
+            // `EDITOR_THEME_CATALOG`'s fixed monaco surfaces, not a theme token, so a `--muted`
+            // grey would land differently on each and vanish under light mode, where the chrome
+            // stays dark. 10% matches `scrollbarSlider.background` (`#ffffff1a`) to the digit, so
+            // the two things that light up in this frame light up by the same amount.
             className="-my-1 h-7 gap-1.5 px-2 text-xs hover:bg-white/10 dark:hover:bg-white/10"
         >
             {!canExplain ? (

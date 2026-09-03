@@ -12,23 +12,19 @@ import { ItemDrawer } from "./ItemDrawer";
 import { ItemRow } from "./ItemRow";
 
 /**
- * A list of item cards that open the detail drawer when clicked.
+ * The client wrapper that turns a server-rendered list of items into ones that open the detail
+ * drawer when clicked.
  *
- * The pages rendering it are server components, so the open/selected state has to live somewhere
- * else — this is that somewhere. `className` carries each page's own container classes (the
- * dashboard stacks, the type and collection pages use a grid), so wrapping a list in this changes
- * what a card does, never how the list is laid out.
+ * The pages rendering it are server components, so the open/selected drawer state lives here.
+ * `className` carries each page's own container classes (the dashboard stacks; the type and
+ * collection pages use a grid), and `variant` picks each entry's shape — `FileRow` for files,
+ * `ImageCard` for images, `ItemRow` for the flat `/favorites` line, `ItemCard` otherwise. Neither
+ * changes how the list is laid out.
  *
- * The trigger is an overlay button rather than the card itself: a `<button>` may only contain
- * phrasing content, and `ItemCard` renders an `<article>` with a heading inside it. Nesting those
- * would be invalid markup the parser silently rewrites — the same failure as the `<form>` inside a
- * `<form>` that left the resend-verification control unclickable. Keeping the card untouched also
- * means it still renders as plain markup anywhere a drawer is not wanted.
- *
- * `variant` picks what an entry looks like, never how the list is arranged — the container classes
- * still arrive as `className`. A file is described by its object rather than summarised by a body, so
- * the files page renders rows; an image *is* its object, so the images page renders thumbnails;
- * `"row"` is the flat line `/favorites` scans; everything else is a card.
+ * @remarks
+ * The click target is an overlay `<button>` sibling, not the card itself: a `<button>` may only
+ * contain phrasing content, and the entry components render an `<article>` with a heading. This
+ * also keeps each entry component usable as plain markup where no drawer is wanted.
  */
 export function ItemList({
     items,
@@ -54,10 +50,10 @@ export function ItemList({
         <>
             <div className={className}>
                 {items.map((item) => {
-                    // Asked here as well as inside `CopyItemButton`, because the card has to know
-                    // too: its timestamp shares the corner the button appears in, and fades out for
-                    // it. A pure lookup over data already in hand, so asking twice costs nothing,
-                    // and the button still decides for itself — it stays usable on its own.
+                    // Asked here too, not only inside `CopyItemButton`: the card's timestamp shares
+                    // the button's corner and fades out for it, so the card has to know whether a
+                    // button will appear. A pure lookup over data in hand; the button still decides
+                    // for itself.
                     const showsCopy = variant === "card" && copyableSourceFor(item) !== null;
 
                     return (
@@ -90,28 +86,17 @@ export function ItemList({
                             >
                                 <span className="sr-only">Open {item.title}</span>
                             </button>
-                            {/* After the trigger, not inside the card: the trigger is `inset-0`, so
-                                anything under it in the stack can never be clicked, and two
-                                positioned siblings paint in document order — which is all the
-                                layering this needs.
+                            {/* After the trigger in document order, not inside the card: the
+                                trigger is `inset-0` and the two positioned siblings paint in order,
+                                so this stays on top and clickable.
 
-                                It sits where the card's timestamp is, and the timestamp fades out
-                                as this fades in, so hovering a card swaps the date for what you can
-                                do to it. `group-focus-within` is what gives the same swap to the
-                                keyboard, where focusing the trigger is the equivalent of pointing
-                                at the card.
-
-                                And `pointer-coarse:opacity-100`, because a touch device has no
-                                third state to reveal it with: there is no hover, and the only thing
-                                focusable here is the full-card trigger, whose `focus-within` fires
-                                on the tap that opens the drawer. Left hover-only, copying from a
-                                card was not merely hard to find on a phone — it did not exist. The
-                                swap is dropped there rather than reproduced: the button is simply
-                                always on, and `ItemCard`'s timestamp is always off, which is why
-                                the same variant appears on both.
-
-                                Cards only. A file row and a gallery tile are different shapes with
-                                no corner spare, and the request was for the item card. */}
+                                It sits over the card's timestamp, which fades out as this fades in,
+                                so hover swaps the date for the action. `group-focus-within` gives
+                                the keyboard the same swap. `pointer-coarse:opacity-100` makes it
+                                always-on under a coarse pointer, which has no hover state to reveal
+                                it — `ItemCard`'s timestamp is then always off, so the two never
+                                overlap. Cards only: a file row and a gallery tile have no spare
+                                corner. */}
                             {showsCopy && (
                                 <CopyItemButton
                                     item={item}

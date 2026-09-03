@@ -5,17 +5,13 @@ import { TypeIcon } from "./TypeIcon";
 /**
  * One item as a dense line: type icon, title, type badge, date.
  *
- * The fourth shape `ItemList` can render, and the flattest — a card describes an item, this one only
- * identifies it. That is the trade the favourites list wants: a list you scan for a title you already
- * know, where forty rows on screen beats eight cards with descriptions and tags.
+ * The flattest of the shapes `ItemList` can render, used by the favorites list — a list scanned for
+ * a known title, where many rows on screen beats fewer cards carrying descriptions and tags.
  *
- * Monospace on the title and the date, on purpose. Both are things a developer reads as data rather
- * than prose, and a fixed advance is what makes a column of them line up when nothing here draws a
- * column rule. The badge stays proportional — it is a label, not a value.
- *
- * No star. Every row that reaches this component is a favourite, so a filled star on all of them
- * would be decoration marking nothing, unlike on a card, where it distinguishes one card from its
- * neighbours.
+ * @remarks
+ * The title and date are monospaced so they line up into columns with no rule drawn between them;
+ * the badge stays proportional as a label. No star: every row here is already a favourite, so a
+ * star on all of them would mark nothing.
  */
 export function ItemRow({ item }: { item: ItemSummaryViewModel }) {
     const accent = item.itemType.color;
@@ -31,16 +27,13 @@ export function ItemRow({ item }: { item: ItemSummaryViewModel }) {
 
             <span className="min-w-0 flex-1 truncate font-mono text-sm">{item.title}</span>
 
-            {/* The badge and the date travel together rather than sitting at opposite ends of the
-                row: they are both metadata about the same line, and `flex-1` on the title was
-                throwing them as far apart as the viewport allowed. Both get a fixed width so they
-                form two straight columns down the list — a ragged right edge is what made a dense
-                list look loose. */}
+            {/* Badge and date sit together in a fixed-width group, not at the row's far edge, so
+                they form two straight columns down the list rather than tracking the title's
+                `flex-1` width. */}
             <div className="flex shrink-0 items-center gap-3">
-                {/* Coloured by the type rather than by a variant, the same way a card's left border
-                    and a collection's accent are: the colour is the type's, and it is
-                    configuration, so it arrives as a runtime value Tailwind cannot have a class
-                    for. */}
+                {/* Coloured by the item type, like a card's left border and a collection's accent:
+                    the colour is configuration, so it arrives as a runtime value Tailwind has no
+                    class for. */}
                 <span
                     className="hidden w-20 justify-center rounded-md border px-1.5 py-0.5 text-xs sm:inline-flex"
                     style={{ borderColor: accent, color: accent }}
