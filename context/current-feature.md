@@ -57,6 +57,14 @@ present-tense rules. `{@link}` only for symbols imported into or declared in the
 
 - Part 3 of the overhaul: 89 files in `components/`, plus the drawer trio held back for
   reconciliation.
+- **Part 4 of the overhaul — the files outside `src/`** (added 2026-09-03). ~14 files in two
+  commits: `next.config.ts`, `.env.example`, `prisma/schema.prisma`, `prisma/seed.ts`,
+  `prisma/seed-data.ts`, `vitest.integration.config.ts`, and the 8 `scripts/` files. Same
+  lab-notebook comments as the `src/` files had — `next.config.ts` (the CSP config) worst of all.
+  The spec's **Part 4** section carries the file-by-file state, what stays out, and the verification
+  notes (`docs:comments-only` cannot see `.env.example` / `.prisma` / `.py`, so those get a hand
+  check plus `npx prisma validate` and the build). Runs **after Part 3**. To start it later:
+  `/clear`, then `/feature load code-docs-overhaul-spec.md part 4`, then `/feature start`.
 - Independent of the rebrand, so they can land before the `devstash` branch is cut: **demo content
   for a new account**, and the missing **`error.tsx` / `not-found.tsx` / `loading.tsx`**.
 - Left over from #117: 17 `file.ts#L42` anchors across two tracked `docs/` files are unchecked by

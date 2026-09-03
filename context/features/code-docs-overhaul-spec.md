@@ -8,6 +8,12 @@ Out of scope, and deliberately: the 48 `*.test.ts` suites, `scripts/`, `prisma/`
 configuration files, and `prototypes/`. The planning prose — `README.md`, `context/`, `docs/` — was a
 separate feature and is already done.
 
+> **Extended 2026-09-03, after Part 2.** An audit of the "out of scope" files found the same
+> lab-notebook comments in `next.config.ts`, `.env.example`, `prisma/schema.prisma`, `prisma/seed*.ts`
+> and most of `scripts/`. **Part 4 — "the rest"** brings those ~14 files up to the standard, after
+> Part 3. `prototypes/`, the test suites and the trivial/clean root configs stay out. See
+> the **Part 4** section at the end of this spec.
+
 ## Why
 
 **This codebase has no documentation convention.** Across all 197 source files there are zero TSDoc
@@ -256,3 +262,69 @@ they are only visible once a file's real consumers are read: part 1a found a hea
 wrong symbol and a comment claiming four stat cards where the page renders two; part 1b found two
 orphaned doc blocks, where one symbol's description sat stranded above a different symbol, leaving
 the documented function with none. Fix them in the pass that finds them and name them in the commit.
+
+## Part 4 — the files outside `src/` (added 2026-09-03, after Part 2)
+
+The original scope stopped at `src/` to keep the overhaul finishable. That line held for Parts 1–3.
+Part 4 closes the gap it left: the non-`src/` files are written in the same voice as the source
+files were, so they carry the same history, symptoms, argument and first person — in
+`next.config.ts` (the CSP config) as heavily as anywhere in `src/`.
+
+Same standard, same voice rules, same "comments only, no behaviour change" constraint. Runs **after
+Part 3**, as its own branch, commits, merge and push.
+
+### Files in, and why
+
+**~14 files, two commits.**
+
+**Commit 1 — root config and `prisma/` (6):**
+
+| File | State going in |
+|------|---------------|
+| `next.config.ts` | ~57 comment lines. The worst of the set, and security-critical. "The layer that was missing", "Two findings that reached production without it", "rendered as a broken-document box", "deliberately after the rule above", "Belt and braces", "a real bug fix rather than a relaxation for convenience". History + symptoms + argument throughout. |
+| `.env.example` | 153 lines. Not code — a committed, documented file. Same genre: "which is what made it look like a page bug", "the routine hour-long confusion", "which once pointed a local run at the live database", "Deliberate override" / "deliberately so" ×3, "not the trade we want". Also duplicates rationale now living in `src/` headers (the `verify-full` paragraph, Resend async delivery, the R2 private-bucket reasoning). Reduce each var to *what it is · where to get it · required or optional*; drop what the source now carries. `#`-comment file, so `docs:comments-only` cannot verify it — check by hand. |
+| `prisma/schema.prisma` | ~82 comment lines, **mixed**. Keep the genuine constraint docs (the partial-index / NULL-`userId` explanation, the prisma#29282 bug note, the `editedAt` vs `updatedAt` rule). Cut only the narrative: "Deliberately not `@updatedAt`", "Deliberately not an `upsert`", "pinning an old item drops it to the bottom". `.prisma` file — verify by hand plus `npx prisma validate`. |
+| `prisma/seed.ts` | ~32 comment lines. "Deliberately not an `upsert`: …" — the same paragraph as the schema, duplicated. |
+| `prisma/seed-data.ts` | ~20 comment lines. |
+| `vitest.integration.config.ts` | ~20 comment lines, mostly declarative and fine — one chatty line to trim. Light touch. |
+
+**Commit 2 — `scripts/` (8):**
+
+`check-doc-links.ts`, `clear-users.ts`, `sweep-unverified.ts`, `sync-monaco.ts`, `test-db.ts`,
+`test-email.ts`, `verify-user.ts`, `verify-comments-only.py`.
+
+`verify-user.ts` is the notable one — "precisely how the first attempt at this feature reached
+'done'", "which was the flaw in the first version". `verify-comments-only.py` got a good header in
+Part 2a and needs little. The rest are un-audited but written in the house style, so expect the
+same.
+
+### Files deliberately still out
+
+- `prototypes/homepage/` — a plain HTML/CSS/JS mockup outside the Next app.
+- The `*.test.ts` / `*.integration.test.ts` suites.
+- `prisma/migrations/**` — applied migrations are immutable.
+- Trivial or already-clean root configs: `prisma.config.ts`, `vitest.config.ts`,
+  `vitest.server-only.ts`, `eslint.config.mjs`, `postcss.config.mjs`, `.prettierrc`,
+  `.prettierignore`, `.gitignore`, `package.json`, `tsconfig.json`, `components.json`.
+- `README.md`, `context/`, `docs/` — done in #117.
+
+### Verification
+
+`.ts` files (`next.config.ts`, the vitest config, the seed files) — `npm run docs:comments-only`
+covers them. `.env.example`, `.prisma` and `.py` — verify comments-only by hand (every changed line
+inside a comment) plus `npm run build`, `npx prisma validate`, `npm test`, `npm run lint`.
+`docs:links` only scans `src/`, and TSDoc `{@link}` is not used outside it, so keep every
+cross-reference in Part 4 files as prose (symbol + file named in words).
+
+### How to run it, later
+
+Part 3 first. Then, in a fresh session:
+
+```
+/clear
+/feature load code-docs-overhaul-spec.md part 4
+/feature start
+```
+
+The spec describes all of Parts 1–4, so the `load` call must say **part 4** — it cannot tell which
+part is starting otherwise.
