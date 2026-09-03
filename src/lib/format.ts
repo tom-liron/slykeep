@@ -1,4 +1,13 @@
-/** Format an ISO 8601 date or timestamp as e.g. "Jan 15", always in UTC. */
+/**
+ * Display formatting for dates, byte counts and names.
+ *
+ * Presentational helpers used across the dashboard — cards, rows, the profile page, the billing
+ * panel, the avatar. View models serialize dates to ISO strings and leave formatting to the
+ * surface, which is where these come in. All date output is UTC, so a row reads the same wherever it
+ * is opened from.
+ */
+
+/** Formats an ISO 8601 date or timestamp as e.g. "Jan 15" — month and day, UTC. */
 export function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString("en-US", {
         month: "short",
@@ -8,10 +17,10 @@ export function formatDate(iso: string): string {
 }
 
 /**
- * Format an ISO 8601 date or timestamp as e.g. "January 15, 2026", always in UTC.
+ * Formats an ISO 8601 date or timestamp as e.g. "January 15, 2026" — with the year, UTC.
  *
- * Separate from `formatDate` because that one omits the year, which is right for a card showing
- * something touched recently and wrong for a join date that is usually not from this year.
+ * For dates where the year carries information, such as an account's join date. {@link formatDate}
+ * drops the year, which suits a card showing recent activity.
  */
 export function formatLongDate(iso: string): string {
     return new Date(iso).toLocaleDateString("en-US", {
@@ -25,9 +34,8 @@ export function formatLongDate(iso: string): string {
 /**
  * The name to greet someone by, e.g. "John Doe" → "John".
  *
- * `UserViewModel.name` falls back to the email address when the account has no name — every
- * OAuth-less registration that skipped it — so "Welcome back, john@example.com!" is a real
- * possibility. Addresses are reduced to their local part instead.
+ * `UserViewModel.name` falls back to the email address when the account has no name, so the greeting
+ * can be handed an address. An address is reduced to its local part rather than shown whole.
  */
 export function getFirstName(name: string): string {
     const first = name.trim().split(/\s+/).filter(Boolean)[0] ?? "";
@@ -38,9 +46,8 @@ export function getFirstName(name: string): string {
 /**
  * A byte count as e.g. "12 KB" or "1.4 MB".
  *
- * Binary units (1024), which is what every file manager a developer has open reports, and one
- * decimal place only above a kilobyte — "1.4 MB" is useful, "1,468,006 bytes" and "1.400391 MB" are
- * both noise on a card.
+ * Binary units (1024 per step), matching what a file manager reports. One decimal place above a
+ * kilobyte; a whole number prints without one ("5 MB", not "5.0 MB").
  */
 export function formatFileSize(bytes: number): string {
     if (bytes < 1024) {
@@ -56,7 +63,7 @@ export function formatFileSize(bytes: number): string {
         unit += 1;
     }
 
-    // Whole numbers keep no decimal: "5 MB", not "5.0 MB".
+    // One decimal place; `Math.round` drops a trailing ".0" on its own.
     const rounded = Math.round(size * 10) / 10;
 
     return `${rounded} ${units[unit]}`;

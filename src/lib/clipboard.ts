@@ -1,16 +1,20 @@
 import { toast } from "sonner";
 
 /**
- * Put text on the clipboard and report the outcome, for every copy control in the app.
+ * The clipboard write behind every copy control, with its success and failure toasts.
  *
- * The toasts live here rather than at each call site because "copy" is one action with one pair of
- * outcomes, and the card's icon and the drawer's button are the same action reached two ways. Two
- * copies of the wording is how they start saying different things.
+ * `CopyItemButton` and the drawer toolbar both call {@link copyToClipboard}: one action reached two
+ * ways, so the wording lives here rather than at each call site. The text may still be in flight —
+ * item cards copy a body that list queries never load — so {@link writeClipboardText} accepts a
+ * promise.
+ */
+
+/**
+ * Writes text to the clipboard and shows the outcome toast.
  *
- * `text` may be a promise, and that is the whole reason this is not a one-line `writeText` call —
- * see `writeClipboardText`.
- *
- * Returns whether the write succeeded, for callers that need to know; the toast is already handled.
+ * Resolves `text` (which may be a promise), writes it, and reports success or failure through
+ * sonner. Returns whether the write succeeded, for a caller that needs to branch; the toast is
+ * already shown.
  */
 export async function copyToClipboard(text: string | Promise<string>): Promise<boolean> {
     try {
@@ -18,24 +22,23 @@ export async function copyToClipboard(text: string | Promise<string>): Promise<b
         toast.success("Copied to clipboard");
         return true;
     } catch {
-        // One message for both halves — a failed fetch and a refused clipboard are the same fact to
-        // the person who clicked: it is not on the clipboard.
+        // A failed fetch and a refused clipboard are one fact to the person who clicked: the text is
+        // not on the clipboard. One message covers both.
         toast.error("Could not copy to clipboard");
         return false;
     }
 }
 
 /**
- * The clipboard write itself, accepting text that has not arrived yet.
+ * The clipboard write itself, accepting text that has not resolved yet.
  *
- * Safari permits a clipboard write only while the gesture that triggered it is still active, and an
- * awaited `fetch` ends it — so `writeText(await response.text())` is refused there even though
- * Chrome allows it. `ClipboardItem` takes the *pending* promise for exactly this case: the write is
- * registered inside the gesture and settles when the text lands. That is what lets a copy control
- * fetch the body it is copying, which the item cards have to do because list queries never load one.
- *
- * `writeText` remains the fallback for anywhere `ClipboardItem` is missing, and is what a caller
- * passing a plain string effectively gets either way.
+ * @remarks
+ * Safari allows a clipboard write only while the triggering user gesture is still on the stack, and
+ * an awaited `fetch` ends it — so `writeText(await response.text())` is refused there though Chrome
+ * allows it. Passing the pending promise to `ClipboardItem` registers the write inside the gesture
+ * and lets it settle when the text arrives, which is what lets a copy control fetch the body it is
+ * copying. `writeText` is the fallback where `ClipboardItem` is absent, and is effectively what a
+ * caller passing a plain string gets either way.
  */
 async function writeClipboardText(text: string | Promise<string>): Promise<void> {
     if (typeof ClipboardItem === "function") {
