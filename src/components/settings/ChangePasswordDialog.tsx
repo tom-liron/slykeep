@@ -22,15 +22,11 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { EMPTY_ACCOUNT_STATE } from "@/types/account";
 
 /**
- * The settings page's "Change password" control and the form behind it.
+ * The settings page's "Change password" row control and the form behind it.
  *
- * Behind a trigger rather than inline, so every row in the panel reads the same way: a label, a line
- * of copy, and one control. Three password fields sitting open on a page nobody came to change their
- * password on is a form to scroll past, not an offer.
- *
- * A plain `Dialog`, not the `AlertDialog` the delete row uses — that primitive exists to make a
- * destructive confirmation deliberate, and this is an ordinary form whose worst outcome is a
- * rejection message.
+ * Behind a trigger so every panel row reads the same way — a label, a line of copy, one control.
+ * A plain `Dialog`, not the delete row's `AlertDialog`: this is an ordinary form whose worst
+ * outcome is a rejection message.
  */
 export function ChangePasswordDialog() {
     const [open, setOpen] = useState(false);
@@ -65,18 +61,15 @@ export function ChangePasswordDialog() {
 }
 
 /**
- * Changes the password on a credentials account.
+ * Changes the password on a credentials account, via the `changePassword` Server Action.
  *
- * Rendered only when the account has a password — a GitHub-only account has none to change, and the
- * action refuses the call independently rather than trusting that this component was the caller.
+ * Rendered only when the account has a password; the action re-checks that independently. No
+ * client-side validation pass — the server is consulted anyway to verify the current password, so
+ * a second rule set on the client would only drift.
  *
- * No client-side validation pass, unlike `ResetPasswordForm`. That one is unauthenticated and worth
- * sparing a round trip; here the server has to be consulted anyway to check the current password,
- * so a second set of rules on the client would only be a second place for them to drift.
- *
- * A separate component from the dialog on purpose: Radix unmounts the content on close, so the
- * fields and the action state clear themselves and there is no `reset()` to remember. Failures keep
- * the dialog open, which is the only place their messages can be read.
+ * A separate component from the dialog: Radix unmounts the content on close, so the fields and
+ * action state clear with no `reset()` to remember. Failures keep the dialog open, where the
+ * message can be read.
  */
 function ChangePasswordForm({ onChanged }: { onChanged: () => void }) {
     const [state, formAction, isPending] = useActionState(changePassword, EMPTY_ACCOUNT_STATE);

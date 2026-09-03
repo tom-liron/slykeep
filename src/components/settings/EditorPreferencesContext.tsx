@@ -6,14 +6,13 @@ import { DEFAULT_EDITOR_PREFERENCES } from "@/config/editor";
 import type { EditorPreferences } from "@/types/editor";
 
 /**
- * The account's editor preferences as seen by everything that renders from them.
+ * The React context and hooks for the account's editor preferences, read by every editor in the
+ * app.
  *
- * Split from `EditorPreferencesProvider`, which holds the state and the save, so that the module the
- * *editors* import reaches nothing but React and a config object. The provider imports the Server
- * Action, and a Server Action module imports Prisma: in the browser Next replaces that import with a
- * network reference, but anything resolving the module graph literally — a unit test rendering
- * `MarkdownEditor` to static markup — would follow it all the way to a database client. One file
- * would have made every future component test that mounts an editor need a database URL.
+ * Split from `EditorPreferencesProvider` (which holds the state and the save) so the module the
+ * editors import reaches nothing but React and a config object. The provider imports the Server
+ * Action, which imports Prisma; a unit test that renders an editor to static markup would follow
+ * that graph to a database client if the two were one file.
  */
 
 export interface EditorPreferencesContextValue {
@@ -25,13 +24,11 @@ export interface EditorPreferencesContextValue {
 export const EditorPreferencesContext = createContext<EditorPreferencesContextValue | null>(null);
 
 /**
- * The preferences to render with.
+ * The preferences to render an editor with.
  *
- * Deliberately tolerant of a missing provider, unlike `useSidebar`, which throws: the editors are
- * the callers here, and they are rendered in places that have no session behind them — a unit test
- * rendering `MarkdownEditor` to static markup, or any future surface outside the dashboard layout.
- * Falling back to the defaults there gives exactly what those editors showed before preferences
- * existed, which is a better failure than a crash in a component whose job is displaying text.
+ * Falls back to {@link DEFAULT_EDITOR_PREFERENCES} with no provider, rather than throwing: the
+ * editors call this, and they render outside the dashboard layout too (a unit test, a future
+ * surface), where a crash in a text-display component would be the worse outcome.
  */
 export function useEditorPreferences(): EditorPreferences {
     return useContext(EditorPreferencesContext)?.preferences ?? DEFAULT_EDITOR_PREFERENCES;

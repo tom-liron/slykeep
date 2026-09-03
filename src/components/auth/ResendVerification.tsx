@@ -8,22 +8,17 @@ import { Input } from "@/components/ui/input";
 /**
  * "Send me another link" — the way out of an expired, spent, or never-delivered verification email.
  *
- * Without it an unverified account is simply lost: the password is correct, the account exists, and
- * nothing in the UI can issue a new link. `POST /api/auth/verify-email` answers 200 for every input
- * so that this control cannot be used to test which addresses are registered, which is why the
- * confirmation below is phrased as what *would* happen rather than what did.
+ * Rendered by `SignInForm` when a correct password belongs to an unverified account, which
+ * the UI otherwise cannot rescue. `POST /api/auth/verify-email` answers 200 for every input so this
+ * cannot test which addresses are registered, so the confirmation is phrased as what *would*
+ * happen.
  *
- * Deliberately not a `<form>`, which is what it used to be. Its only caller renders it *inside*
- * `SignInForm`'s form, and a form cannot contain a form: the parser drops the inner tag, so the
- * submit handler never ran and clicking the button navigated to `/sign-in?email=…` instead. React
- * says as much in the console — "In HTML, <form> cannot be a descendant of <form>" — and the control
- * had never worked. A plain container with a `type="button"` avoids the nesting entirely rather than
- * relying on the parent to keep its distance.
- *
- * That leaves the field a child of the *sign-in* form, which is why it carries no `name`: a second
- * `email` entry would ride along with the credentials on submit. Nothing here reads `FormData`, so
- * the field has no need of one. Enter is handled explicitly for the same reason — without it the key
- * would submit the sign-in form underneath, retrying the password that just failed.
+ * @remarks
+ * A plain container with a `type="button"`, not a `<form>`: it renders inside `SignInForm`'s
+ * form, and a form may not contain a form. That also makes the field a child of the sign-in form,
+ * so it carries no `name` (nothing here reads `FormData`, and a second `email` entry would ride
+ * along with the credentials), and Enter is handled explicitly so the key does not resubmit the
+ * sign-in form.
  */
 export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: string }) {
     const [email, setEmail] = useState(defaultEmail);

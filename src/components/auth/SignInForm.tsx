@@ -12,13 +12,20 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { EMPTY_AUTH_STATE } from "@/types/auth";
 
+/**
+ * The email/password sign-in form, driven by the `signInWithCredentials` Server Action through
+ * `useActionState`.
+ *
+ * One of the two controls on `/sign-in` (the other is `GitHubSignInButton`). `callbackUrl` travels
+ * as a hidden field because a Server Action cannot read the URL of the page that invoked it. On a
+ * rejected credential it renders {@link ResendVerification} when the account is unverified.
+ */
 export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
     const [state, formAction, isPending] = useActionState(signInWithCredentials, EMPTY_AUTH_STATE);
 
-    // `noValidate` because `type="email"` otherwise lets the browser reject a malformed address
-    // before the action runs — silently, since the native bubble does not survive a React form
-    // submission. The field produced no message at all. Our own validation reports it instead,
-    // matching the register form.
+    // `noValidate` so a malformed `type="email"` is caught by this form's own validation rather
+    // than the browser's native bubble, which does not survive a React form submission and so
+    // produces no message. Matches the register form.
     return (
         <form action={formAction} noValidate className="space-y-4">
             {/* Submitted rather than read: a Server Action has no access to the URL of the page it
@@ -36,11 +43,10 @@ export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
                     key={state.email}
                     defaultValue={state.email}
                     {...invalidProps("email", state.fields?.email)}
-                    // Overrides the `aria-invalid` above, and only that one: a rejected credential
-                    // (`state.error`) marks both fields, since which one was wrong is deliberately
-                    // not disclosed, while a format problem marks only its own. The
-                    // `aria-describedby` from the spread is untouched — there is no message to point
-                    // at unless this field itself was rejected.
+                    // Overrides only the `aria-invalid` from the spread: a rejected credential
+                    // (`state.error`) marks both fields, since which one was wrong is not
+                    // disclosed, while a format problem marks only its own. The `aria-describedby`
+                    // is untouched — no message to point at unless this field was rejected.
                     aria-invalid={state.error || state.fields?.email ? true : undefined}
                 />
             </AuthField>

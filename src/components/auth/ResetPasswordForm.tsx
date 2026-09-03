@@ -56,13 +56,10 @@ export function ResetPasswordForm({ token }: { token: string }) {
             });
 
             if (response.ok) {
-                // `isPending` stays true through the redirect: the button keeps its disabled state
-                // until the next page takes over, which is what stops a second submission against a
-                // token that has already been spent.
-                //
-                // Not signed in from here. The password is new and unproven, and sending them
-                // through the form they already know is one step, not a favour worth the ambiguity
-                // of a session that appeared without anyone typing a password.
+                // `isPending` stays true through the redirect, so the button stays disabled until
+                // the next page takes over and a second submission cannot spend the token again.
+                // Not signed in from here — the new password is unproven, so the user signs in
+                // through the form as normal.
                 router.push("/sign-in?reset=1");
                 return;
             }

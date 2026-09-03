@@ -1,12 +1,8 @@
 /**
  * The "or" rule between the OAuth button and the credentials form.
  *
- * Extracted rather than copied the moment `/register` grew a GitHub button too: it is five lines of
- * markup, but they are five lines whose *only* job is to make the two auth pages look like the same
- * screen, so a copy that drifts is a copy that defeats the point of having it.
- *
- * Presentational and server-safe — no state, no handlers — so it stays out of both pages' client
- * boundary.
+ * Shared by `/sign-in` and `/register` so the two pages keep an identical divider. Presentational
+ * and server-safe — no state, no handlers.
  */
 export function AuthDivider() {
     return (
