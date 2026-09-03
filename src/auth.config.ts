@@ -3,22 +3,30 @@ import GitHub from "next-auth/providers/github";
 import type { NextAuthConfig } from "next-auth";
 
 /**
- * The edge-safe half of the auth configuration: providers and nothing else.
+ * The edge-safe half of the NextAuth configuration: the provider list and the sign-in page, with no
+ * database-dependent initialization.
  *
- * `src/proxy.ts` runs on the edge runtime and imports *this* file, never `auth.ts`. The Prisma
- * client is generated with `runtime = "nodejs"` and `src/lib/prisma.ts` is marked `server-only`, so
- * pulling the adapter into the proxy's module graph would break the build. Splitting the config is
- * what keeps the adapter out of it.
+ * The configuration is split in two because `src/proxy.ts` runs on the edge runtime and imports
+ * *this* file rather than `auth.ts`. The Prisma client is generated with `runtime = "nodejs"` and
+ * `lib/prisma.ts` is `server-only`, so pulling the adapter into the proxy's module graph breaks the
+ * build; keeping the adapter out is what this file is for. `auth.ts` spreads this configuration and
+ * adds the adapter, the JWT callbacks and the real credentials check on top.
  *
- * The GitHub provider reads `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` from the environment on its
- * own — v5 infers `AUTH_<PROVIDER>_ID` / `_SECRET` by convention, so they are not named here.
+ */
+
+/**
+ * The providers the application accepts, and the page NextAuth sends people to.
  *
- * Credentials is declared here as a placeholder that always fails. The proxy itself never uses it —
- * it only reads the JWT, and the sign-in form and callback route are both served by the `auth.ts`
- * instance. The entry exists because `auth.ts` finds it *by id* and substitutes the working
- * provider in its place, which keeps this file the single list of who can sign in. Delete it and
- * credentials silently stops being an option; the real check cannot live here because it needs
- * bcrypt and Prisma, neither of which can cross into the edge bundle.
+ * @remarks
+ * The GitHub provider reads `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` from the environment itself —
+ * NextAuth v5 infers `AUTH_<PROVIDER>_ID` / `_SECRET` by convention — so they are not named here.
+ *
+ * Credentials is a placeholder that always fails. The proxy never uses it: it reads the JWT only,
+ * and the sign-in form and callback route are both served by the `auth.ts` instance. The entry
+ * exists because `auth.ts` finds it *by id* and substitutes the working provider, which keeps this
+ * file the single list of who can sign in — removing it silently removes credentials sign-in. The
+ * real check cannot live here: it needs bcrypt and Prisma, neither of which can cross into the edge
+ * bundle.
  */
 export default {
     // Points NextAuth's own redirects at the custom page instead of its built-in one — the error

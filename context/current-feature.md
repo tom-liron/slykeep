@@ -12,23 +12,29 @@ Not Started
 
 <!-- Populated by `/feature load`. -->
 
-### Next up: code documentation, part 1b
+### Next up: code documentation, part 2
 
 The source-documentation overhaul is under way. `context/features/code-docs-overhaul-spec.md` is the
 authority — its four-part table carries the batching, and `context/coding-standards.md`
 § Documentation carries the standard itself.
 
-**Part 1a is done** (`src/config/`, 8 files, entry 118). **Part 1b is next**: 39 files in three
-commits — `types/` 10 + `hooks/` 6 · `server/` 13 · `actions/` 7 + `auth.ts`, `auth.config.ts`,
-`proxy.ts` 3. Load it with `/feature load code-docs-overhaul-spec.md` and say **part 1b**, since the
-spec describes all four parts and cannot tell which one is starting.
+**Parts 1a and 1b are done** (`src/config/` 8 files, entry 118; the server half, 39 files, entry
+119). **Part 2 is next**: 61 files in five commits — `lib/` security and the data boundary 11 ·
+`lib/` domain rules 11 · `lib/` AI and editor 10 · `app/api` 12 · `app/` pages 17. Load it with
+`/feature load code-docs-overhaul-spec.md` and say **part 2**, since the spec describes all four
+parts and cannot tell which one is starting.
 
 Every pass ends with both proofs green: `npm run docs:comments-only` and `npm run docs:links`,
 alongside `npm test`, `npm run lint` and `npm run build`.
 
-**One correction lands in part 1b:** `src/actions/items.ts` calls `Tag` rows "global and shared
-across users". Tags have carried `userId` and `@@unique([userId, normalized])` since #112. The other
-two known corrections are in `lib/`, so they belong to part 2.
+**Two corrections land in part 2**, both noted in the spec: `lib/r2.ts` cites `current-feature.md`
+for why the bucket is private (the rationale is in `project-overview.md` §10, Phase 4), and
+`lib/rate-limit.ts` describes itself as throttling "the auth endpoints" and refers to "the five
+budgets" — there are 11, covering uploads, checkout and the four AI actions.
+
+**Two standard changes from part 1b apply from here on.** A module header goes **below** the
+imports, with the first declaration given its own block so the header cannot attach to it. And no
+paragraph opens by negating something — say what the thing is before ruling an alternative out.
 
 ### Standing items for Tom, not Claude
 
@@ -42,6 +48,8 @@ two known corrections are in `lib/`, so they belong to part 2.
 
 ### Queued behind the documentation work
 
+- Part 3 of the overhaul: 89 files in `components/`, plus the drawer trio held back for
+  reconciliation.
 - Independent of the rebrand, so they can land before the `devstash` branch is cut: **demo content
   for a new account**, and the missing **`error.tsx` / `not-found.tsx` / `loading.tsx`**.
 - Left over from #117: 17 `file.ts#L42` anchors across two tracked `docs/` files are unchecked by

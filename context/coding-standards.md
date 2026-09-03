@@ -124,6 +124,23 @@ Never write, in any comment:
   *it turns out*. If a rule needs enforcing, state the rule.
 - Anything the next line already says plainly.
 
+#### Never open a paragraph by negating something
+
+A sentence that starts *"Not `updatedAt`:"*, *"Not simply X"*, *"Not a width breakpoint"* asks the
+reader to hold a term they have not been introduced to and to work out why it was ever a candidate.
+The reader who needs the paragraph is exactly the one who cannot supply that context.
+
+Say what the thing **is** and what it is **for**. If a plausible-looking alternative genuinely has
+to be ruled out, introduce it — where it comes from, what it would mean — and then rule it out.
+
+| Avoid | Prefer |
+|---|---|
+| "Not `updatedAt`: that column also moves when the item is favourited or pinned." | "When the item's content last changed. `Item` also has an `updatedAt`, which Prisma stamps on every write to the row — including a favourite or pin toggle — so it answers *when was this row last written*, not *when did the content change*. `editedAt` is set by hand on the two paths that change content, which is why every listing sorts by it." |
+| "Not a width breakpoint." | "Pointer type, not available width: a touch laptop at 1440px has a finger on it and a mouse at 390px does not." |
+
+This is the same failure as `@param items - An array of items`, in reverse: one restates what the
+signature says, the other withholds what the reader came for.
+
 ### File headers
 
 **Every source file opens with a header, without exception.** Headers are how this repository is
@@ -307,7 +324,7 @@ cannot. The choice between the two forms is not stylistic — it is whether the 
 
 - **In scope** — the symbol is imported into this file or declared in it: `{@link Symbol}`.
   Go-to-definition follows it from the comment itself, so it is a real link. This holds everywhere a
-  comment can go — inside `@remarks` and `@see`, and in a module header floating above the imports.
+  comment can go — inside `@remarks` and `@see`, and in a module header.
   **Link every in-scope symbol the prose names**, not one per block: a header that names six
   constants and links one is the problem this rule exists to fix.
 - **Not in scope** — a symbol in a module this file does not import: `{@link}` does **not** resolve,
@@ -320,9 +337,19 @@ Configuration modules are the hard case and are not an excuse: `config/` imports
 is imported by everything, so most of what its documentation names — the queries and pages that
 consume it — can only be prose. Its own exports still link each other.
 
-A module header that describes the file goes **above the imports**. Left directly above the first
-declaration it silently becomes that declaration's documentation, so hovering an unrelated type
-shows the whole module description.
+A module header that describes the file goes **below the imports**, separated from the first
+declaration by a blank line. Above the import block it reads as a preamble to machinery rather than
+as the file's own description, and it puts the header furthest from the code it describes.
+
+The one thing to get right when placing it there: left *directly* above the first declaration it
+silently becomes that declaration's documentation, so hovering an unrelated type shows the whole
+module description. Give the first declaration its own block — every module worth a header has a
+first export worth a line — and the two stay separate.
+
+A file whose directive comes first (`"use client"`, `"use server"`) keeps that on line 1; the header
+still follows the imports.
+
+A file with no imports opens with the header.
 
 Never cite a line number. `items.ts#L42` is wrong after the next edit above it, and nothing checks
 it.

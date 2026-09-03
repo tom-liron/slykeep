@@ -12,12 +12,30 @@ import { ABSENT_USER_HASH } from "@/server/passwords";
 import authConfig from "./auth.config";
 
 /**
+ * The Node-runtime authentication setup: the complete NextAuth instance the application signs in
+ * with.
+ *
+ * The other half of the split `auth.config.ts` describes. This file adds what cannot run on the edge
+ * — the Prisma adapter, the real credentials `authorize`, and the callbacks that carry the user id
+ * into the token — and exports the four bindings the rest of the application uses: `auth()` (read by
+ * `getCurrentUserId` on every authenticated request), `handlers` (the `api/auth/[...nextauth]`
+ * route), and `signIn` / `signOut` (the actions in `actions/auth.ts` and `actions/account.ts`). The
+ * proxy must not import from here.
+ *
+ * @remarks
+ * This module is where account enumeration is defended against: {@link credentials} makes a wrong
+ * password, an unknown address and an OAuth-only account indistinguishable in both their answer and
+ * their timing, and it is where the sign-in rate limit is spent.
+ */
+
+/**
  * Thrown when the password was right but the address was never confirmed.
  *
- * A `CredentialsSignin` subclass rather than a bare `null` so the sign-in form can tell this apart
+ * @remarks
+ * A `CredentialsSignin` subclass rather than a bare `null`, so the sign-in form can tell this apart
  * from a bad password and offer to resend the link — a generic "invalid email or password" would
- * strand someone whose credentials are perfectly correct. `code` is the only field Auth.js carries
- * through to the caller; everything else about the error is flattened.
+ * strand someone whose credentials are correct. `code` is the only field Auth.js carries through to
+ * the caller; everything else about the error is flattened.
  */
 class EmailUnverifiedError extends CredentialsSignin {
     code = EMAIL_UNVERIFIED_CODE;
@@ -31,14 +49,15 @@ class RateLimitedError extends CredentialsSignin {
 /**
  * The real email/password check, replacing the always-null placeholder in `auth.config.ts`.
  *
- * Every failure returns `null` and none of them say why — not in the response and not in how long
- * it takes to arrive. A wrong password, an unknown email, and an OAuth-only account are one
- * outcome from the outside, so the form cannot be used to enumerate accounts.
+ * @remarks
+ * Every failure returns `null` and none of them say why — not in the response and not in how long it
+ * takes to arrive. A wrong password, an unknown email and an OAuth-only account are one outcome from
+ * the outside, so the form cannot be used to enumerate accounts.
  *
  * The rate limit lives here rather than in the sign-in Server Action because this is the only place
- * every sign-in has to pass through. The action guards the form; `POST /api/auth/callback/credentials`
- * is a public endpoint that a script can drive without ever loading the form, and that script is the
- * threat. Limiting one layer up would have protected the only caller that was never the problem.
+ * every sign-in passes through. The action guards the form;
+ * `POST /api/auth/callback/credentials` is a public endpoint a script can drive without ever loading
+ * the form, and that script is the threat.
  */
 const credentials = Credentials({
     credentials: {
@@ -51,18 +70,16 @@ const credentials = Credentials({
         if (!parsed.success) return null;
 
         // Ahead of the lookup and the bcrypt compare, which are the costs worth capping: five
-        // guesses per quarter hour is what makes an online password attack pointless, and it is also
-        // ~2.5s of CPU an unauthenticated caller can no longer spend at will.
+        // guesses per quarter hour makes an online password attack pointless, and it is also ~2.5s
+        // of CPU an unauthenticated caller can no longer spend at will.
         //
         // Keyed by address *and* address block. Per-IP alone would lock every user behind one office
         // NAT out because of one of them; per-email alone would let anyone lock an account they know
-        // the address of out of their own account, which is a denial of service handed to the
-        // attacker. Together, each pair gets its own budget.
+        // the address of out of their own account. Together, each pair gets its own budget.
         //
-        // Costs a token on success too. That is deliberate and cheap: the budget is per person per
-        // account, so it bounds a legitimate user at five sign-ins a quarter hour — far more than
-        // anyone does — while a scheme that refunded correct guesses would have to reveal, by its
-        // timing, which guesses were correct.
+        // A success costs a token too: the budget is per person per account, so it bounds a
+        // legitimate user at five sign-ins a quarter hour, while a scheme that refunded correct
+        // guesses would reveal by its timing which guesses were correct.
         const limit = await checkRateLimit("signIn", await clientIp(), parsed.data.email);
 
         if (!limit.success) throw new RateLimitedError();
@@ -79,19 +96,18 @@ const credentials = Credentials({
             },
         });
 
-        // A null hash means an OAuth-only account (see `User.password` in the schema) — an account
-        // that only ever signed in with GitHub must not be reachable by password. Both that case
-        // and a missing row fall through to the decoy hash rather than returning early, so all
-        // three failures take the same time.
+        // A null hash means an OAuth-only account — one that only ever signed in with GitHub must
+        // not be reachable by password. Both that case and a missing row fall through to the decoy
+        // hash rather than returning early, so all three failures take the same time.
         const hash = user?.password ?? ABSENT_USER_HASH;
         const passwordMatches = await bcrypt.compare(parsed.data.password, hash);
 
         if (!passwordMatches || !user?.password) return null;
 
-        // Deliberately *after* the compare, and this ordering is the whole reason the check is
-        // safe. By this line the caller has proven they know the password, so naming the account's
-        // state discloses nothing they had not already established. Moving it above the compare
-        // would leak which emails are registered and reopen the timing gap the decoy hash closes.
+        // *After* the compare, which is what makes naming this state safe: by this line the caller
+        // has proven they know the password, so the account's existence is not disclosed by the
+        // answer. Above the compare it would leak which addresses are registered and reopen the
+        // timing gap the decoy hash closes.
         if (!user.emailVerified) throw new EmailUnverifiedError();
 
         return { id: user.id, email: user.email, name: user.name, image: user.image };
@@ -99,17 +115,17 @@ const credentials = Credentials({
 });
 
 /**
- * The Node-runtime half of the auth configuration: the edge-safe providers plus the Prisma adapter.
- * Route handlers and server components import from here; the proxy must not (see `auth.config.ts`).
+ * The application's NextAuth instance.
  *
- * `strategy: "jwt"` is required, not preferred. The adapter's default `"database"` strategy reads
- * the session table on every request, which the edge proxy cannot do — the JWT carries the identity
- * instead, so the proxy can authorize without touching Postgres.
+ * @remarks
+ * `strategy: "jwt"` is required rather than preferred. The adapter's default `"database"` strategy
+ * reads the session table on every request, which the edge proxy cannot do; the JWT carries the
+ * identity instead, so the proxy authorizes without touching Postgres.
  */
 export const { auth, handlers, signIn, signOut } = NextAuth({
     ...authConfig,
-    // Substitution, not concatenation: appending would leave the placeholder in the array ahead of
-    // this one and every sign-in would hit it first. Mapping over the edge config also keeps
+    // Substitution, not concatenation: appending would leave the placeholder ahead of this one in
+    // the array and every sign-in would hit it first. Mapping over the edge config also keeps
     // `auth.config.ts` the single list of providers — GitHub passes through untouched.
     providers: authConfig.providers.map((provider) =>
         "id" in provider && provider.id === "credentials" ? credentials : provider,
@@ -118,25 +134,18 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     session: {
         strategy: "jwt",
         /**
-         * Seven days, down from Auth.js's thirty.
+         * Seven days, against Auth.js's default of thirty.
          *
-         * This is a *bound on exposure*, not a fix. Nothing can invalidate a JWT that has already
+         * @remarks
+         * This bounds exposure; it does not revoke. Nothing can invalidate a JWT that has already
          * been issued — the token carries no version claim — so changing a password from `/settings`
-         * or a reset link leaves every other device signed in, and a compromised password cannot
-         * actually be locked out. The real fix is `sessionVersion` (or `passwordChangedAt`) on
-         * `User`, compared on each request; that is a database read per request, which is most of
-         * why `strategy: "jwt"` was chosen over `"database"` above, so it reopens the session
-         * strategy rather than patching it. See `project-overview.md` §11.
+         * or a reset link leaves every other device signed in. The fix is a `sessionVersion` (or
+         * `passwordChangedAt`) on `User`, compared on each request, which is a database read per
+         * request and therefore reopens the session-strategy decision above rather than patching it.
          *
-         * Be precise about what this buys, because it is easy to overstate: Auth.js re-issues the
-         * token on activity (`updateAge`, 24h by default), so this is the **idle** window. It closes
-         * the abandoned-browser and stolen-laptop cases four times sooner than thirty days did. It
-         * does *not* bound a session someone is actively using — that one refreshes itself, and only
-         * revocation ends it.
-         *
-         * Seven rather than fourteen or thirty because the cost of being wrong is asymmetric: a
-         * re-login is an inconvenience, an un-evictable session on a device you no longer control is
-         * not. Raise it here if it proves annoying in practice.
+         * Auth.js re-issues the token on activity (`updateAge`, 24h by default), so this is the
+         * **idle** window: it closes the abandoned-browser and stolen-laptop cases, and does not
+         * bound a session someone is actively using.
          */
         maxAge: 7 * 24 * 60 * 60,
     },
@@ -144,14 +153,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         /**
          * Marks a GitHub sign-up verified.
          *
+         * @remarks
          * The provider's profile mapping does not populate `emailVerified`, so every OAuth account
          * would otherwise land with `null` — making the column mean "verified, or signed up with
-         * GitHub, we cannot tell". That ambiguity would make the column useless as the safety
-         * condition for the account-linking work this feature exists to enable.
+         * GitHub", which is useless as the safety condition for account linking. Asserting it is
+         * sound because GitHub only exposes addresses it has itself verified.
          *
-         * Asserting it is sound because GitHub only ever exposes addresses it has itself verified.
-         * `linkAccount` is the right hook: it fires exactly once, when the `Account` row is created,
-         * so this does not re-run on every subsequent sign-in.
+         * `linkAccount` fires exactly once, when the `Account` row is created, so this does not
+         * re-run on every subsequent sign-in. `sweepUnverifiedAccounts` in `server/unverified.ts`
+         * depends on that: it excludes any user with a linked account, so a failure of this write
+         * cannot get a real GitHub account swept.
          */
         async linkAccount({ user }) {
             await prisma.user.update({

@@ -28,9 +28,10 @@ export const SIDEBAR_RECENT_COLLECTIONS_LIMIT = 5;
  * How many collections and how many recent items the dashboard's summary sections show.
  *
  * @remarks
- * Caps, not page sizes: the dashboard summarises, and offers a "View all" link rather than a page 2
- * — contrast `config/pagination.ts`, which windows a listing. The pinned section is uncapped, its
- * length set by the user one pin at a time.
+ * These are caps on a summary, so what they leave out is reached through the section's "View all"
+ * link. That makes them a different kind of number from the page sizes in `config/pagination.ts`,
+ * which window a listing the reader can page through. The dashboard's pinned section takes no cap at
+ * all — its length is set by the user, one pin at a time.
  */
 export const DASHBOARD_COLLECTIONS_LIMIT = 6;
 export const DASHBOARD_RECENT_ITEMS_LIMIT = 10;

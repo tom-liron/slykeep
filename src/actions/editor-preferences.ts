@@ -6,30 +6,38 @@ import { getCurrentUserId } from "@/server/current-user";
 import type { EditorPreferencesResult } from "@/types/editor";
 
 /**
- * Persists the signed-in account's editor preferences.
+ * The Server Action that persists an account's editor preferences.
  *
- * A Server Action rather than a route handler, by the same rule as the account mutations: the caller
- * needs to know whether it worked and, if not, what to say — no status code, no webhook, no upload.
- * The account comes from the session, so no payload names the user it writes to.
+ * The write end of the editor-preferences feature: `EditorPreferencesRows` on the settings page
+ * calls this from a dropdown's `onChange`, and it validates the set against
+ * `editorPreferencesSchema` before storing it in the `editorPreferences` JSON column.
+ * `getEditorPreferences` in `server/profile.ts` reads it back in the dashboard layout, and every
+ * editor surface receives it through `EditorPreferencesProvider`.
+ */
+
+/**
+ * Stores the signed-in account's editor preferences. The account comes from the session, so no
+ * payload names the user it writes to.
  *
- * It takes the whole preference set rather than the one control that moved. The panel holds all five
- * in state and sends what they should now be, which makes the write idempotent and means a replay
- * cannot compose a shape nobody chose — the alternative, a patch merged server-side, would need a
- * read before every write to do the same job.
+ * @param preferences - The whole preference set, not the one control that moved: the panel holds all
+ * five in state and sends what they should now be, which makes the write idempotent and means a
+ * replay cannot compose a shape nobody chose. Typed `unknown` because it crosses the network and is
+ * parsed below.
  *
- * Nothing is revalidated afterwards. The values are served to the tree by a provider that already
- * holds the new ones — it applied them before this was called — so a revalidation would refetch a
- * layout in order to render exactly what is on screen. The next navigation reads the stored row
- * anyway.
+ * @remarks
+ * Validated here and not only in the panel: an exported action is a callable endpoint, and the
+ * closed option sets are what keep a font size of `0` or an unknown theme out of the column every
+ * editor in the application renders from.
+ *
+ * Nothing is revalidated afterwards. The provider already holds the new values — it applied them
+ * before this was called — so a revalidation would refetch a layout in order to render what is
+ * already on screen, and the next navigation reads the stored row anyway.
  */
 export async function updateEditorPreferences(
     preferences: unknown,
 ): Promise<EditorPreferencesResult> {
     const userId = await getCurrentUserId();
 
-    // Validated here and not only in the panel: this is an exported action, so it is a callable
-    // endpoint, and the closed option sets are what keep a font size of 0 or an unknown theme out
-    // of the column that every editor in the app renders from.
     const parsed = editorPreferencesSchema.safeParse(preferences);
 
     if (!parsed.success) {
