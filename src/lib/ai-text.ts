@@ -1,39 +1,33 @@
 /**
- * The text handling both model calls need, in the one place neither of them owns.
+ * The input-text handling shared by every AI feature: the payload ceiling, and the truncation the
+ * prompt builders apply.
  *
- * It started inside `ai-tags.ts` as `truncateForTagging`, which was right while tagging was the
- * only AI feature and stopped being right the moment a second one needed the same cut — a
- * description module importing a function with "tagging" in its name would be describing the
- * dependency wrongly, and a second `slice` written beside it would be the bug this function exists
- * to prevent, copied.
+ * `ai-tags.ts`, `ai-description.ts`, `ai-explain.ts` and `ai-optimize.ts` all import
+ * {@link truncateForModel} to cut an item's body to a per-feature limit before it goes into a
+ * prompt. {@link AI_PAYLOAD_LIMIT} bounds what any of the four actions will hold in memory before
+ * that truncation runs. Neither belongs to one feature, so both live here.
  */
 
 /**
- * The largest payload any of the four AI actions will consider.
+ * The largest payload any of the four AI actions will accept.
  *
- * **Not a product limit.** An item's content is not capped anywhere and legitimately runs past every
- * per-feature content limit, which is why the prompt builders truncate rather than refuse. This is a
- * bound on what a hand-made request can make the server hold in memory before that truncation gets
- * to run.
- *
- * One number, in the module that owns `truncateForModel`. It was four — `AI_TAG_PAYLOAD_LIMIT`,
- * `AI_DESCRIPTION_PAYLOAD_LIMIT`, `AI_EXPLAIN_PAYLOAD_LIMIT`, `AI_OPTIMIZE_PAYLOAD_LIMIT` — all
- * `100_000`, and the single consumer took `Math.min` of the set. So the per-feature names promised a
- * tuning that could not happen: raising one of them alone changed nothing at all, silently, because
- * the minimum still came from the other three.
+ * @remarks
+ * A bound on the request, not a product limit: an item's content is uncapped and legitimately runs
+ * past every per-feature content limit, which is why the prompt builders truncate rather than
+ * refuse. This is what a hand-made request cannot make the server hold before truncation gets to
+ * run.
  */
 export const AI_PAYLOAD_LIMIT = 100_000;
 
 /**
  * Cuts `content` to `limit` characters without splitting a character in half.
  *
- * JavaScript string indices are UTF-16 code units, so a plain `slice` can land between the two
- * halves of a surrogate pair and produce a lone half — an emoji or a CJK character turned into a
- * replacement glyph in the middle of what the model reads. Spreading into an array iterates by code
- * point, which is what makes the cut land on a real boundary.
- *
- * Head-biased, deliberately: the top of a snippet is its imports and its signature, which is what
- * names it, and the first paragraph of a note is what the note is about.
+ * @remarks
+ * String indices are UTF-16 code units, so a plain `slice` can land between the halves of a
+ * surrogate pair and leave a lone half — an emoji or CJK character turned into a replacement glyph.
+ * Spreading into an array iterates by code point, so the cut lands on a real boundary. Head-biased:
+ * the top of a snippet is its imports and signature, and the first paragraph of a note is what it
+ * is about.
  */
 export function truncateForModel(content: string, limit: number): string {
     if (content.length <= limit) return content;

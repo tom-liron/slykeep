@@ -5,88 +5,65 @@ import type { ItemDraft } from "@/types/ai";
 import type { ItemTypeName } from "@/types/item-type";
 
 /**
- * The rules around the explain model call: which items may be explained, what the model is shown,
- * and what is trusted from what it says back.
+ * Prompt building and response parsing for the "explain this code" model call.
  *
- * Pure functions in `lib/` beside `ai-tags.ts` and `ai-description.ts`, for the same two reasons
- * those files give — a `"use server"` module may only export async functions, and these are the
- * halves that can be wrong without failing to compile.
+ * `actions/ai.ts` calls {@link isExplainableType} and {@link hasExplainableContent} to gate the
+ * feature, {@link buildExplainInput} for the request, and {@link parseExplanation} for what comes
+ * back. Pure functions in `lib/` beside `ai-tags.ts` and `ai-description.ts`, for the reasons those
+ * files give — a `"use server"` module may only export async functions, and these are the halves a
+ * unit test needs without a network.
  */
 
 /**
- * How much of the body the model is shown.
+ * How much of the body the model is shown — three times what tagging and describing use.
  *
- * Three times what tagging and describing use, and the difference is the point rather than
- * generosity. Those two answer a question about the item *as a whole* — a label, a sentence — and
- * the head of the content is enough to say what the thing is. This one answers a question about the
- * content itself, so a cut is not a smaller sample of the same answer: an explanation of a function
- * whose second half was never shown describes code that does not exist. Still a cap, because input
- * is billed by the token and a stashed file can be very long, but set where a realistic snippet or
- * command fits inside it whole.
+ * @remarks
+ * Tagging and describing answer a question about the item as a whole, so the head of the content is
+ * a fair sample. This answers a question about the content itself, where a cut is not a smaller
+ * sample of the same answer: explaining a function whose second half was never shown describes code
+ * that does not exist. Still a cap, since input is billed by the token, but set where a realistic
+ * snippet or command fits whole.
  */
 export const AI_EXPLAIN_CONTENT_LIMIT = 6000;
 
 /**
- * How much room the model gets, reasoning included.
+ * The `max_output_tokens` ceiling for the call, covering reasoning as well as prose.
  *
- * Covers the thinking *and* the prose, for the reason `DESCRIPTION_MAX_OUTPUT_TOKENS` explains:
- * `gpt-5-nano` is a reasoning model and bills its reasoning against `max_output_tokens` before
- * writing a visible character. The prose asked for here is 200–300 words — roughly 400 tokens
- * against the description's 80 — and code is the input that makes a reasoning model think hardest,
- * so the reasoning half wants the headroom even more than the visible half does.
- *
- * **Was 3000, and 3000 was wrong.** It was set by reasoning from the description's 2000 rather than
- * from this call's own shape, and in use it truncated roughly every third explanation: the user got
- * "That explanation was cut short" on a request that had already done all its thinking.
- *
- * The correction is not that a bigger number is worth paying for — it is that the small number was
- * never the cheaper one. `max_output_tokens` is a **ceiling, not a reservation**: a call that
- * finishes in 2,200 tokens is billed for 2,200 whatever this says, so raising it costs exactly
- * nothing on every request that already worked. What it changes is the requests that failed, and
- * those were the expensive ones — OpenAI's reasoning guide is explicit that running out mid-thought
- * bills the input and reasoning tokens with no response to show for it. So one in three clicks was
- * paying full price for a toast. Doubling it makes those cheaper, not dearer.
- *
- * Still far under the ~25,000 that same guide suggests reserving while a prompt is being tuned, and
- * the visible half has its own separate bound in `MAX_EXPLANATION_LENGTH` — so what this number
- * actually limits is a reasoning loop that never terminates, which is the only thing it should.
- *
- * `EXPLAIN_REASONING_EFFORT` was added after this and attacks the same problem from the other side:
- * with the thinking itself cut back, this ceiling should now be unreachable rather than merely
- * roomy. Both are kept — the effort setting is what makes truncation unlikely, and this is what
- * still bounds the cost if a request ever defeats it.
+ * @remarks
+ * `gpt-5-nano` bills reasoning against `max_output_tokens` before any visible character, as
+ * `DESCRIPTION_MAX_OUTPUT_TOKENS` in `ai-description.ts` explains. The prose asked for is
+ * 200–300 words (≈400 tokens) and code makes a reasoning model think hardest, so the reasoning half
+ * needs the headroom more than the visible half. `max_output_tokens` is a ceiling, not a
+ * reservation — a call that finishes early is billed for what it used — so this is set well above
+ * what a completed request needs and far under the ~25,000 OpenAI suggests reserving while a prompt
+ * is tuned. What it bounds is a reasoning loop that never terminates; the visible length has its
+ * own bound in {@link MAX_EXPLANATION_LENGTH}, and {@link EXPLAIN_REASONING_EFFORT} keeps the
+ * thinking short enough that this ceiling should be unreachable.
  */
 export const EXPLAIN_MAX_OUTPUT_TOKENS = 6000;
 
 /**
  * How hard the model thinks before it starts writing.
  *
- * The default is `medium`, which is what every other AI call in this app uses by saying nothing.
- * This is the one that opts out, because this is the one where the thinking was the problem: the
- * truncations that raised `EXPLAIN_MAX_OUTPUT_TOKENS` were reasoning tokens, not prose, so the
- * ceiling above only made room for a cost rather than removing it. This removes it.
- *
- * `low` rather than `minimal`. The task is genuinely easy — say what this code does, in 300 words,
- * with the code right there in the prompt — but it is still comprehension rather than
- * classification, which is what `minimal` is documented for. A dense snippet whose point is subtle
- * is where any of this thinking earns its keep, and `low` keeps some.
- *
- * What it buys, in order of how much the user notices: the spinner gets shorter, the call gets
- * cheaper, and running out mid-thought stops being reachable at all. What it risks is a shallower
- * answer on the hard tail — the snippet with a non-obvious bug in it — which is the thing to watch
- * for if these ever start reading as generic.
+ * @remarks
+ * Every other AI call leaves this at the `medium` default. Explain opts out because explain is
+ * where the reasoning is the cost — the tokens that press against {@link EXPLAIN_MAX_OUTPUT_TOKENS}
+ * are reasoning, not prose. `low` rather than `minimal`: the task is comprehension, not
+ * classification, and a dense snippet with a subtle point is where the thinking earns its keep.
+ * `low` shortens the spinner and lowers the cost; the risk it carries is a shallower answer on a
+ * non-obvious bug.
  */
 export const EXPLAIN_REASONING_EFFORT = "low" as const;
 
 /**
- * The longest explanation that will be accepted back.
+ * The longest explanation accepted back — roughly four times the 300 words the prompt asks for.
  *
- * A guard against a model that ignored the instruction outright, not a trim — roughly four times
- * the 300 words the prompt asks for. Deliberately looser than `MAX_DESCRIPTION_LENGTH`, which is
- * tight because it protects a two-row textarea: this lands in a scrolling panel that can show
- * whatever arrives, so length is not a layout problem here and the only thing worth catching is a
- * runaway. Over the bound is **rejected** rather than cut, as the description is, and for the same
- * reason: half an explanation says something the model did not say.
+ * @remarks
+ * A guard against a model that ignored the instruction, not a trim. Looser than
+ * `MAX_DESCRIPTION_LENGTH` in `ai-description.ts`, which protects a two-row textarea: an explanation
+ * lands in a scrolling panel, so length is not a layout problem and the only thing to catch is a
+ * runaway. Over the bound is rejected rather than cut, as the description is — half an explanation
+ * says something the model did not.
  */
 export const MAX_EXPLANATION_LENGTH = 8000;
 
@@ -94,14 +71,10 @@ export const MAX_EXPLANATION_LENGTH = 8000;
  * Which items have code worth explaining.
  *
  * Derived from `itemTypeOwns(...).language` rather than a second `["snippet", "command"]` written
- * out here. "Has a language worth declaring" and "is code a person might want explained" are the
- * same property, and the drawer already picks the monaco editor over the markdown one by exactly
- * that test — so a literal list would be a third copy of one rule, and the first thing to drift if
- * a code-shaped type is ever added.
- *
- * Prompts and notes are prose, and a link, a file, or an image has no body to read. Explaining
- * those is not a smaller version of this feature; it is the summary feature, which is its own line
- * in `docs/ai-integration-plan.md`.
+ * here: "has a language worth declaring" and "is code a person might want explained" are the same
+ * property, and the drawer already picks the monaco editor by that test. Prompts and notes are
+ * prose; a link, file or image has no body to read. Explaining those is the summary feature, a
+ * separate line in `docs/ai-integration-plan.md`.
  */
 export function isExplainableType(type: string | undefined): type is ItemTypeName {
     return type !== undefined && isItemTypeName(type) && itemTypeOwns(type).language;
@@ -120,21 +93,17 @@ export const EXPLAIN_INSTRUCTIONS = [
 ].join(" ");
 
 /**
- * The user half of the request.
+ * Builds the user half of the request.
  *
- * Labelled parts rather than a bare body, as in `buildDescriptionInput` — the model can tell a name
- * from the thing it names, so an untitled snippet reads as code with no name instead of code whose
- * first line looks like one.
+ * Labelled parts rather than a bare body, as in `buildDescriptionInput`. The type matters more here
+ * than in the other prompts: the same line of text is a `command` or a `snippet` depending on where
+ * it was stashed, which is the difference between explaining a shell invocation and a program. The
+ * language is the item's own free-text field — what the user said it was, and the only hint a
+ * two-line snippet may carry.
  *
- * The **type** is here for the reason tagging includes it, and it matters more in this prompt than
- * in either of the others: the same line of text is a `command` or a `snippet` depending only on
- * where it was stashed, and that is the difference between explaining a shell invocation and
- * explaining a program. The **language** is the item's own free-text field, which is what the user
- * said it was — worth more than the model's guess at it, and the only hint a two-line snippet may
- * carry at all.
- *
- * No "return this as JSON" line, unlike the other two builders: this call does not ask for
- * `json_object` back. See `parseExplanation`.
+ * @remarks
+ * No "return as JSON" line, unlike the other builders: this call does not request `json_object`
+ * back. See {@link parseExplanation}.
  */
 export function buildExplainInput(draft: ItemDraft): string {
     const parts = [`Item type: ${draft.type ?? "item"}`];
@@ -151,10 +120,10 @@ export function buildExplainInput(draft: ItemDraft): string {
 /**
  * Whether there is anything to explain.
  *
- * Stricter than `hasDescribableContent`, which accepts a title alone. A description can be written
- * from a name — "useDebounce" says something — but an explanation of code cannot be written from
- * the absence of code, and a model asked to try will produce a plausible paragraph about a function
- * nobody wrote. The body is the whole input here, so it is required.
+ * Stricter than `hasDescribableContent`, which accepts a title alone: a description can be written
+ * from a name, but an explanation of code cannot be written from the absence of code, and a model
+ * asked to try produces a plausible paragraph about a function nobody wrote. The body is the whole
+ * input here, so it is required.
  */
 export function hasExplainableContent(draft: ItemDraft): boolean {
     return Boolean(draft.content?.trim());
@@ -163,26 +132,16 @@ export function hasExplainableContent(draft: ItemDraft): boolean {
 /**
  * Reads the explanation out of whatever the model returned.
  *
- * **Markdown straight out, not a JSON field** — the one place this feature departs from the other
- * two, and deliberately. Those ask for `json_object` because they want a *part* of the answer: an
- * array of labels, one trimmed sentence. Here the whole response is the answer, and it is a
- * markdown document — so wrapping it would mean asking the model to escape every newline of a
- * multi-paragraph text into a JSON string literal, paying tokens for the escaping and gaining a
- * parse that can fail on a document that was perfectly good. The bound below is what the wrapper
- * would have bought, without the escaping.
- *
- * Nothing here escapes markdown punctuation in the answer, and that is not an oversight: the text
- * *is* markdown and is meant to be rendered as such. What stops a `HEAD~1` from being read as
- * formatting is the renderer's configuration — see `MARKDOWN_PLUGINS` — plus the instruction above
- * asking for inline backticks around anything code-shaped. Escaping here would fight both.
- *
- * The two shapes it still defends against are the model's habits rather than the prompt's: a
- * response wrapped in a ```markdown fence, and — despite being asked for prose — an object with the
- * text inside it. Both are understood rather than failed over, because in both cases the answer did
- * arrive and only its packaging is wrong.
- *
- * Anything unusable comes back as `null` rather than throwing, and the caller has one message for
- * all of it.
+ * @remarks
+ * Markdown straight out, not a JSON field — the one place this feature departs from the other two.
+ * They request `json_object` because they want a *part* of the answer; here the whole response is a
+ * markdown document, and wrapping it would mean escaping every newline into a JSON string literal,
+ * paying tokens for the escaping and adding a parse that can fail on a good document.
+ * {@link MAX_EXPLANATION_LENGTH} is what the wrapper would have bought. Nothing here escapes
+ * markdown punctuation: the text is markdown and is rendered as such, and `MARKDOWN_PLUGINS` plus
+ * the instruction to backtick code-shaped tokens is what stops `HEAD~1` reading as formatting. The
+ * two shapes {@link unwrap} still handles are model habits — a whole-response fenced block, and an
+ * object with the text inside it. Anything unusable returns `null`.
  */
 export function parseExplanation(raw: string): string | null {
     const unwrapped = unwrap(raw.trim());
@@ -201,16 +160,15 @@ export function parseExplanation(raw: string): string | null {
  * packaging is broken and there is no way to tell where the answer inside it ends.
  */
 function unwrap(raw: string): string | null {
-    // A whole-response fence, not a fence *within* the explanation — the closing ``` has to be the
-    // end of the text. An explanation that legitimately quotes a fenced block mid-paragraph starts
-    // with prose, so it never matches, and one that opens with a block is not the shape asked for.
+    // A whole-response fence, not a fence within the explanation — the closing ``` has to be the
+    // end of the text. An explanation that quotes a fenced block mid-paragraph starts with prose,
+    // so it never matches.
     const fenced = /^```[a-z]*\n([\s\S]*)\n```$/i.exec(raw);
 
     if (fenced) return fenced[1];
 
-    // Only attempted on something that actually looks like an object. Prose is the expected shape
-    // here, and prose starting with a brace would otherwise take a pointless trip through
-    // `JSON.parse` on every single call.
+    // Only attempted on something that looks like an object. Prose starting with a brace would
+    // otherwise take a pointless trip through JSON.parse on every call.
     if (!raw.startsWith("{")) return raw;
 
     try {
@@ -222,14 +180,13 @@ function unwrap(raw: string): string | null {
             if (typeof explanation === "string") return explanation;
         }
     } catch {
-        // A broken object, not a document — the same call `parseSuggestedDescription` refuses, and
-        // refused here too. A body that *starts* like JSON and fails to parse is a truncated object,
-        // not prose, so handing it back would render a stray `{"explanation": "` as the first line
-        // of the explanation. The caller's one message covers it and the user clicks again.
+        // A body that starts like JSON and fails to parse is a truncated object, not prose —
+        // handing it back would render a stray `{"explanation": "` as the first line. The same call
+        // `parseSuggestedDescription` refuses.
         return null;
     }
 
-    // Parsed, but not the object shape — a bare JSON string, an array, a `null`. Nothing here is
-    // the markdown that was asked for.
+    // Parsed, but not the object shape — a bare string, an array, a `null`. None of these is the
+    // markdown that was asked for.
     return null;
 }

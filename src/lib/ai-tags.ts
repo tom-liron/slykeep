@@ -2,26 +2,23 @@ import { truncateForModel } from "@/lib/ai-text";
 import { TAG_MAX_LENGTH } from "@/lib/item-schemas";
 
 /**
- * The rules around the auto-tagging model call: what it is shown, and what is trusted from what it
- * says back.
+ * Prompt building and response parsing for the auto-tagging model call.
  *
- * Pure functions in `lib/` rather than beside the action, for two reasons. A `"use server"` module
- * may only export async functions, so a helper exported from `actions/ai.ts` would not compile. And
- * these are the halves that can actually be *wrong* in a way the compiler cannot catch — a prompt
- * missing the one word the API requires, a response shape that arrives in the other of the two forms
- * this model uses — so they belong somewhere a unit test can reach without a network.
- *
- * No `server-only` here, unlike `openai.ts`: there is no secret in this file, and keeping it
- * client-reachable is what lets the same cap be stated once.
+ * `actions/ai.ts` calls {@link buildTagInput} for the request and {@link parseSuggestedTags} for
+ * what comes back; `addTagToInput` folds an accepted suggestion into the form's tag field. Pure
+ * functions in `lib/` rather than beside the action: a `"use server"` module may only export async
+ * functions, and these are the halves a unit test needs to reach without a network — a prompt
+ * missing the word the API requires, a response arriving in either of the two shapes this model
+ * uses. No `server-only` here — there is no secret in this file, and staying client-reachable is
+ * what lets {@link TAG_MAX_LENGTH} be shared with the form.
  */
 
 /**
  * How much of an item's body the model is shown.
  *
- * A cap rather than the whole thing, because the input is billed by the token and a stashed file
- * can be very long — while the tags for a snippet are decided by its first paragraph in practice.
- * Head-biased for that reason: the top of a snippet is its imports and its signature, which is
- * exactly what names it.
+ * A cap because input is billed by the token and a stashed file can be long, while a snippet's tags
+ * are decided by its first paragraph in practice. Head-biased: the top of a snippet is its imports
+ * and signature.
  */
 export const AI_TAG_CONTENT_LIMIT = 2000;
 
@@ -41,22 +38,18 @@ export const TAG_INSTRUCTIONS = [
 ].join(" ");
 
 /**
- * The user half of the request.
+ * Builds the user half of the request.
  *
- * The title and the body are labelled rather than concatenated, so the model can tell a name from
- * the thing it names — an untitled item then reads as a body with no name, instead of a body whose
- * first line looks like one. The type is included because it is real signal the content does not
- * carry: the same shell line is a `command` or a `snippet` depending only on where it was stashed.
+ * The title, body and type are labelled rather than concatenated, so the model can tell a name from
+ * the thing it names and an untitled item reads as a body with no name. The type is signal the
+ * content does not carry: the same shell line is a `command` or a `snippet` depending on where it
+ * was stashed.
  *
- * The closing line is not a stylistic repeat of the instructions — it is a hard requirement of the
- * API. `text.format: { type: "json_object" }` is rejected with a 400 unless the word "json" appears
- * in the **input**, and the identical word in `instructions` does not satisfy it:
- *
- *     400 Response input messages must contain the word 'json' in some form to use
- *         'text.format' of type 'json_object'.
- *
- * So every request must carry it here, whatever else the prompt says. `ai-tags.test.ts` asserts it
- * for that reason: the failure is a 400 on every call, not a worse answer.
+ * @remarks
+ * The closing "Return the tags as JSON." line is required by the API, not stylistic:
+ * `text.format: { type: "json_object" }` is rejected with a 400 unless the word "json" appears in
+ * the input, and the same word in `instructions` does not satisfy it. `ai-tags.test.ts` asserts the
+ * line is present.
  */
 export function buildTagInput({
     title,
@@ -78,21 +71,15 @@ export function buildTagInput({
 }
 
 /**
- * Reads the tag list out of whatever the model returned.
+ * Reads the tag list out of whatever the model returned, normalized as the tag field normalizes on
+ * save.
  *
- * Two accepted shapes, because this model uses both: `{"tags": [...]}` is what the prompt asks for,
- * and a bare `[...]` is what it sometimes sends instead. Neither is worth failing over when the
- * other is understood, and a suggestion list is not the place to be strict about a wrapper.
- *
- * Everything after that is the same normalization the tag input goes through on save — trimmed,
- * lowercased, blanks dropped, duplicates collapsed — done here as well so the badges show what will
- * actually be stored. Over-length tags are dropped rather than cut: `item-schemas` rejects the whole
- * payload over `TAG_MAX_LENGTH`, so accepting one would hand the user a suggestion that fails on
- * save, and half a truncated tag means something else than the tag did.
- *
- * Anything unparseable comes back as an empty array rather than throwing. The caller has one
- * failure message for "the model gave us nothing usable", and it does not read differently
- * depending on whether the JSON was malformed or merely empty.
+ * @remarks
+ * Two accepted shapes, because this model uses both: `{"tags": [...]}` and a bare `[...]`. The
+ * entries are then trimmed, lowercased, and de-duplicated exactly as the save path does, so the
+ * badges show what will be stored. An over-length tag is dropped rather than cut — `item-schemas`
+ * rejects a whole payload over {@link TAG_MAX_LENGTH}, so a truncated suggestion would fail on save.
+ * Anything unparseable returns `[]`, which the caller reports with its one "nothing usable" message.
  */
 export function parseSuggestedTags(raw: string): string[] {
     const seen = new Set<string>();
@@ -135,12 +122,11 @@ function listOf(raw: string): unknown[] {
 /**
  * Adds an accepted suggestion to the comma-separated tag input.
  *
- * The field holds one string that the schema splits on save, so accepting a tag is a string edit
- * rather than a list operation — and the two ways it can go wrong are both invisible from the type.
- * A tag the user already typed must not be added twice, compared case-insensitively because the
- * schema de-duplicates that way and would drop it anyway. And a value left mid-typing — `react,` or
- * `react, ` — must not become `react, , hooks`, so any trailing separator is replaced rather than
- * appended to.
+ * @remarks
+ * The field holds one string the schema splits on save, so this is a string edit. A tag already in
+ * the field is not added again, compared case-insensitively because the schema de-duplicates that
+ * way. A trailing separator left mid-typing (`react,` or `react, `) is replaced rather than
+ * appended to, so the result is never `react, , hooks`.
  */
 export function addTagToInput(value: string, tag: string): string {
     const existing = value.split(",").map((entry) => entry.trim().toLowerCase());

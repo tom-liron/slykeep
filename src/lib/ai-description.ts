@@ -2,50 +2,44 @@ import { truncateForModel } from "@/lib/ai-text";
 import type { ItemDraft } from "@/types/ai";
 
 /**
- * The rules around the description model call: what it is shown, and what is trusted from what it
- * says back.
+ * Prompt building and response parsing for the description model call.
  *
- * Pure functions in `lib/` beside `ai-tags.ts`, for the same two reasons that file gives — a
- * `"use server"` module may only export async functions, and these are the halves that can be wrong
- * without failing to compile, so they belong somewhere a unit test can reach without a network.
+ * `actions/ai.ts` calls {@link buildDescriptionInput} for the request and
+ * {@link parseSuggestedDescription} for what comes back, guarded by {@link hasDescribableContent}.
+ * Pure functions in `lib/` beside `ai-tags.ts`, for the reasons that file gives — a `"use server"`
+ * module may only export async functions, and these are the halves a unit test needs without a
+ * network.
  */
 
 /**
  * How much of an item's body the model is shown.
  *
- * The same cap tagging uses, and the same reasoning: input is billed by the token, a stashed file
- * can be very long, and the head of the content is what says what the thing is. Stated here rather
- * than imported from `ai-tags.ts` because the two are equal by coincidence, not by rule — a
- * description could want more context than a label does, and the day it does, that is a number to
- * change here and not a shared constant to argue about.
+ * Input is billed by the token and a stashed file can be long, while the head of the content is
+ * what says what the thing is. Equal to tagging's limit today, but stated here so a description that
+ * later wants more context is a change in one place.
  */
 export const AI_DESCRIPTION_CONTENT_LIMIT = 2000;
 
 /**
- * The longest description that will be accepted back.
+ * The longest description accepted back — roughly double the two sentences the prompt asks for.
  *
- * Generous on purpose: two sentences of English is 150 to 250 characters, so this is roughly double
- * what the prompt asks for. It is a guard against a model that ignored the instruction outright,
- * not a trim — which is why a longer response is **rejected** rather than cut. Cutting would hand
- * back half a sentence, and half a sentence about an item says something the model did not say. The
- * user sees "no description could be suggested" and clicks again, which is the honest outcome.
- *
- * There is no matching rule in `item-schemas.ts` to line this up with: `description` is
- * `optionalText`, with no maximum, so nothing here can produce a suggestion that fails on save. The
- * bound this respects is the *field* — a two-row textarea, clamped to one line on the item card.
+ * @remarks
+ * A guard against a model that ignored the instruction, not a trim: an over-length response is
+ * rejected rather than cut, because half a sentence about an item says something the model did not.
+ * `item-schemas.ts` puts no maximum on `description`, so nothing here can produce a suggestion that
+ * fails on save; the bound this respects is the field — a two-row textarea, one line on the card.
  */
 export const MAX_DESCRIPTION_LENGTH = 500;
 
 /**
- * How much room the model gets, reasoning included.
+ * The `max_output_tokens` ceiling for the call, covering reasoning as well as prose.
  *
- * The plan asks for a per-feature output bound, and this is not the ~80 tokens the prose itself
- * needs. `gpt-5-nano` is a reasoning model and its reasoning tokens are billed against
- * `max_output_tokens` before a single visible character is written — a bound set to the size of the
- * answer therefore buys an `incomplete` response with an empty `output_text` every time, which is
- * the failure mode the strict-schema attempt in `docs/ai-integration-plan.md` §2 already ran into.
- * So: high enough that reasoning cannot exhaust it, far below the model's 128K ceiling, and the
- * length of the prose is held by the prompt and by `parseSuggestedDescription` instead.
+ * @remarks
+ * `gpt-5-nano` is a reasoning model and bills reasoning tokens against `max_output_tokens` before
+ * any visible character, so a ceiling set to the ~80 tokens of prose returns an `incomplete`
+ * response with empty `output_text`. This is set high enough that reasoning cannot exhaust it and
+ * far below the model's 128K ceiling; the prose length is held by the prompt and by
+ * {@link parseSuggestedDescription}.
  */
 export const DESCRIPTION_MAX_OUTPUT_TOKENS = 2000;
 
@@ -59,29 +53,18 @@ export const DESCRIPTION_INSTRUCTIONS = [
 ].join(" ");
 
 /**
- * The user half of the request.
+ * Builds the user half of the request from whatever fields the draft carries.
  *
  * Every part is labelled rather than concatenated, so the model can tell a name from the thing it
- * names, and a URL from a body — an untitled item then reads as a body with no name, instead of a
- * body whose first line looks like one.
+ * names and a URL from a body. Each field goes in only when present and none is required, so one
+ * builder serves every item type without a per-type branch. Tags are the context the content cannot
+ * carry — what the user already said the item is about — and the type distinguishes a `command`
+ * from a `snippet` sharing the same shell line.
  *
- * **Whatever is available, per type**, which is the requirement this feature was asked for: a
- * snippet has a body and a language, a link has a URL and often nothing else, a file or an image
- * has a title and a filename. All of them go in when present and none of them is required, so the
- * same builder serves every item type without a branch per type. The tags are included as the one
- * piece of context the content cannot carry — they are what the *user* already said the item is
- * about — and the type for the reason tagging includes it: the same shell line is a `command` or a
- * `snippet` depending only on where it was stashed.
- *
- * The closing line is not a stylistic repeat of the instructions — it is a hard requirement of the
- * API. `text.format: { type: "json_object" }` is rejected with a 400 unless the word "json" appears
- * in the **input**, and the identical word in `instructions` does not satisfy it:
- *
- *     400 Response input messages must contain the word 'json' in some form to use
- *         'text.format' of type 'json_object'.
- *
- * So every request must carry it here, whatever else the prompt says. The test asserts it for that
- * reason: the failure is a 400 on every call, not a worse answer.
+ * @remarks
+ * The closing "Return the description as JSON." line is required by the API, not stylistic:
+ * `text.format: { type: "json_object" }` is rejected with a 400 unless the word "json" appears in
+ * the input, and the same word in `instructions` does not satisfy it. The test asserts the line.
  */
 export function buildDescriptionInput(draft: ItemDraft): string {
     const parts = [`Item type: ${draft.type ?? "item"}`];
@@ -111,17 +94,11 @@ export function hasDescribableContent(draft: ItemDraft): boolean {
 /**
  * Reads the description out of whatever the model returned.
  *
- * Two accepted shapes, as in `parseSuggestedTags`, because this model uses both: the wrapped object
- * the prompt asks for, and — often enough to matter — the bare string on its own. Neither is worth
- * failing over when the other is understood.
- *
- * Newlines are collapsed rather than preserved. The destination is a two-row textarea and a
- * one-line clamp on the item card, so a paragraph break is not a thing this field can show; kept,
- * it would only be invisible whitespace the user has to delete by hand.
- *
- * Anything unusable comes back as `null` rather than throwing, and the caller has one message for
- * all of it. It does not read differently depending on whether the JSON was malformed, the string
- * was empty, or the model wrote an essay.
+ * @remarks
+ * Two accepted shapes, as in `parseSuggestedTags`: the wrapped object the prompt asks for, and a
+ * bare string. Newlines are collapsed — the destination is a two-row textarea with a one-line clamp
+ * on the card, so a paragraph break would only be whitespace the user deletes by hand. Anything
+ * unusable returns `null`, which the caller reports with its one message.
  */
 export function parseSuggestedDescription(raw: string): string | null {
     const value = stringIn(raw);

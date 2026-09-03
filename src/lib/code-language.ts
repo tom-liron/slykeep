@@ -1,13 +1,16 @@
 /**
- * `Item.language` is a free-text field — a user types "TS", "bash", or "Python" — while monaco wants
- * one of its own language ids. This is the translation between the two, kept out of the editor
- * component so it can be tested as what it is: a pure lookup.
+ * The translation between a stored `Item.language` and a monaco language id.
+ *
+ * `Item.language` is a free-text field — a user types "TS", "bash" or "Python" — while the code
+ * editor and the file preview want one of monaco's own ids. `CodeEditor` and `LanguageField` call
+ * {@link toMonacoLanguage}, {@link findCodeLanguage} and {@link codeLanguageLabel}; kept out of the
+ * editor component so the lookup can be unit-tested on its own.
  */
 
 /**
- * What users type versus what monaco calls that language. Only the aliases a developer would
- * actually write are here — anything monaco already knows by name (`typescript`, `python`, `sql`)
- * needs no entry, and anything it does not know renders as plain text.
+ * The aliases a developer writes versus the id monaco knows the language by. Only aliases are
+ * listed — anything monaco already knows by name (`typescript`, `python`, `sql`) needs no entry,
+ * and anything it does not know renders as plain text.
  */
 const LANGUAGE_ALIASES: Record<string, string> = {
     "c++": "cpp",
@@ -30,24 +33,16 @@ const LANGUAGE_ALIASES: Record<string, string> = {
 export const DEFAULT_CODE_LANGUAGE = "plaintext";
 
 /**
- * The languages the item forms offer, as `{ value, label }` pairs.
+ * The languages the item forms offer, as `{ value, label }` pairs, where `value` is monaco's own id.
  *
- * `value` is monaco's own language id, which is what makes this list worth having beyond the
- * convenience of not typing: everything picked here passes through `toMonacoLanguage` untouched, so
- * new items no longer depend on the alias table above to highlight correctly. That table stays for
- * the items already stored — and for anything typed before this list existed.
- *
- * It lives here rather than in `config/` (where `EDITOR_THEME_CATALOG` sits) because of the
- * invariant between the two tables in this file: every alias should resolve to a language this list
- * offers, or the picker cannot show what an aliased item already is. One module is what lets a test
- * assert that; two would let them drift.
- *
- * Ordered by label so a 30-item menu is scannable. Radix gives the menu typeahead over that same
- * label, so "ty" reaches TypeScript without scrolling — which is why this does not need to become a
- * searchable combobox.
- *
- * Curated, not exhaustive: monaco knows roughly ninety languages, most of which nobody stashes a
- * snippet of. A language that is missing is a one-line addition here.
+ * @remarks
+ * A picked value passes through {@link toMonacoLanguage} unchanged, so an item created from this
+ * list does not depend on {@link LANGUAGE_ALIASES} to highlight; the alias table serves items
+ * stored as free text. This list lives here rather than in `config/` because of the invariant
+ * between the two tables — every alias should resolve to a language this list offers, or the picker
+ * cannot show what an aliased item already is — which one module lets a test assert. Ordered by
+ * label; Radix gives the menu typeahead over the label, so it needs no combobox. Curated, not
+ * exhaustive: monaco knows ~90 languages, and a missing one is a one-line addition here.
  */
 export const CODE_LANGUAGES: readonly { value: string; label: string }[] = [
     { value: "c", label: "C" },
@@ -86,14 +81,11 @@ export const CODE_LANGUAGES: readonly { value: string; label: string }[] = [
 /**
  * The option matching a stored `Item.language`, or `null` for one this list does not offer.
  *
- * Resolved through `toMonacoLanguage` first, so an item stored as `TS` — or `Bash`, or `py` — finds
- * TypeScript rather than falling through as unknown. The picker only has to render a value as its
- * own option when this returns `null`, which is the case that would otherwise lose data: a language
- * typed before the list existed and not covered by an alias.
- *
- * An empty or whitespace-only language is not "unknown", it is *undeclared*, and the picker renders
- * that as its own choice — so this returns `null` for it too and the caller distinguishes the two by
- * testing the raw string.
+ * Resolved through {@link toMonacoLanguage} first, so an item stored as `TS`, `Bash` or `py` finds
+ * its option. A `null` return is the case the picker has to render as its own option — a language
+ * typed before the list existed and not covered by an alias. An empty or whitespace-only language
+ * is undeclared rather than unknown and also returns `null`; the caller tells the two apart by the
+ * raw string.
  */
 export function findCodeLanguage(language: string): { value: string; label: string } | null {
     const id = toMonacoLanguage(language);
@@ -102,15 +94,11 @@ export function findCodeLanguage(language: string): { value: string; label: stri
 }
 
 /**
- * How a monaco language id is written in UI chrome — the editor's header band.
+ * How a monaco language id is written in the editor's header band.
  *
- * Only one id is rewritten: `plaintext` reads as `text`. It is the one label that names the absence
- * of a language rather than a language, and the header is a cramped monospace corner where the extra
- * five characters buy nothing. Everything else is monaco's id verbatim, which is the honest thing to
- * show — the header's job is to say what the content is being highlighted *as*.
- *
- * Separate from `LanguageField`'s "Plain text" on purpose. Both name the same state, in the register
- * each surface is written in: a form control gets a readable phrase, a title bar gets a token.
+ * Only `plaintext` is rewritten, to `text`: it names the absence of a language, and the header is a
+ * cramped monospace corner. Everything else is monaco's id verbatim. `LanguageField` names the same
+ * state as "Plain text" — a form control gets a readable phrase, a title bar gets a token.
  */
 export function codeLanguageLabel(monacoLanguage: string): string {
     return monacoLanguage === DEFAULT_CODE_LANGUAGE ? "text" : monacoLanguage;
