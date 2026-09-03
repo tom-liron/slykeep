@@ -71,6 +71,7 @@ you'd make, not just the problem. If nothing drifted, say so in one line.
   editing it.
 - Never delete a file, and never delete a section to resolve a mismatch — correct it or flag it.
 
-`/feature load` calls this automatically, scoped to the spec being loaded, so a spec written against
-the course's structure is corrected before it becomes the plan. Run it by hand — unscoped — when a
-refactor has moved files, after a phase lands, or when the structure tree looks stale.
+Run it by hand — unscoped — when a refactor has moved files, after a phase lands, or when the
+structure tree looks stale. Scoped to one path, run it on a spec old enough to predate a refactor.
+`/feature load` no longer calls it: the course is finished, so new specs are written against this
+codebase rather than against the instructor's structure.
