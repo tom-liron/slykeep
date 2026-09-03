@@ -1,38 +1,32 @@
 /**
- * Which routes signed-out visitors may reach, and where a sign-in sends them afterwards.
+ * Which routes a signed-out visitor may reach, and where a completed sign-in sends them.
  *
- * The route sets live here rather than in `src/proxy.ts` because two things need the same answer:
- * the proxy, deciding whether to bounce a request, and `resolveCallbackUrl` below, refusing to
- * return someone to a page they were never trying to reach. Two copies of that list would drift the
- * first time a route is added to one of them.
+ * `src/proxy.ts` reads the route sets to decide whether to bounce a request; {@link resolveCallbackUrl}
+ * reads the same sets to refuse returning someone to a page they were never trying to reach. One
+ * copy of each list, so the two cannot drift when a route is added.
  *
- * Nothing in this module may import anything Node-only — the proxy runs on the edge.
+ * Nothing here may import a Node-only module — the proxy runs on the edge.
  */
 
 /**
- * Routes for people who do not have a session yet. A signed-in visitor is sent to the app instead:
- * these forms would only sign them in as who they already are, or reset a password they evidently
+ * Routes for a visitor with no session yet. A signed-in visitor is sent to the app instead: these
+ * forms would only sign them in as who they already are, or reset a password they evidently
  * remember.
  *
- * Verification deliberately has no entry. The spec called for `/verify-email`, but the token is
- * consumed by a route handler at `/api/auth/verify-email`, and `api/auth` is outside the proxy's
- * matcher entirely — listing a page path that does not exist would protect nothing and imply a route
- * someone would later go looking for.
- *
- * `/welcome` is the marketing homepage, and it is here for all three of the set's effects at once:
- * it is reachable without a session, a signed-in visitor is sent to the app instead of being sold
- * it, and `resolveCallbackUrl` refuses to return anyone to it after they sign in.
+ * `/verify-email` is absent: the token is consumed by the route handler at
+ * `/api/auth/verify-email`, and `api/auth` is outside the proxy's matcher, so a page path here
+ * would protect nothing. `/welcome` is the marketing homepage — reachable without a session, sent
+ * past by a signed-in visitor, and refused as a post-sign-in destination.
  */
 export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-password", "/welcome"]);
 
 /**
  * Reachable with or without a session.
  *
- * `/reset-password` cannot be in the set above. A reset link is opened from an inbox, in whatever
- * browser the mail client hands it to — quite possibly one still signed in as the person resetting,
- * or as somebody else on a shared machine. Redirecting a signed-in visitor to `/` would swallow the
- * link and leave them with no way to finish, and the page is safe for them anyway: it grants nothing
- * the token in the URL does not already.
+ * `/reset-password` is opened from an inbox, in whatever browser the mail client hands it to —
+ * possibly one signed in as the person resetting, or as someone else on a shared machine.
+ * Redirecting a signed-in visitor to `/` would swallow the link; the page is safe for them anyway,
+ * granting nothing the token in the URL does not.
  */
 export const OPEN_ROUTES = new Set(["/reset-password"]);
 
@@ -40,26 +34,23 @@ export const OPEN_ROUTES = new Set(["/reset-password"]);
 export const DEFAULT_SIGN_IN_DESTINATION = "/?welcome=back";
 
 /**
- * Validates a `callbackUrl` before anything is allowed to redirect to it.
+ * Validates a `callbackUrl` before anything redirects to it.
  *
- * The value arrives in a query string, so it is attacker-supplied: a link to
- * `/sign-in?callbackUrl=https://evil.example` that sends the user there *after* they authenticate is
- * a textbook open redirect, and it is worth more than usual on a sign-in page — the destination
- * inherits the credibility of the site they just trusted with a password.
+ * @remarks
+ * The value arrives in a query string, so it is attacker-supplied. A link to
+ * `/sign-in?callbackUrl=https://evil.example` that forwards the user there after they authenticate
+ * is an open redirect, worth more than usual on a sign-in page because the destination inherits the
+ * trust of the site they just gave a password to. Only same-origin relative paths are accepted, and
+ * nothing that a browser can be talked into treating as absolute:
  *
- * So this accepts only same-origin *relative* paths, and nothing that can be talked into leaving:
- *
- *   - `https://evil.example` — absolute, rejected for not starting with `/`.
- *   - `//evil.example` — protocol-relative; a browser reads it as a full URL on the current scheme.
+ *   - `https://evil.example` — rejected for not starting with `/`.
+ *   - `//evil.example` — protocol-relative; a browser reads it as a full URL.
  *   - `/\evil.example` and `\/evil.example` — browsers normalize backslashes to forward slashes, so
- *     these become the case above after parsing. Rejecting the raw form is what closes it.
+ *     these become the case above; rejecting the raw form closes it.
  *
- * The auth pages are refused too. Returning someone to `/sign-in` after a successful sign-in is a
- * loop, and the proxy would only bounce them off it again.
- *
- * Returns `null` when the value cannot be trusted, which every caller reads as "use the default".
- * Silently falling back is right here: a rejected callback is either a hand-edited URL or an attack,
- * and neither deserves an error message.
+ * The auth pages are refused too — returning someone to `/sign-in` after a successful sign-in is a
+ * loop. Returns `null` for anything untrusted, which every caller reads as "use the default": a
+ * rejected callback is a hand-edited URL or an attack, and neither deserves an error message.
  */
 export function resolveCallbackUrl(raw: string | string[] | undefined | null): string | null {
     // A duplicated param (`?callbackUrl=a&callbackUrl=b`) arrives as an array. Nothing legitimate
@@ -78,12 +69,12 @@ export function resolveCallbackUrl(raw: string | string[] | undefined | null): s
 /**
  * Builds the URL a successful sign-in redirects to.
  *
- * The `welcome` flag is only attached to the default destination, and deliberately not to a returned
- * callback. `WelcomeToast` — the thing that reads the flag — is rendered by `(dashboard)/page.tsx`
- * and nowhere else, and it clears the param with a hardcoded `router.replace("/")`. Appending the
- * flag to `/collections/abc` would therefore raise no toast and leave the param stuck in the URL,
- * and the day that component moves into the layout it would redirect the user off the very page they
- * asked for. Landing on the page they wanted is acknowledgement enough.
+ * @remarks
+ * The `welcome` flag is attached only to the default destination, not to a returned callback.
+ * `WelcomeToast` reads the flag, is rendered only by `(dashboard)/page.tsx`, and clears the param
+ * with a hardcoded `router.replace("/")` — so on `/collections/abc` the flag would raise no toast
+ * and stick in the URL, and if that component ever moved into the layout it would redirect the user
+ * off the page they asked for.
  */
 export function signInDestination(callbackUrl: string | null): string {
     return callbackUrl ?? DEFAULT_SIGN_IN_DESTINATION;

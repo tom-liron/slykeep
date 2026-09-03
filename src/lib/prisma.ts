@@ -4,9 +4,20 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "@/generated/prisma-client/client";
 
-// Prisma 7 requires a driver adapter — the client no longer opens its own connection. The adapter
-// gets Neon's *pooled* URL; the CLI uses the direct one for migrations (see prisma.config.ts).
-// Next.js loads .env itself, so no dotenv here.
+/**
+ * The shared Prisma client, and the guard that keeps a local run off the production database.
+ *
+ * Every server-side read and write reaches Postgres through the {@link prisma} export. Prisma 7
+ * requires a driver adapter — the client no longer opens its own connection — so this wires
+ * `PrismaPg` to Neon's pooled URL; the CLI uses the direct URL for migrations (see
+ * `prisma.config.ts`). Next.js loads `.env` itself, so there is no dotenv call here.
+ *
+ * @remarks
+ * `import "server-only"` because `lib/` is client-reachable and a database connection string must
+ * never reach a browser bundle.
+ */
+
+/** Neon's pooled connection URL, from `.env`. The adapter opens no connection without it. */
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -18,34 +29,22 @@ if (!connectionString) {
 /**
  * The compute endpoint of the production Neon branch, `br-cold-frost-asmwwtlg`.
  *
- * Not a secret — `CLAUDE.md` already names both branch ids — and it is here rather than in an
- * environment variable on purpose: a guard that can be switched off by the same file that
- * misconfigured the connection is not a guard.
+ * Not a secret — `CLAUDE.md` names both branch ids — and held in the source rather than an
+ * environment variable: a guard the same misconfigured file could switch off is not a guard.
  */
 const PRODUCTION_DB_ENDPOINT = "ep-winter-sound-as575jke";
 
 /**
- * Refuses to open a connection to production from anywhere that is not the deployment.
+ * Refuses a connection to the production branch from anywhere that is not the Vercel deployment.
  *
- * This exists because of a specific near-miss, and the mechanism is worth stating plainly: `npm
- * start` sets `NODE_ENV=production`, and **Next then loads `.env.production` in preference to
- * `.env`**. That file held the production connection string, so a local production-mode run — the
- * ordinary way to check a build, or a response header, or a route — was silently talking to the
- * live database. Nothing in the command said so. It took a scheduled-deletion endpoint being tested
- * that way, and reporting a row deleted that the same job had just reported zero of against dev,
- * for the difference to surface at all.
- *
- * The file has been renamed to `.env.production.example` so nothing auto-loads it, which fixes
- * that instance. This fixes the class: an exported shell variable, a copied `.env`, or a future file
- * Next decides to read would all arrive here too.
- *
- * `VERCEL` is what distinguishes the deployment, where this connection is the whole point, from a
- * laptop, where it almost never is. `ALLOW_PRODUCTION_DB` is the deliberate override, and it is
- * spelled out rather than omitted so that the answer to "I really do need to look at production" is
- * one obvious variable rather than deleting this function.
- *
- * The Prisma CLI does not import this module, so migrations are unaffected — `db:deploy` against
- * production still works from anywhere, which is what deploys need.
+ * @remarks
+ * `npm start` sets `NODE_ENV=production`, and Next then loads `.env.production` in preference to
+ * `.env`. A local production-mode run — checking a build, a response header, a route — can reach
+ * whatever database that file names without the command saying so. This blocks the class: an
+ * exported shell variable, a copied `.env`, or a future file Next decides to read all arrive here.
+ * `VERCEL` marks the deployment, where the connection is expected; `ALLOW_PRODUCTION_DB` is the
+ * explicit override. The Prisma CLI does not import this module, so `db:deploy` against production
+ * still works.
  */
 if (
     connectionString.includes(PRODUCTION_DB_ENDPOINT) &&
@@ -71,6 +70,7 @@ const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
+/** The Prisma client every server module shares. Reused across hot reloads in development. */
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {

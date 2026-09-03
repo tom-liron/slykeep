@@ -7,9 +7,15 @@ import { appOrigin } from "./app-origin";
 /**
  * Transactional email via Resend.
  *
- * Constructed lazily rather than at module scope so importing this file does not require the key.
- * `next build` evaluates server modules while collecting page data, and a top-level `new Resend()`
- * with no key would fail the build on a machine that only has the public config.
+ * The verification, password-reset and GitHub-account-reset flows in `actions/` and `app/api/auth`
+ * call the `send*` functions below to mail a link. Each builds its absolute URL from
+ * {@link appOrigin}, renders through the shared {@link renderHtml} shell, and throws on a
+ * synchronous refusal so the caller can tell the user.
+ *
+ * @remarks
+ * `import "server-only"` because `lib/` is client-reachable and `RESEND_API_KEY` must never reach a
+ * browser bundle. The client is built on first use so `next build` can evaluate this module without
+ * the key present.
  */
 let client: Resend | null = null;
 
@@ -26,20 +32,12 @@ function resend(): Resend {
 /**
  * Sender address.
  *
- * Defaults to `onboarding@resend.dev`, which works without a verified domain but only reaches the
- * Resend account owner's own address — every other recipient is refused with a `403`. That is
- * enough to develop against and useless in production, where the recipient is by definition
- * somebody else.
- *
- * So this default makes the feature testable, not shippable. Pointing `EMAIL_FROM` at an address on
- * a verified domain is the whole fix; nothing in this file changes with it.
- *
- * Historical note, because it cost a day: for a period this account could not send at all, and every
- * send failed asynchronously with "Domain is not verified" — including from `onboarding@resend.dev`
- * to Resend's own `delivered@resend.dev` simulator. That was an outage on Resend's side, confirmed
- * and fixed by their support. It was not a configuration problem here, and the code was correct
- * throughout. If sends start failing that way again, check `npm run email:test` before suspecting
- * anything in this repository.
+ * @remarks
+ * The `onboarding@resend.dev` default sends without a verified domain but reaches only the Resend
+ * account owner's own address — every other recipient is refused with a `403`. It makes the feature
+ * testable in development, not shippable. Pointing `EMAIL_FROM` at an address on a verified domain
+ * is the whole fix, and no code here changes with it (`project-overview.md` §10, Phase 7).
+ * `npm run email:test` is the check when sends fail.
  */
 const FROM = process.env.EMAIL_FROM ?? "DevStash <onboarding@resend.dev>";
 
@@ -57,15 +55,14 @@ function escapeHtml(value: string) {
 
 /**
  * The one HTML shell every message shares: a heading, a greeting, a paragraph or two of body, a
- * call-to-action button, the same destination repeated as paste-able text, and small print.
+ * call-to-action button, the destination repeated as paste-able text, and small print.
  *
- * That repeated URL is not redundancy for its own sake. A button is a styled anchor, and enough mail
- * clients strip or mangle the styling — or block the link outright — that the standard advice is to
- * put the raw address in the body as well. Without it, a broken button is a dead end in the one
- * email whose entire purpose is a single click.
+ * The destination appears twice because a button is a styled anchor, and enough mail clients strip
+ * the styling or block the link that the raw address has to be in the body as well — otherwise a
+ * broken button is a dead end in an email whose whole purpose is one click.
  *
  * `heading`, `body` and `footnotes` are trusted literals from this module. `name` is the only
- * user-supplied value that reaches markup, and it is escaped on the way in below.
+ * user-supplied value that reaches markup, and {@link escapeHtml} is applied to it below.
  */
 function renderHtml({
     heading,
@@ -103,18 +100,16 @@ function renderHtml({
 }
 
 /**
- * Catches only a *synchronous* refusal — a bad key, a malformed payload, a recipient Resend rejects
- * outright. The SDK reports these in the response rather than by throwing, so an unchecked call
- * would look like it succeeded.
+ * Sends one message and raises a synchronous refusal — a bad key, a malformed payload, a recipient
+ * Resend rejects outright. The SDK reports these in the response rather than by throwing, so an
+ * unchecked call would look like it succeeded.
  *
- * It does not, and cannot, catch a delivery failure. Resend answers `200` as soon as the request is
- * queued and settles the outcome afterwards, with `error` still null. Treat a clean return as
- * "accepted", never as "delivered"; proving the latter needs the `email.failed` /
- * `email.delivered` webhooks.
- *
- * Throws rather than swallowing, so the caller decides what to tell the user. A registration whose
- * email silently never sent would leave an account nobody can sign in to, with no signal anywhere
- * that anything went wrong.
+ * @remarks
+ * A delivery failure cannot be caught here: Resend answers `200` once the request is queued and
+ * settles the outcome afterwards with `error` still null. A clean return means "accepted", not
+ * "delivered" — the `email.failed` / `email.delivered` webhooks prove the latter. It throws rather
+ * than swallowing so the caller decides what to tell the user; a registration whose email silently
+ * never sent leaves an account nobody can sign in to.
  */
 async function send(what: string, message: Parameters<Resend["emails"]["send"]>[0]) {
     const { error } = await resend().emails.send(message);
@@ -159,8 +154,8 @@ export async function sendVerificationEmail({
 /**
  * Sends the "choose a new password" email.
  *
- * The link lands on a *page* rather than a route handler, unlike verification: confirming an address
- * is complete the moment the link is opened, but a reset still needs the person to type something.
+ * The link lands on the `/reset-password` page, not a route handler: a reset needs the person to
+ * type a new password, where confirming an address completes the moment its link is opened.
  */
 export async function sendPasswordResetEmail({
     to,
@@ -181,9 +176,8 @@ export async function sendPasswordResetEmail({
         html: renderHtml({
             heading: "Reset your password",
             greeting: name ? `Hi ${escapeHtml(name)},` : "Hi,",
-            // Says why the mail arrived, then points at the button. The button gets the verb, so the
-            // body must not also spend it — "Choose a new password" above a button reading "Choose a
-            // new password" was the same sentence twice with a box drawn round the second one.
+            // The body says why the mail arrived and points at the button; the button carries the
+            // verb, so the body must not repeat it.
             body: [
                 "We received a request to reset the password for your DevStash account. Use the button below to choose a new one.",
             ],
@@ -199,10 +193,9 @@ export async function sendPasswordResetEmail({
 /**
  * Answers a reset request for an account that has no password to reset.
  *
- * A GitHub account has a null `User.password`, so there is nothing for a reset link to replace.
- * Staying silent would leave someone who has forgotten *how* they signed up waiting on an email that
- * is never coming, with no way to find out why. This says so, and it discloses nothing to anybody
- * else: it only ever arrives in the inbox of the address that was entered.
+ * A GitHub account has a null `User.password`, so there is nothing for a reset link to replace. This
+ * mail tells someone who has forgotten how they signed up to use GitHub instead, and discloses
+ * nothing to anyone else — it only ever arrives at the address that was entered.
  */
 export async function sendPasswordResetGitHubEmail({
     to,

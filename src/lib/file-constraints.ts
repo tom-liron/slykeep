@@ -1,12 +1,12 @@
 import { formatFileSize } from "./format";
 
 /**
- * What may be uploaded for the two FILE types, and the check that enforces it.
+ * The upload rules for the two FILE item types, and the check that enforces them.
  *
- * Separate from `r2.ts` because both sides need it: the upload route validates against these rules,
- * and `FileUpload` reads the same numbers to build its `accept` attribute and say "up to 5 MB" — and
- * `r2.ts` is `server-only`, so a component cannot import from it. The route is the authority; the
- * component's copy of the rule only saves an obviously doomed round trip.
+ * Shared because both sides need the same numbers: `POST /api/upload` validates against them with
+ * {@link validateUpload}, and `FileUpload` reads them to build its `accept` attribute and its "up
+ * to 5 MB" hint. `r2.ts` is `server-only`, so a component cannot get them from there. The route is
+ * the authority; the component's copy only spares an obviously doomed round trip.
  */
 
 /** The item types whose content is an uploaded object rather than a column. */
@@ -16,18 +16,17 @@ export type FileItemTypeName = (typeof FILE_ITEM_TYPE_NAMES)[number];
 
 /**
  * Takes a plain `string` rather than an `ItemTypeName`, because one caller is a route handler
- * narrowing a form field — untyped by definition — and the others pass a name that already satisfies
- * it either way.
+ * narrowing a form field — untyped by definition — and the others pass a name that already
+ * satisfies it.
  */
 export function isFileItemTypeName(name: string): name is FileItemTypeName {
     return (FILE_ITEM_TYPE_NAMES as readonly string[]).includes(name);
 }
 
 /**
- * The canonical media type per extension. This is what an object is stored as when the browser
- * cannot say — `File.type` is empty for `.md`, `.toml`, and `.ini` on most platforms, since the OS
- * has no mapping for them, and an object stored as `application/octet-stream` would download as a
- * blob instead of opening.
+ * The canonical media type per extension, used when the browser cannot name one: `File.type` is
+ * empty for `.md`, `.toml` and `.ini` on most platforms, and an object stored as
+ * `application/octet-stream` downloads as a blob instead of opening.
  */
 const EXTENSION_MIME: Record<string, string> = {
     ".png": "image/png",
@@ -49,11 +48,11 @@ const EXTENSION_MIME: Record<string, string> = {
 };
 
 /**
- * Size ceiling, permitted extensions, and permitted media types, per type.
+ * Size ceiling, permitted extensions and permitted media types, per type.
  *
- * The media-type lists are wider than `EXTENSION_MIME` because a browser reports whichever name its
- * platform happens to hold — `text/yaml` and `application/x-yaml` are the same file, and `text/plain`
- * is what several of these arrive as. The extension list is the strict half of the pair.
+ * The media-type lists are wider than {@link EXTENSION_MIME} because a browser reports whichever
+ * name its platform holds — `text/yaml` and `application/x-yaml` are one file, and several of these
+ * arrive as `text/plain`. The extension list is the strict half of the pair.
  */
 export const FILE_CONSTRAINTS = {
     image: {
@@ -94,13 +93,12 @@ export const FILE_CONSTRAINTS = {
 >;
 
 /**
- * The largest object any type accepts, derived rather than restated.
+ * The largest object any type accepts, derived from {@link FILE_CONSTRAINTS} rather than restated.
  *
- * For the write boundary, which is checking a *claimed* size rather than a real file: it knows
- * nothing about which type the claim belongs to at the point it parses, so the ceiling it can apply
- * is the highest one any type allows. `validateFile` still applies the exact per-type limit to the
- * bytes in hand, which is the check that matters — this is the bound on what a hand-written payload
- * may assert about an object it did not upload.
+ * For the write boundary, which checks a *claimed* size before it knows the type, so the ceiling it
+ * can apply is the highest any type allows. {@link validateUpload} still applies the exact per-type
+ * limit to the bytes in hand; this only bounds what a hand-written payload may assert about an
+ * object it did not upload.
  */
 export const MAX_UPLOAD_BYTES = Math.max(
     ...Object.values(FILE_CONSTRAINTS).map(({ maxSize }) => maxSize),
@@ -119,13 +117,14 @@ export function acceptAttribute(itemType: FileItemTypeName): string {
 export type FileValidation = { valid: true; contentType: string } | { valid: false; error: string };
 
 /**
- * Checks one file against its type's rules, and settles what it will be stored as.
+ * Checks one file against its type's rules and settles what it will be stored as.
  *
- * Extension first and always: it is the half the browser cannot get wrong. The media type is checked
- * only when the browser supplied one, because an empty `File.type` means "this platform has no
- * mapping", not "this file is suspicious" — rejecting it would refuse perfectly ordinary `.md` and
- * `.toml` uploads. Either way the stored type comes from the extension where we have a canonical
- * name for it, so what is written to R2 is never simply whatever the client claimed.
+ * @remarks
+ * Extension first and always — it is the half the browser cannot get wrong. The media type is
+ * checked only when the browser supplied one: an empty `File.type` means the platform has no
+ * mapping, not that the file is suspicious, and rejecting it would refuse ordinary `.md` and
+ * `.toml` uploads. The stored type comes from the extension wherever there is a canonical name for
+ * it, so what is written to R2 is never simply what the client claimed.
  */
 export function validateUpload(
     file: { name: string; size: number; type: string },
