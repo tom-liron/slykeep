@@ -3,20 +3,24 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 
 /**
+ * The rule for which abandoned registrations may be deleted, and the sweep that deletes them.
+ *
+ * Registration creates the `User` row before the verification email is sent, so an address typed
+ * wrongly at signup would otherwise hold that address forever: the account can never sign in, and
+ * the person the address belongs to meets the 409 in `api/auth/register` with no route forward.
+ *
+ * Two callers run the same function: the nightly Vercel Cron behind
+ * `api/cron/sweep-unverified/route.ts`, and `npm run users:sweep` for a run by hand.
+ */
+
+/**
  * How long an unconfirmed registration keeps hold of its email address.
  *
- * Registration creates the `User` row before the verification email is sent, and until this existed
- * nothing ever removed it: `emailVerified` stayed null, the account could never sign in, and the
- * address was taken for good. So a typo at signup — `tomm@` for `tom@` — permanently locked that
- * address out of the product, and the person it actually belongs to hit the 409 in
- * `api/auth/register` with no route forward, since they cannot verify an account they did not
- * create.
- *
- * Seven days, which is the number GitLab's own issue proposes as a default for exactly this case
- * (its shipped behaviour is three). The tension is real in both directions — too short and someone
- * who signed up on a Friday and checked their mail the next weekend finds the account gone; too
- * long and the address stays hostage. A week covers the realistic gap between signing up and
- * reading the email, and the 24-hour token expiry means anyone past it is resending anyway.
+ * @remarks
+ * A week covers the realistic gap between signing up and reading the email, and the 24-hour token
+ * expiry means anyone past it is requesting a fresh link anyway. Shortening it strands someone who
+ * signed up on a Friday and read their mail the next weekend; lengthening it keeps the address
+ * hostage.
  */
 export const UNVERIFIED_ACCOUNT_TTL_DAYS = 7;
 
@@ -28,24 +32,25 @@ export function unverifiedCutoff(now: Date): Date {
 /**
  * Deletes registrations that were never confirmed, freeing the addresses they hold.
  *
- * **Every clause in this `where` is load-bearing, and three of them are guards rather than the
- * rule.** The rule is the first two: no `emailVerified`, and old enough. The rest exist because this
- * is a scheduled job that deletes user rows, and "an unverified account owns nothing" is an
- * assumption worth enforcing rather than trusting.
+ * @returns How many rows went, for the caller to log.
  *
- * - `password: { not: null }` restricts this to credentials registrations. An OAuth-only account has
- *   no password, and is not what this is for.
+ * @remarks
+ * Every clause in the `where` is load-bearing, and three are guards rather than the rule. The rule
+ * is the first two — no `emailVerified`, and older than {@link unverifiedCutoff}. The rest hold
+ * because this is a scheduled job that deletes user rows, and "an unverified account owns nothing"
+ * is an assumption to enforce rather than to trust:
+ *
+ * - `password: { not: null }` restricts the sweep to credentials registrations. An OAuth-only
+ *   account has no password and is not what this is for.
  * - `accounts: { none: {} }` is the one that matters most. A GitHub sign-up is stamped verified by
- *   the `linkAccount` event in `src/auth.ts` — but that is a *second* write, after the `User` and
- *   `Account` rows exist, and a transient failure there would leave a real GitHub account sitting at
+ *   the `linkAccount` event in `src/auth.ts`, which is a *second* write after the `User` and
+ *   `Account` rows exist; a transient failure there leaves a real GitHub account at
  *   `emailVerified: null`. Requiring that no OAuth account is linked means such a row is never
- *   swept, whatever happened to that update.
- * - `items: { none: {} }` and `collections: { none: {} }` make the safety argument checkable instead
- *   of asserted. An account that cannot sign in cannot have created anything, so these should never
- *   exclude a row — and if that reasoning is ever wrong, this refuses to cascade someone's content
- *   away rather than proving the point the expensive way.
- *
- * Returns how many rows went, for the caller to log.
+ *   swept.
+ * - `items: { none: {} }` and `collections: { none: {} }` make the safety argument checkable rather
+ *   than asserted. An account that cannot sign in cannot have created anything, so these should
+ *   never exclude a row — and if that ceases to hold, the sweep refuses rather than cascading
+ *   someone's content away.
  */
 export async function sweepUnverifiedAccounts(now: Date = new Date()): Promise<number> {
     const { count } = await prisma.user.deleteMany({

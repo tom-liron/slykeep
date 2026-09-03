@@ -24,19 +24,31 @@ import {
 } from "./view-models";
 
 /**
+ * The collection read path: every query behind a page, card, sidebar entry or picker that shows
+ * collections.
+ *
+ * The sibling of `items.ts`, and the reason the two are separate modules is the join below: a
+ * collection is never shown without its derived metadata — an item count, and the dominant type that
+ * colours it — so every query here reads two scalars per contained item and hands them to the
+ * builders in `./view-models`. Server components call these functions directly;
+ * `GET /api/collections` calls {@link getCollectionOptions} for the item forms' picker.
+ *
+ * Each query resolves its owner through `getCurrentUserId` and scopes its `where` by that id.
+ */
+
+/**
  * The two columns the dominant-type rule reads, and nothing else — never an item body.
  *
- * Stated once because both selects below need exactly it, and the risk in a join written twice is
- * not the duplication: it is that one copy grows a column. Widening this by hand is how a card query
- * starts reading item bodies.
+ * @remarks
+ * Stated once because both selects below need exactly it. The risk in a join written twice is not
+ * the duplication but that one copy grows a column, which is how a card query starts reading item
+ * bodies.
  */
 const COLLECTION_ITEMS_JOIN = {
     select: { item: { select: { itemTypeId: true, editedAt: true } } },
 } as const;
 
-/**
- * Everything `CollectionViewModel` derives from.
- */
+/** Everything a `CollectionViewModel` derives from, for the cards and the collection page. */
 const COLLECTION_SELECT = {
     id: true,
     name: true,
@@ -48,8 +60,8 @@ const COLLECTION_SELECT = {
 } as const;
 
 /**
- * The sidebar renders a name plus the dominant-type colour dot, so it needs the same item joins as
- * a card — but none of the description/timestamp columns those cards also read.
+ * The sidebar renders a name plus the dominant-type colour dot, so it needs the same item join as a
+ * card — but none of the description or timestamp columns those cards also read.
  */
 const SIDEBAR_COLLECTION_SELECT = {
     id: true,
@@ -76,7 +88,7 @@ async function toCollectionViewModels(
     );
 }
 
-/** One page of the user's collections, most recently updated first. */
+/** One page of the user's collections, most recently updated first, for `/collections`. */
 export async function getCollections(requestedPage: number): Promise<CollectionsPageViewModel> {
     const userId = await getCurrentUserId();
 
@@ -103,12 +115,13 @@ export async function getCollections(requestedPage: number): Promise<Collections
 /**
  * Every collection the user could file an item into, for the pickers on the two item forms.
  *
- * Ordered by name rather than by recency, because this is a list to *find* a collection in — the
- * ordering the sidebar and the cards use answers a different question ("what did I touch last") and
- * would move a checkbox out from under the cursor between one open and the next.
+ * @remarks
+ * Ordered by name rather than by recency: this is a list to *find* a collection in, and the ordering
+ * the sidebar and cards use answers a different question — it would move a checkbox out from under
+ * the cursor between one open and the next.
  *
- * Deliberately not `getCollections()`: that reads every collection's items to derive a dominant type
- * and a count, none of which a checkbox renders.
+ * It reads two columns rather than reusing {@link getCollections}, which derives a dominant type and
+ * a count from every collection's items — none of which a checkbox renders.
  */
 export async function getCollectionOptions(): Promise<CollectionOptionViewModel[]> {
     const userId = await getCurrentUserId();
@@ -142,7 +155,13 @@ export async function getDashboardCollections(): Promise<DashboardCollectionsVie
     };
 }
 
-/** Favorites (all of them) and the five most recent non-favorites. */
+/**
+ * The sidebar's two collection lists: every favourite, and the most recent non-favourites.
+ *
+ * @remarks
+ * This runs on every dashboard page view, which is why it reads
+ * {@link SIDEBAR_COLLECTION_SELECT} rather than the wider card select.
+ */
 export async function getSidebarCollections(): Promise<SidebarCollectionsViewModel> {
     const userId = await getCurrentUserId();
 
@@ -181,9 +200,9 @@ export async function getSidebarCollections(): Promise<SidebarCollectionsViewMod
 /**
  * Every collection the user has favourited, most recently touched first, for `/favorites`.
  *
- * The same item join the sidebar uses, plus the timestamp the row renders — the dominant type is what
- * colours the folder icon, so a favourites row is recognisable as the same collection the sidebar and
- * the cards show. Unpaginated for the reason `getFavoriteItems` is.
+ * The sidebar's item join plus the timestamp the row renders. The dominant type colours the folder
+ * icon, so a favourites row is recognisable as the same collection the sidebar and the cards show.
+ * Unpaginated for the reason `getFavoriteItems` is.
  */
 export async function getFavoriteCollections(): Promise<FavoriteCollectionViewModel[]> {
     const userId = await getCurrentUserId();
@@ -208,17 +227,18 @@ export async function getFavoriteCollections(): Promise<FavoriteCollectionViewMo
 }
 
 /**
- * A single collection and one page of the items in it. Scoped by owner as well as id: an id alone
- * would let one user read another's collection.
+ * A single collection and one page of the items in it.
  *
- * Two reads rather than one nested read, because the page asks two different questions of the same
- * collection. The header describes the *whole* collection — its item count, its dominant type, and
- * how those items divide by type — while the grid below shows one page of them. So the collection
- * row keeps the plain `COLLECTION_SELECT` join, which carries two scalars per item and no bodies,
- * and the items are read separately with a `skip`/`take` over the summary columns. The join it used
- * to have instead — `ITEM_SUMMARY_SELECT` on every row — was the same query doing both jobs, and it
- * is the one that could not be paginated: narrowing it to a page would have quietly turned the
- * header's counts into counts of the visible page.
+ * @returns `undefined` when no such collection belongs to the signed-in user. Scoped by owner as
+ * well as id: an id alone would let one user read another's collection.
+ *
+ * @remarks
+ * Two reads rather than one nested read, because the page asks two questions of the same collection.
+ * The header describes the *whole* collection — its item count, its dominant type, and how those
+ * items divide by type — while the grid below shows one page of them. So the collection row keeps
+ * the plain {@link COLLECTION_SELECT} join, which carries two scalars per item and no bodies, and
+ * the items are read separately with a `skip`/`take` over the summary columns. A single query doing
+ * both jobs cannot be paginated without turning the header's counts into counts of the visible page.
  */
 export async function getCollectionPageData(
     collectionId: string,
@@ -246,7 +266,7 @@ export async function getCollectionPageData(
             // read already authorized.
             where: { userId, collections: { some: { collectionId } } },
             // Pinned first, then recency, then `id` — the same total order the item-type listing
-            // uses, and paginated for the same reason it is sorted in the query rather than after.
+            // uses, and sorted in the query for the same reason it is there.
             orderBy: [{ isPinned: "desc" }, { editedAt: "desc" }, { id: "desc" }],
             skip: paginationSkip(pagination),
             take: pagination.perPage,
@@ -258,11 +278,9 @@ export async function getCollectionPageData(
     return {
         collection: buildCollectionViewModel(row, collectionItems, itemTypesById),
         pagination,
-        // Still counted from the rows in hand rather than by a `groupBy`: the breakdown is over the
+        // Counted from the rows already in hand rather than by a `groupBy`: the breakdown is over the
         // whole collection, which is exactly what the join above holds.
         itemTypeCounts: buildItemTypeBreakdown(collectionItems, itemTypesById),
-        // Ordered by the query now, not in memory — a page of rows sorted after the fact would only
-        // be sorted within itself.
         items: toItemSummaries(itemRows, itemTypesById),
     };
 }

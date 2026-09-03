@@ -9,13 +9,29 @@ import type { UserViewModel } from "@/types/view-models";
 import { buildUserViewModel } from "./view-models";
 
 /**
- * Every user-scoped read in the app resolves its owner here, so this is the one place a session
- * becomes a user id.
+ * The single point where a NextAuth session becomes an application user.
  *
- * There is deliberately no fallback. An unauthenticated request must fail, never quietly resolve to
- * some default account — that would hand every signed-out visitor the same shared data instead of
- * denying them. `src/proxy.ts` redirects them long before this runs, so throwing here is a
- * backstop for a bug in that matcher, not an expected path.
+ * Every user-scoped read in `server/` and every write in `actions/` starts here: `auth()` resolves
+ * the JWT, and this module turns it into an owner id for a `where` clause, or into the
+ * {@link UserViewModel} the sidebar, account menu and profile page render. Nothing else in the
+ * application reads `session.user.id` directly, so ownership scoping has one definition.
+ *
+ * Both functions are wrapped in React's {@link cache}, so a page that resolves the user in its
+ * layout, its sidebar and three of its queries pays for one session decode and one row read.
+ *
+ * @see `src/proxy.ts`, which denies unauthenticated requests before any of this runs.
+ */
+
+/**
+ * The signed-in user's id, for scoping a query by owner.
+ *
+ * @throws When there is no authenticated session.
+ *
+ * @remarks
+ * There is no fallback, and there must not be one: an unauthenticated request has to fail rather
+ * than quietly resolve to some default account, which would hand every signed-out visitor the same
+ * shared data instead of denying them. The proxy redirects such a request long before this runs, so
+ * the throw is a backstop against a gap in that matcher rather than an expected path.
  */
 export const getCurrentUserId = cache(async (): Promise<string> => {
     const session = await auth();
@@ -29,7 +45,12 @@ export const getCurrentUserId = cache(async (): Promise<string> => {
     return session.user.id;
 });
 
-/** The signed-in user prepared for display. Same session resolution as `getCurrentUserId`. */
+/**
+ * The signed-in user prepared for display, read from the database rather than from the session
+ * alone, so callers see account state — `isPro` in particular — that the token does not carry.
+ *
+ * Redirects to `/api/auth/stale-session` when the session names a row that no longer exists.
+ */
 export const getCurrentUser = cache(async (): Promise<UserViewModel> => {
     const userId = await getCurrentUserId();
 
@@ -39,12 +60,12 @@ export const getCurrentUser = cache(async (): Promise<UserViewModel> => {
     });
 
     // The session carries an id for a row that no longer exists — a deleted account with a live
-    // JWT, or a development database that has been re-seeded underneath one.
+    // JWT, or a development database re-seeded underneath one.
     //
-    // Throwing here 500s every page in the app with no way out: the token still parses, so the
-    // proxy treats the visitor as signed in and redirects them off `/sign-in` back to `/`, which
-    // throws again. The cookie is the thing that has to go, and a server component may not write
-    // cookies — so this hands off to a route handler that can. See `api/auth/stale-session`.
+    // Throwing here 500s every page with no way out: the token still parses, so the proxy treats
+    // the visitor as signed in and redirects them off `/sign-in` back to `/`, which throws again.
+    // The cookie is what has to go, and a server component may not write cookies — so this hands
+    // off to a route handler that can.
     if (!user) {
         redirect("/api/auth/stale-session");
     }

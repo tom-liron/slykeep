@@ -3,30 +3,40 @@ import "server-only";
 import bcrypt from "bcryptjs";
 
 /**
- * The one place the app's bcrypt cost factor is defined, and the decoy hash pinned to it.
+ * The application's password-hashing parameters, and the only supported way to produce a hash.
  *
- * These two values are only correct *together*, which is why they now live in one file. Every hash
- * the app writes — registration, password reset, a change from the profile page — must be produced
- * at the same factor as `ABSENT_USER_HASH` is precomputed at, or the sign-in timing gap that hash
- * exists to close reopens. Three copies of the constant, each with a comment naming the other two,
- * was a drift waiting to happen.
+ * Three paths write a password — registration in `api/auth/register`, the reset route, and
+ * `changePassword` in `actions/account.ts` — and one path verifies it, the credentials `authorize`
+ * in `auth.ts`. All four go through this module so the cost factor and the timing decoy stay one
+ * pair of values rather than four copies.
  *
+ * @remarks
  * `server-only` rather than `lib/`: `lib/` is client-reachable in this project, and nothing about
- * password hashing should ever be able to follow an import into a browser bundle.
+ * password hashing may be able to follow an import into a browser bundle.
+ */
+
+/**
+ * The bcrypt cost factor every hash in the application is produced at.
+ *
+ * @remarks
+ * Correct only together with {@link ABSENT_USER_HASH}, which is precomputed at this factor. Raising
+ * it without regenerating that hash reopens the timing gap the decoy closes.
  */
 export const PASSWORD_HASH_ROUNDS = 12;
 
 /**
- * A real bcrypt hash of a random string that nothing knows, compared against when no account
- * matches. Its only job is to burn the same ~500ms the genuine path spends hashing.
+ * A real bcrypt hash of a random string nothing knows, compared against when no account matches, so
+ * that a miss spends the same time hashing as a hit.
  *
- * Returning early on a missing account leaks which emails are registered: the miss answers in
- * ~70ms and the hit in ~550ms, which is a stopwatch away from an account list. Regenerate it if
- * `PASSWORD_HASH_ROUNDS` ever changes — a mismatch is invisible in tests and reopens the leak.
+ * @remarks
+ * Returning early on a missing account leaks which addresses are registered: the miss answers in
+ * roughly 70ms and the hit in roughly 550ms, which is a stopwatch away from an account list.
+ * Regenerate this at {@link PASSWORD_HASH_ROUNDS} if that factor changes — a mismatch is invisible
+ * to the test suite and reopens the leak.
  */
 export const ABSENT_USER_HASH = "$2b$12$1AOauVh.zv9Unpj6DzfsTumooYhJ3avF0tY1bvv.MnB0TqU9uu4Yq";
 
-/** Hashes a new password at the app's cost factor. The only supported way to produce one. */
+/** Hashes a new password at {@link PASSWORD_HASH_ROUNDS}. The only supported way to produce one. */
 export function hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
 }

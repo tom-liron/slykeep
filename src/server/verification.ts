@@ -11,33 +11,39 @@ import {
 } from "./token-identifiers";
 
 /**
- * Single-use email tokens — address confirmation and password reset — both stored in the
- * `VerificationToken` table NextAuth already defines.
+ * Single-use email tokens: address confirmation and password reset.
  *
- * Reusing that table rather than adding one is safe because nothing else writes to it: the email
- * provider is not configured, so verification tokens for magic links never exist.
+ * The security core of both out-of-band email flows. `api/auth/register` and the resend control
+ * issue a confirmation token, `api/auth/forgot-password` issues a reset token, and
+ * `api/auth/verify-email` and `api/auth/reset-password` spend them. Nothing outside this module
+ * reads the token table; callers hand in a raw token and get back a status.
  *
- * `identifier` holds the address the token was issued for, prefixed with its purpose. That prefix is
- * the only thing keeping the two kinds of token apart, and it is load-bearing in both directions:
- * the table has no purpose column, and a token is looked up by its digest alone, so without it a
- * reset link handed to the verification route would be spent confirming an address, and — far worse
- * — a *verification* token posted to the reset route would let anyone who can receive that email set
- * a password on the account. Every read and delete below is scoped to one prefix for that reason.
+ * Both kinds live in the `VerificationToken` table NextAuth already defines, which is safe because
+ * nothing else writes to it — the email provider is not configured, so magic-link tokens never
+ * exist.
  *
- * Both purposes carry an explicit prefix, including the one that predates this. Letting a purpose be
- * "the absence of a prefix" would mean each new kind of token has to be excluded from it by name,
- * and the failure mode of forgetting is silent cross-purpose acceptance — exactly the bug the prefix
- * exists to prevent. The cost is that verification links already in flight when this shipped no
- * longer match; they read as invalid, and `/sign-in` already offers a resend control for that.
+ * @remarks
+ * The table has no purpose column and a token is found by its digest alone, so the prefix on
+ * `identifier` is the only thing keeping the two kinds apart, in both directions: without it a reset
+ * link handed to the verification route would be spent confirming an address, and — far worse — a
+ * *verification* token posted to the reset route would let anyone who can receive that email set a
+ * password on the account. Every read and delete below is scoped to one prefix for that reason.
+ *
+ * Both purposes carry an explicit prefix, including the older one. A purpose that is "the absence of
+ * a prefix" has to exclude each new kind of token by name, and forgetting is silent cross-purpose
+ * acceptance.
+ *
+ * @see {@link IDENTIFIER_PREFIX} in `./token-identifiers`, which the maintenance scripts share.
  */
 
 /**
- * How long a link stays good.
+ * How long a link of each purpose stays good.
  *
+ * @remarks
  * Confirmation gets a day — long enough to survive a slow inbox, short enough to expire. A reset
  * token is a live credential that replaces a password, so it gets an hour: the user asked for it
- * seconds ago and is waiting on it, and every extra hour is more time for a forwarded or leaked
- * mailbox to be worth something.
+ * seconds ago and is waiting on it, and every extra hour is more time in which a forwarded or leaked
+ * mailbox is worth something.
  */
 const TOKEN_TTL_MS: Record<TokenPurpose, number> = {
     "email-verification": 24 * 60 * 60 * 1000,
@@ -52,10 +58,12 @@ function generateToken() {
 /**
  * What actually goes in the database.
  *
- * The raw token travels in the email link; only its digest is stored, so a leaked database dump — or
- * anyone with read access to the table — cannot turn rows back into working links. Plain SHA-256 is
- * the right primitive here, unlike for passwords: the input is 256 bits of randomness, so there is
- * no dictionary to attack and nothing for a slow KDF to protect.
+ * The raw token travels in the email link and only its digest is stored, so a database dump — or
+ * anyone with read access to the table — cannot turn rows back into working links.
+ *
+ * @remarks
+ * Plain SHA-256 is the right primitive here, unlike for passwords: the input is 256 bits of
+ * randomness, so there is no dictionary to attack and nothing for a slow KDF to protect.
  */
 function hashToken(token: string) {
     return createHash("sha256").update(token).digest("hex");
@@ -64,10 +72,11 @@ function hashToken(token: string) {
 /**
  * Issues a fresh token of one purpose for an address and returns the raw value to email.
  *
- * Any token previously issued for the *same purpose and address* is deleted first: a resend must
+ * @remarks
+ * Any token previously issued for the same purpose *and* address is deleted first: a resend has to
  * invalidate the earlier link, or every request permanently widens the set of URLs that can act on
- * the account. Scoping that delete to the prefix is what stops a reset request from silently killing
- * a pending confirmation link, and the other way around.
+ * the account. Scoping that delete to the prefix is what stops a reset request from killing a
+ * pending confirmation link, and the reverse.
  */
 async function issueToken(purpose: TokenPurpose, email: string): Promise<string> {
     const token = generateToken();
@@ -88,11 +97,12 @@ async function issueToken(purpose: TokenPurpose, email: string): Promise<string>
 }
 
 /**
- * Looks up a raw token, without consuming it, and refuses to return one issued for another purpose.
+ * Looks up a raw token without consuming it, and refuses to return one issued for another purpose.
  *
- * A digest that exists under the wrong prefix is reported exactly like one that does not exist at
- * all, and is deliberately left in place — it is still a valid token for whatever it *was* issued
- * for, and deleting it here would let either route be used to cancel the other's links.
+ * @remarks
+ * A digest that exists under the wrong prefix is reported exactly like one that does not exist, and
+ * is left in place: it is still a valid token for whatever it *was* issued for, and deleting it here
+ * would let either route cancel the other's links.
  */
 async function findToken(purpose: TokenPurpose, token: string) {
     if (!token) return null;
@@ -110,11 +120,12 @@ async function findToken(purpose: TokenPurpose, token: string) {
  * Deletes a row that has already been found, and reports whether *this* caller is the one that
  * deleted it.
  *
- * `deleteMany`, not `delete`. Two requests can arrive together for the same link — a mail client or
+ * @remarks
+ * `deleteMany`, not `delete`. Two requests can arrive together for one link — a mail client or
  * scanner prefetching the URL alongside the person clicking it — and both will have found the row.
- * `delete` throws `P2025` when the row is already gone, which would turn a harmless race into a 500
- * on a route users reach straight from their inbox. The count doubles as the race winner: exactly
- * one caller can observe `1`.
+ * `delete` throws `P2025` once the row is gone, turning a harmless race into a 500 on a route users
+ * reach straight from their inbox. The count doubles as the race result: exactly one caller can
+ * observe `1`.
  */
 async function consumeRow(tokenDigest: string) {
     const { count } = await prisma.verificationToken.deleteMany({ where: { token: tokenDigest } });
@@ -126,6 +137,7 @@ async function consumeRow(tokenDigest: string) {
 /*  Email verification                                                        */
 /* -------------------------------------------------------------------------- */
 
+/** Issues a confirmation token for an address and returns the raw value to put in the email link. */
 export function createVerificationToken(email: string): Promise<string> {
     return issueToken("email-verification", email);
 }
@@ -140,9 +152,10 @@ export type VerificationResult =
 /**
  * Consumes a raw token from a verification link and marks its user verified.
  *
- * The row is deleted on every outcome that found one, expiry included — a single-use link stays
+ * @remarks
+ * The row is deleted on every outcome that found one, expiry included: a single-use link stays
  * single-use even when the click comes too late, and an expired row has no further purpose. The
- * caller's remedy in that case is to issue a new one, not to retry this.
+ * caller's remedy is to issue a new token, not to retry this.
  */
 export async function verifyEmailToken(token: string): Promise<VerificationResult> {
     const record = await findToken("email-verification", token);
@@ -174,7 +187,7 @@ export async function verifyEmailToken(token: string): Promise<VerificationResul
  * Explains an address whose token was consumed without this call being the one that verified it.
  *
  * Either the account is already verified — a second click, or a lost race — or it is gone. The two
- * decide whether the page apologizes or simply sends them on to sign in.
+ * decide whether the page apologizes or sends the visitor on to sign in.
  */
 async function describeAccount(email: string): Promise<VerificationResult> {
     const user = await prisma.user.findUnique({
@@ -189,6 +202,7 @@ async function describeAccount(email: string): Promise<VerificationResult> {
 /*  Password reset                                                            */
 /* -------------------------------------------------------------------------- */
 
+/** Issues a reset token for an address and returns the raw value to put in the email link. */
 export function createPasswordResetToken(email: string): Promise<string> {
     return issueToken("password-reset", email);
 }
@@ -198,9 +212,12 @@ export type PasswordResetTokenState = "valid" | "expired" | "invalid";
 /**
  * Reports whether a reset link is still usable, **without** consuming it.
  *
- * The reset page runs this before rendering, so a dead link says so up front instead of after
- * someone has chosen and confirmed a new password. It has to be side-effect free for that: the
- * token still has to work when the form it just rendered is submitted.
+ * The reset page runs this before rendering, so a dead link says so up front rather than after
+ * someone has chosen and confirmed a new password.
+ *
+ * @remarks
+ * It has to stay side-effect free: the token must still work when the form it just rendered is
+ * submitted.
  */
 export async function checkPasswordResetToken(token: string): Promise<PasswordResetTokenState> {
     const record = await findToken("password-reset", token);
@@ -214,16 +231,18 @@ export type PasswordResetResult =
     { status: "valid"; email: string } | { status: "expired" } | { status: "invalid" };
 
 /**
- * Spends a reset token and returns the address it was issued for.
+ * Spends a reset token and returns the address it was issued for, leaving the caller to write the
+ * new password.
  *
- * Consuming is separated from writing the password so the caller can hash — which is deliberately
- * slow — outside the window where the token is still live, and so this module never needs to know
- * what a password is. The token is gone either way once this returns a status other than `invalid`:
- * an expired link is spent rather than left for a second attempt, matching verification.
+ * @remarks
+ * Consuming is separated from writing so the caller can hash — which is slow by design — outside the
+ * window in which the token is still live, and so this module never has to know what a password is.
+ * The token is gone either way once this returns a status other than `invalid`: an expired link is
+ * spent rather than left for a second attempt, matching verification.
  *
- * The race that matters here is two submissions of the same link. Only one can observe the delete,
- * and the loser is told the link is invalid rather than being allowed to overwrite the password the
- * winner just set.
+ * The race that matters is two submissions of one link. Only one can observe the delete, and the
+ * loser is told the link is invalid rather than being allowed to overwrite the password the winner
+ * just set.
  */
 export async function consumePasswordResetToken(token: string): Promise<PasswordResetResult> {
     const record = await findToken("password-reset", token);
