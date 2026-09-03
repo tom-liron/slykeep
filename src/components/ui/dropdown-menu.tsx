@@ -6,6 +6,14 @@ import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 
+/**
+ * The shadcn/ui dropdown-menu primitive: the Radix menu wrapped in this app's popover styling.
+ *
+ * The standard "⋯" action menu — the account menu in the sidebar, and the per-row action menus on
+ * items and collections. Installed close to the shadcn default; the classes here match the
+ * `bg-popover` / `ring-foreground/10` surface the other overlays (`dialog.tsx`, `sheet.tsx`) use.
+ */
+
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
     return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
 }

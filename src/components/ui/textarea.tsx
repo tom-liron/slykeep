@@ -2,7 +2,13 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/** The multi-line counterpart to `Input`, carrying the same border, focus, and invalid states. */
+/**
+ * The shadcn/ui textarea primitive: a styled `<textarea>` wrapper.
+ *
+ * The multi-line counterpart to `Input` in `ui/input.tsx`, carrying the same border, focus, and
+ * `aria-invalid` styling so text and code fields in the item forms match the single-line inputs
+ * beside them.
+ */
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
     return (
         <textarea

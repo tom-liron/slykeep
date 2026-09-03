@@ -4,11 +4,30 @@ import { Slot } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * The shadcn/ui button primitive: {@link Button}, plus {@link buttonVariants} for composing the
+ * same styling onto links and other elements.
+ *
+ * The base interactive control across the app. `asChild` renders the classes onto a caller's
+ * element via Radix `Slot` — `Pagination` and several nav links use {@link buttonVariants}
+ * directly for that reason.
+ */
+
+/**
+ * The class-variance-authority definition behind {@link Button}, keyed by `variant` and `size`.
+ *
+ * @remarks
+ * Every `size` carries a `pointer-coarse:` floor of 44px (Apple 44pt, Material 48dp, WCAG 2.2
+ * SC 2.5.5); the base sizes are drawn for a mouse. The floor keys off the *pointer*: a touch
+ * laptop at 1440px needs it and a mouse at 390px does not, so a width breakpoint would be wrong on
+ * both. The box grows to reach the floor rather than an `::after` overhang extending the hit area,
+ * because these buttons sit on `gap-2` in the top bar where an overhang would overlap the
+ * neighbour.
+ */
 const buttonVariants = cva(
-    // `cursor-pointer` is here rather than at any call site because Tailwind v4's preflight sets
-    // `cursor: default` on every `<button>` — v3 did not, which is why this only had to be said once
-    // the project moved. Disabled buttons keep the arrow: `disabled:pointer-events-none` below stops
-    // them resolving a cursor at all.
+    // `cursor-pointer` because Tailwind v4's preflight sets `cursor: default` on every `<button>`.
+    // Disabled buttons keep the arrow: `disabled:pointer-events-none` stops them resolving a
+    // cursor at all.
     "group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
     {
         variants: {
@@ -23,20 +42,8 @@ const buttonVariants = cva(
                     "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
                 link: "text-primary underline-offset-4 hover:underline",
             },
-            // Every size carries a `pointer-coarse:` floor of 44px — Apple's 44pt, Material's 48dp
-            // and WCAG 2.2 SC 2.5.5 all land at or above it, and these variants were drawn for a
-            // mouse: 24px at `icon-xs`, 28px at `icon-sm`, 32px at `icon`.
-            //
-            // The condition is the *pointer*, not the width. A touch laptop at 1440px has exactly
-            // this problem and a mouse at 390px does not, so a width breakpoint would miss the first
-            // and punish the second — and it keeps this off the desktop layouts that branches 1 and
-            // 2 measured into place.
-            //
-            // The box grows rather than a `::after` extending the hit area past it. That trick keeps
-            // the visual size, and it is wrong here: these buttons sit on `gap-2` in the top bar, so
-            // 6px of invisible overhang per side would have each one overlapping its neighbour by
-            // 4px, where a tap goes to whatever paints last instead of to what was aimed at. An
-            // invisible overlapping target is a worse defect than a small one.
+            // Each size adds its `pointer-coarse:` floor here — see the `buttonVariants` block
+            // above for why the floor keys off the pointer and grows the box.
             size: {
                 default:
                     "h-8 gap-1.5 px-2.5 pointer-coarse:h-11 pointer-coarse:min-w-11 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
