@@ -1,11 +1,16 @@
 /**
- * How many rows one page of a listing renders.
+ * Page size for the application's paginated listings: an item type's items, the collections index,
+ * and the items inside one collection.
  *
- * Both are 21 because both listings are the same three-column grid (`sm:grid-cols-2
- * lg:grid-cols-3`): 21 divides evenly by 3 and by 1, so a full page is never a short final row on
- * desktop or mobile. The file and image variants of the item-type page use the same number even
- * though they lay out differently — a page size that changed with the variant would make "page 3"
- * mean different items for two types.
+ * `server/items.ts` and `server/collections.ts` apply these as the `take` of those queries and derive
+ * from them the page count the `Pagination` control renders.
+ *
+ * @remarks
+ * Both listings lay out in `CARD_GRID`, which is one, two or three columns wide; 21 divides by one
+ * and by three, so a full page ends on a complete row in the narrowest and widest arrangements.
+ * {@link COLLECTIONS_PER_PAGE} holds the same number for the same reason. The
+ * item-type page's file variant keeps the same size despite laying out as rows — a page size that
+ * varied by variant would make "page 3" mean different items for different types.
  */
 export const ITEMS_PER_PAGE = 21;
 export const COLLECTIONS_PER_PAGE = 21;

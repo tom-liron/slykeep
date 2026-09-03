@@ -1,17 +1,27 @@
+/**
+ * The copy and plan definitions the product's selling surfaces render.
+ *
+ * `FeatureGrid`, `AiSection` and `PricingPlans` build the signed-out landing page out of these
+ * arrays, and the signed-in `/upgrade` page renders the same {@link PRICING_PLANS} through the same
+ * `PricingPlanCard`, so a visitor and a free user comparing plans always read one pricing table.
+ * Holding the copy here is what lets those components stay layout-only.
+ *
+ * {@link BillingCycle} is declared here and travels well beyond marketing: `actions/billing.ts`
+ * takes it as checkout input, `config/billing.ts` maps it to a Stripe Price, and `BillingViewModel`
+ * reports it back to the settings panel.
+ *
+ * @remarks
+ * The prices are copy and are not read from Stripe, so they stay in step with `config/billing.ts`
+ * and `project-overview.md` §7 by hand.
+ *
+ * A feature's icon ({@link MarketingFeature}) is the lucide component itself, unlike
+ * `ItemTypePresentation.icon` in `types/item-type.ts`, which is a name: an item type's icon arrives
+ * from the database and has to be narrowed, while these are authored here.
+ */
+
 import { Code, File, Layers, Search, Sparkles, Terminal, type LucideIcon } from "lucide-react";
 
 import { ITEM_TYPE_COLORS } from "./item-type-catalog";
-
-/**
- * The copy the marketing homepage is built from: the feature cards, the AI bullets, and the two
- * pricing plans. Keeping it here is what lets the components stay layout-only — in particular the
- * two price cards, which are one component rendered twice rather than two near-identical blocks.
- *
- * The icon is the lucide component itself, not a name in the manner of `ItemTypePresentation.icon`.
- * That indirection exists because an item type's icon arrives from the database as an untyped
- * string and has to be guarded; these are authored here, so a `TypeIcon`-style switch would only
- * add a second place to edit when a card changes.
- */
 
 export type MarketingFeature = {
     title: string;
@@ -61,7 +71,7 @@ export const MARKETING_FEATURES: readonly MarketingFeature[] = [
 ];
 
 export type AiHighlight = {
-    /** Rendered bold, and read as the name of the thing. */
+    /** Rendered bold, and read as the name of the capability. */
     title: string;
     body: string;
 };
@@ -100,7 +110,7 @@ export type PlanPrice = {
 
 export type PlanFeature = {
     label: string;
-    /** `false` renders the crossed-out row — what this plan does *not* get. */
+    /** `false` renders the crossed-out row — what this {@link PricingPlan} does *not* get. */
     included: boolean;
 };
 
@@ -109,21 +119,15 @@ export type PricingPlan = {
     /**
      * The line above the feature list.
      *
-     * Required rather than optional, and that is the point: every card renders exactly one of
-     * these, so the lists below them start on the same row across the whole grid. An optional
-     * lead-in put Pro's first bullet one line lower than Free's, and two lists that do not share a
-     * baseline cannot be read across.
-     *
-     * On the higher tier it carries the inheritance — "Everything in Free, plus" — which is what
-     * lets that card list only what it *adds*. Without it, Pro has to restate every Free row,
-     * burying the real difference among lines identical on both cards, or omit them and read as
-     * though upgrading takes search and favourites away.
+     * @remarks
+     * Required rather than optional: every {@link PricingPlan} renders exactly one, so the lists start
+     * on the same row and can be read across. On the higher tier it carries the inheritance —
+     * "Everything in Free, plus" — which is what lets that card list only what it adds.
      */
     featuresHeading: string;
     /**
-     * Priced per cycle even where the two are identical, because the card renders one shape either
-     * way. Free is genuinely free on both, so both entries repeat — the alternative is a nullable
-     * yearly price and a branch in the component to handle it.
+     * Priced per cycle even where the two are identical, so the card renders one shape either way.
+     * Free repeats itself rather than carrying a nullable yearly price the component must branch on.
      */
     price: Record<BillingCycle, PlanPrice>;
     features: readonly PlanFeature[];
@@ -147,42 +151,28 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
                 note: "Everything you need to stop losing things.",
             },
         },
-        // Eight rows, exactly as many as Pro. Two lists of different lengths do not read as a
-        // comparison — and a Free card *longer* than the one being sold argues against the upgrade.
-        // The pair of counts is a constraint on this file: adding a row to either plan means
-        // finding one for the other, or the grid goes lopsided again.
-        //
-        // Markdown editing and pinned items are ungated too and are deliberately left off. A
-        // pricing card carries the five to seven rows that decide the choice, not an inventory;
-        // both are covered by the features section above this on the landing page.
+        // Eight rows, the same count as Pro: two lists of different lengths do not read as a
+        // comparison. Adding a row to either plan means finding one for the other. A card carries
+        // the handful of rows that decide the choice, not an inventory of everything ungated.
         featuresHeading: "What's included",
         features: [
             { label: "Up to 50 items", included: true },
             { label: "3 collections", included: true },
-            // "Five" against the Pro card's "All seven", rather than naming the five. The list
-            // was the one row on either card long enough to wrap, which broke the parallel this
-            // comparison depends on — and the two numbers put the difference in the row itself,
-            // where a reader comparing the cards can see it without counting nouns. Which five
-            // they are is what the features section above this exists to say.
+            // A count rather than a list of the five: naming them is the one row long enough to
+            // wrap, and the number puts the difference in the row itself. The features section
+            // above this on the landing page is what says which five.
             { label: "Five item types", included: true },
             { label: "Instant ⌘K search", included: true },
-            // "in place" is the claim, and the drawer is what makes it true: §4A of the overview
-            // asks for items to be quick to access, and `ItemDrawer` answers it with Favorite, Pin,
-            // Copy, Download and Edit on one row, over whatever page you were already on. Naming
-            // three of those controls beats naming the drawer, which means nothing to a reader who
-            // has not seen one.
-            //
-            // Earlier attempts here named parts of the app — favorites, tags, syntax highlighting,
-            // one-click copy — each true and ungated, none of them a reason to sign up, because
-            // every editor a developer already has open does them. The difference is that this row
-            // is about not having to leave what you are doing.
+            // The row names three of `ItemDrawer`'s controls rather than the drawer, which means
+            // nothing to a reader who has not seen one. "in place" is the claim being made: the
+            // drawer opens over whatever page the user was already on.
             { label: "Pin, copy, and edit in place", included: true },
             { label: "Markdown and code editors", included: true },
             { label: "File & image uploads", included: false },
             { label: "AI features", included: false },
         ],
-        // Registration, for the plain reason that the free plan *is* an account and nothing else.
-        // Pro's call to action goes to the billing panel instead — see below.
+        // Registration: the free plan is an account and nothing else. Pro's call to action goes to
+        // the billing panel instead — see below.
         cta: { label: "Get Started Free", href: "/register" },
         featured: false,
     },
@@ -204,47 +194,31 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
         features: [
             { label: "Unlimited items", included: true },
             { label: "Unlimited collections", included: true },
-            // Word for word the row the Free card crosses out. The same label ticked on one card
-            // and struck through on the other is the clearest comparison a pair of cards can make:
-            // there is nothing to interpret, and the eye finds it without reading. It replaces
-            // "All seven item types", which asked the reader to work out which two they were.
+            // Word for word the row the Free card crosses out. One label ticked on one card and
+            // struck through on the other is a comparison that needs no interpreting.
             { label: "File & image uploads", included: true },
-            // One row per AI capability, named rather than described. Four rows out of eight is
-            // the prominence — AI is half of what Pro is, and a reader scanning the card counts
-            // rows before reading any of them. Two rows carrying four features under-sold it
-            // against three rows of quota.
+            // One row per AI capability: four rows of eight is the prominence, since a reader
+            // scanning the card counts rows before reading any of them. Each label is a short noun
+            // phrase so no row wraps and the column stays parallel with the Free card's rows.
             //
-            // Every label is a short noun phrase, 15–21 characters, so no row wraps and the column
-            // reads as a list rather than as prose. Sentences were tried here first
-            // ("AI explains any snippet, in plain English") and were wrong twice over: they wrapped
-            // to two lines each, which turns three consecutive rows into a paragraph, and they
-            // broke parallel with the Free card beside them, whose rows are all noun phrases. A
-            // pricing card is a comparison, and a comparison only works if both sides are written
-            // the same way.
-            //
-            // Each names a Server Action that exists in `actions/ai.ts` — `generateAutoTags`,
-            // `generateDescription`, `explainCode`, `optimizePrompt`. That rule is not decorative:
-            // an "Export to JSON or ZIP" row sat here promising a Pro feature with no route, no
-            // dependency and no implementation, directly beneath a comment claiming this card
-            // promised nothing the product does not do. It is removed rather than crossed out,
-            // since a crossed-out row on the *Pro* card claims Pro does not get it either.
+            // Every row names a Server Action that exists in `actions/ai.ts` — `generateAutoTags`,
+            // `generateDescription`, `explainCode`, `optimizePrompt`. A capability with no
+            // implementation is removed from this card rather than crossed out: a struck-through
+            // row on the Pro card claims Pro does not get it either.
             { label: "AI tag suggestions", included: true },
             { label: "AI item summaries", included: true },
             { label: "AI code explanations", included: true },
             { label: "AI prompt optimizer", included: true },
             { label: "Priority support", included: true },
         ],
-        // The billing panel, which is where checkout actually starts.
+        // The billing panel, where checkout starts. This page is only served without a session, so
+        // a visitor following the link is bounced by the proxy to `/sign-in?callbackUrl=%2Fsettings`
+        // and lands on it after signing in; a free user returning to upgrade is not sent to
+        // register a second account.
         //
-        // The marketing page is only ever served without a session, so a visitor following this is
-        // bounced by the proxy to `/sign-in?callbackUrl=%2Fsettings` and arrives after signing in —
-        // the same number of steps as `/register` was, and strictly better for the free user who
-        // came back to upgrade, who would otherwise be sent to register a second account.
-        //
-        // The fragment does not survive that round trip: it never reaches the server, so it is not
-        // in `callbackUrl`. It does not need to — billing is the first panel on the page, so the
-        // fragment only matters for the signed-in user following this link directly, which is the
-        // one case where it does survive.
+        // The fragment does not survive that round trip — it never reaches the server, so it is not
+        // in `callbackUrl`. Billing is the first panel on the page, and the fragment matters only
+        // for a signed-in user following the link directly, which is the case where it does survive.
         cta: { label: "Go Pro", href: "/settings#billing" },
         featured: true,
     },

@@ -2,22 +2,35 @@
 
 ## Status
 
-Not Started — nothing queued.
+Not Started
 
 ## Goals
 
-Nothing queued. One documentation feature remains specced and waiting:
-
-1. `/feature load code-docs-overhaul-spec` — the comments and JSDoc inside `src/`, which are a lab
-   notebook rather than an operating manual: 8,240 comment lines of 27,860 non-blank, 29.6%, with
-   several files over 70%. Runs directory by directory, never as one sweep. Three decisions open.
-
-Also independent of the rebrand, so they can land before the `devstash` branch is cut: **demo
-content for a new account** and the missing **`error.tsx` / `not-found.tsx` / `loading.tsx`**.
+<!-- Populated by `/feature load`. -->
 
 ## Notes
 
-**Things Tom needs to do, not Claude:**
+<!-- Populated by `/feature load`. -->
+
+### Next up: code documentation, part 1b
+
+The source-documentation overhaul is under way. `context/features/code-docs-overhaul-spec.md` is the
+authority — its four-part table carries the batching, and `context/coding-standards.md`
+§ Documentation carries the standard itself.
+
+**Part 1a is done** (`src/config/`, 8 files, entry 118). **Part 1b is next**: 39 files in three
+commits — `types/` 10 + `hooks/` 6 · `server/` 13 · `actions/` 7 + `auth.ts`, `auth.config.ts`,
+`proxy.ts` 3. Load it with `/feature load code-docs-overhaul-spec.md` and say **part 1b**, since the
+spec describes all four parts and cannot tell which one is starting.
+
+Every pass ends with both proofs green: `npm run docs:comments-only` and `npm run docs:links`,
+alongside `npm test`, `npm run lint` and `npm run build`.
+
+**One correction lands in part 1b:** `src/actions/items.ts` calls `Tag` rows "global and shared
+across users". Tags have carried `userId` and `@@unique([userId, normalized])` since #112. The other
+two known corrections are in `lib/`, so they belong to part 2.
+
+### Standing items for Tom, not Claude
 
 - **Set `CRON_SECRET` in Vercel** (Settings → Environment Variables → Production), then redeploy.
   Generate with `openssl rand -base64 32`. Until then the nightly sweep answers 503 and does
@@ -27,15 +40,14 @@ content for a new account** and the missing **`error.tsx` / `not-found.tsx` / `l
 - The next production deploy runs `prisma migrate deploy` — the tag migration is DDL plus a
   row-rewriting backfill.
 
-**Left over from the documentation overhaul (#117), deliberately not fixed there:**
+### Queued behind the documentation work
 
-- **Line anchors still rot silently.** 17 `file.ts#L42` anchors across two tracked `docs/` files
-  are unchecked by anything. They are now covered by each file's "not maintained" banner, which was
-  the decision — but a link checker in CI would close it properly.
-- **`docs/item-crud-architecture.md` links to `src/components/profile/ChangePasswordForm.tsx`**,
-  which no longer exists. Its own banner already names the replacement
-  (`src/components/settings/ChangePasswordDialog.tsx`), so the dead link is documented rather than
-  repaired — correcting the body of a record falsifies it.
+- Independent of the rebrand, so they can land before the `devstash` branch is cut: **demo content
+  for a new account**, and the missing **`error.tsx` / `not-found.tsx` / `loading.tsx`**.
+- Left over from #117: 17 `file.ts#L42` anchors across two tracked `docs/` files are unchecked by
+  anything — a link checker in CI would close it. And `docs/item-crud-architecture.md` links to
+  `src/components/profile/ChangePasswordForm.tsx`, which no longer exists; its banner already names
+  the replacement, so the dead link is documented rather than repaired.
 
 ## History
 
