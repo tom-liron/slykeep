@@ -22,17 +22,12 @@ import type { UpdateCollectionField, UpdateCollectionInput } from "@/lib/collect
 import type { CollectionActionTarget } from "@/types/collection";
 
 /**
- * The edit dialog for a collection's metadata — its name and its description, the same two fields
- * creation set.
+ * The dialog for editing a collection's name and description, calling `updateCollection`.
  *
- * Controlled from the outside rather than owning a `DialogTrigger` of its own, which is what lets
- * one dialog serve both surfaces: on the collection's page it opens from a header button, and on a
- * card it opens from a dropdown item. The second case is why the trigger cannot live here at all —
- * a Radix menu closes on select and unmounts everything inside it, taking a dialog nested in the
- * item with it. `CollectionActions` holds the state and renders this as the menu's sibling.
- *
- * A centered modal rather than a side panel, matching `CreateCollectionDialog`: there are two fields
- * and no content to keep in view beside them.
+ * Controlled from outside, with no `DialogTrigger` of its own, so one dialog serves both surfaces:
+ * a header button on the collection page and a dropdown item on a card. The trigger cannot live
+ * here because a Radix menu unmounts everything inside the item it closes on; `CollectionActions`
+ * holds the state and renders this as the menu's sibling.
  */
 export function EditCollectionDialog({
     collection,
@@ -61,10 +56,11 @@ export function EditCollectionDialog({
 }
 
 /**
- * Split out for the reason `CreateCollectionForm` is: Radix unmounts the dialog's content when it
- * closes, so seeding the fields from props here means they are re-seeded from the collection's
- * current values every time it is reopened — including straight after a save, with no reset to
- * remember and no stale draft left behind by a cancel.
+ * The name and description fields, seeded from the collection and submitted via `updateCollection`.
+ *
+ * Split out like `CreateCollectionForm`: Radix unmounts the dialog content on close, so the fields
+ * re-seed from the collection's current values on every reopen — no reset to remember, no stale
+ * draft after a cancel.
  */
 function EditCollectionForm({
     collection,

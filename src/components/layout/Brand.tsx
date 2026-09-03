@@ -4,28 +4,17 @@ import { Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * DevStash wordmark + logo. Lives in the top bar, the mobile drawer header, and the signed-out
- * auth shell.
+ * The DevStash wordmark and logo. Rendered in the top bar, the mobile drawer header, and the
+ * marketing/auth bar.
  *
- * `href` is opt-in, and no call site currently declines it. It was the auth shell that did: "/" does
- * not mean the app for a signed-out visitor — the proxy serves the marketing page there — so a
- * wordmark over a sign-in form was a link back out to the sales page, and it rendered inert. That
- * shell now renders the marketing bar instead, which links the brand to "/" deliberately, because
- * going back to the marketing page is the point of putting a bar there. The unlinked branch is kept
- * rather than made required: it is the right rendering for any future surface where the brand is a
- * label rather than a way out. `onNavigate` lets the mobile drawer close itself on the way, the same
- * way its nav links do.
+ * `href` is optional: with it, the lockup is a `<Link>`; without it, a plain label for a surface
+ * where the brand is not a way out. `onNavigate` lets the mobile drawer close itself on the way,
+ * like its nav links.
  *
- * `compact` drops the wordmark below `sm` and leaves the mark alone. That is what a brand does on a
- * phone — the mark stays, the word goes — and it is deliberately not the same thing as letting the
- * word truncate: "DevSt…" reads as a broken layout rather than a compact one. Only the top bar sets
- * it. The drawer header, the footer, and the marketing bar all have room for the full lockup at
- * every width they are rendered at — including the bar in its auth variant, which carries fewer
- * buttons than the marketing one, never more.
- *
- * `min-w-0` and `truncate` stay regardless, as the floor under both: no call site controls the width
- * of the row it is dropped into, and a wordmark that clips is still better than one that paints over
- * its neighbour. With `compact` set they should never actually fire.
+ * @remarks
+ * `compact` hides the wordmark below `sm`, leaving the mark alone — a phone shows the mark, not a
+ * truncated word. Only the top bar sets it; every other surface has room for the full lockup.
+ * `min-w-0` and `truncate` stay as a floor under call sites that do not control their row's width.
  */
 export function Brand({
     href,
@@ -56,12 +45,10 @@ export function Brand({
         <Link
             href={href}
             onClick={onNavigate}
-            // `-m-1.5 p-1.5` on a coarse pointer: the mark is 32px, so the link needs 6px on every
-            // side to be a 44px target, and the negative margin gives that space back to the layout
-            // so nothing moves and the mark stays the size it is drawn at. Padding rather than a
-            // bigger mark, because the mark's size is the logo's design; padding rather than an
-            // `::after` overhang, because the hamburger is 8px away and an overhang would reach into
-            // it. 6px of padding against an 8px gap leaves 2px between the two targets.
+            // `-m-1.5 p-1.5` on a coarse pointer: 6px of padding makes the 32px mark a 44px
+            // target, and the negative margin hands that space back to the layout so nothing
+            // moves. Padding, not a bigger mark (its size is the logo's design) and not an
+            // `::after` overhang (the hamburger is 8px away).
             className="flex min-w-0 items-center gap-2 rounded-lg transition-opacity pointer-coarse:-m-1.5 pointer-coarse:p-1.5 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
             {content}

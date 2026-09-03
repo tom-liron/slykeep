@@ -8,13 +8,19 @@ import { ArrowRight, ChevronDown, Star } from "lucide-react";
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { Badge } from "@/components/ui/badge";
-// The one entitlement rule, shared with the server rather than restated: the badge marks what this
-// account cannot open, so it must disappear the moment they subscribe — and stay away entirely
-// while `ENFORCE_PRO_LIMITS` is off, when nothing is actually locked.
+// The entitlement rule shared with the server, so the PRO badge tracks a subscription and
+// `ENFORCE_PRO_LIMITS` rather than a restated check.
 import { canAccessItemType } from "@/lib/limits";
 import { cn } from "@/lib/utils";
 import type { SidebarCollectionViewModel, SidebarViewModel } from "@/types/view-models";
 
+/**
+ * The contents of the sidebar rail and mobile drawer: the Favorites link, the collapsible Types and
+ * Collections sections, and {@link UserMenu} at the foot.
+ *
+ * Rendered by `Sidebar` in both its forms. `data` is the server-built `SidebarViewModel`.
+ * `onNavigate` is passed through to every link so the mobile drawer closes on navigation.
+ */
 export function SidebarNav({
     data,
     onNavigate,
@@ -32,10 +38,9 @@ export function SidebarNav({
         <div className="flex h-full flex-col">
             {/* Scrollable nav */}
             <nav className="flex-1 overflow-y-auto p-2">
-                {/* Favorites, above the two collapsible sections and outside both — it is a view
-                    across every type and every collection, so it belongs under neither heading.
-                    It had no nav entry at all until the top bar's star was hidden on phones, which
-                    is what made a page reachable from exactly one 32px control worth noticing. */}
+                {/* Favorites, above both collapsible sections and outside them — a view across
+                    every type and collection, so it belongs under neither heading. It is the only
+                    way to /favorites on a phone, where the top bar's star is hidden. */}
                 <Link
                     href="/favorites"
                     onClick={onNavigate}
@@ -44,13 +49,9 @@ export function SidebarNav({
                         pathname === "/favorites" && "bg-sidebar-accent font-medium",
                     )}
                 >
-                    {/* No hover treatment of its own, deliberately. Every other leading icon in this
-                        rail — the type icons, the collection stars — holds still while the row tints
-                        behind it, so a star that brightened here would be the one icon in the
-                        sidebar behaving differently. The top bar's star does lift on hover because
-                        it *is* the control, with no label beside it; this one leads a row that
-                        already answers the pointer. Shared resting colour, different hover, and the
-                        reason is which of the two is the thing being hovered. */}
+                    {/* No hover treatment of its own: every leading icon in this rail holds still
+                        while the row tints behind it. The top bar's star lifts on hover because it
+                        is the control; this one leads a row that already answers the pointer. */}
                     <Star className="size-4 shrink-0 text-favorite" aria-hidden="true" />
                     <span className="flex-1 truncate">Favorites</span>
                 </Link>
@@ -248,9 +249,11 @@ function CollectionLink({
 }
 
 /**
- * Marks a Pro-gated item type. Deliberately quiet — it labels the row rather than competing with
- * the type's coloured icon, and it does not gate the link: the type's page answers with a locked
- * state rather than a 404, so a badged type stays navigable and explains what Pro buys.
+ * The `PRO` marker on a Pro-gated item type's row.
+ *
+ * Quiet enough to label the row rather than compete with the type's coloured icon. It does not
+ * gate the link — the type's page renders `ProTypeUpgrade` rather than a 404, so a badged type
+ * stays navigable.
  */
 function ProBadge() {
     return (

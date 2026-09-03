@@ -15,15 +15,15 @@ import {
 import type { UserViewModel } from "@/types/view-models";
 
 /**
- * The signed-in user at the foot of the sidebar, and the account menu behind them.
+ * The signed-in user at the foot of the sidebar, and the account menu (Profile, Settings, Sign
+ * out) behind them.
  *
- * The whole row is the trigger rather than the avatar alone — a 36px circle is a small target on
- * touch, and the name and email next to it look clickable whether or not they are.
+ * The whole row is the trigger, not the avatar alone — a 36px circle is a small touch target, and
+ * the name and email beside it look clickable.
  *
- * `onNavigate` closes the mobile drawer this is rendered inside. `SidebarContext` already drops the
- * drawer whenever the path changes, which covers Profile and Settings from anywhere else — this is
- * for the one case that derives from nothing: tapping Profile while already on `/profile`, where the
- * route does not change and the drawer would otherwise sit there over the page it was asked for.
+ * @remarks
+ * `onNavigate` closes the mobile drawer. `SidebarContext` already closes it on a path change; this
+ * covers tapping Profile while already on `/profile`, where the route does not change.
  */
 export function UserMenu({ user, onNavigate }: { user: UserViewModel; onNavigate?: () => void }) {
     return (

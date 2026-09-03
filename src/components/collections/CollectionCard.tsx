@@ -6,15 +6,13 @@ import type { CollectionViewModel } from "@/types/view-models";
 import { CollectionActions } from "./CollectionActions";
 
 /**
- * A collection on the dashboard and on `/collections`.
+ * A collection card, on the dashboard and on `/collections`.
  *
- * The whole card used to *be* the link. It cannot be any more: the actions menu is a button, and a
- * button inside an anchor is invalid markup that a browser silently rewrites — the same failure as
- * the nested `<form>` that once left the resend-verification control unclickable. So the link is
- * stretched over the card instead (`absolute inset-0`), with the menu painted on top of it as a
- * later sibling, which is the layering `ItemList` already uses for its card overlays.
+ * The link is stretched over the card (`absolute inset-0`) with {@link CollectionActions}' menu
+ * painted on top as a later sibling, because a `<button>` inside an `<a>` is invalid markup. This
+ * is the overlay layering `ItemList` uses for its cards.
  *
- * The card stays a server component: only the menu needs `"use client"`, and it brings its own.
+ * The card stays a server component; only the menu is `"use client"`, and it brings its own.
  */
 export function CollectionCard({ collection }: { collection: CollectionViewModel }) {
     const accent = collection.dominantItemType?.color;
@@ -24,13 +22,10 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
             className="relative flex flex-col rounded-xl border border-border border-l-4 bg-card p-4 transition-colors hover:bg-muted/50 focus-within:bg-muted/50"
             style={accent ? { borderLeftColor: accent } : undefined}
         >
-            {/* Padded clear of the menu, which is laid over this row's right-hand end — and the
-                menu is not one width. `CollectionActions` renders it at `size="icon-sm"`, 28px
-                with a mouse, but every button size carries a `pointer-coarse:` floor of 44px, so
-                on a phone it is 44px at `right-2.5` and reaches 54px in from the card's edge.
-                `pr-8` plus the card's own `p-4` reserved 48px, and the name was drawn under the
-                ⋯. Stated as `pointer-coarse:` rather than a breakpoint for the same reason the
-                button is: a touchscreen laptop has the 44px button at any width. */}
+            {/* Padded clear of the menu laid over the row's right-hand end. `CollectionActions`
+                renders it at `size="icon-sm"` (28px with a mouse, 44px on a coarse pointer), so
+                the `pr` clearance covers both. `pointer-coarse:` rather than a breakpoint, since a
+                touchscreen laptop has the 44px button at any width. */}
             <div className="flex items-center gap-1.5 pr-8 pointer-coarse:pr-12">
                 <h3 className="truncate font-semibold">{collection.name}</h3>
                 {collection.isFavorite && <FavoriteBadge />}
@@ -38,10 +33,8 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
             <p className="mt-0.5 text-xs text-muted-foreground">
                 {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
             </p>
-            {/* Guarded rather than always rendered: the view model normalizes a null description to
-                "", and until collections could be created there was no way to have one — every
-                seeded collection carries a description. The create dialog makes the field optional,
-                so an empty paragraph (and its margin) is now reachable. */}
+            {/* Guarded: the view model normalizes a null description to "", and the create dialog
+                makes the field optional, so an empty paragraph and its margin are reachable. */}
             {collection.description && (
                 <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                     {collection.description}

@@ -2,6 +2,16 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
+/**
+ * Client state for the dashboard sidebar: the desktop rail's collapsed state and the mobile
+ * drawer's open state.
+ *
+ * `SidebarProvider` wraps the dashboard layout; `TopBar` and `Sidebar` read it through
+ * {@link useSidebar}. The rail's *default* state is CSS in `Sidebar` — this context only carries an
+ * explicit user choice ({@link SidebarContextValue.collapsed} is `null` until the toggle is
+ * touched) and the drawer state.
+ */
+
 interface SidebarContextValue {
     /**
      * `null` means nobody has touched the toggle, so the rail follows the width-aware default `Sidebar`
@@ -16,13 +26,11 @@ interface SidebarContextValue {
 }
 
 /**
- * `lg`, as a media query — the width at which the rail is open on arrival.
+ * The `lg` breakpoint as a media query — the width at or above which the rail is open on arrival.
  *
- * The default itself is CSS, in `Sidebar`, and has to be: the server renders this markup without
- * knowing the window width, so a default computed in JavaScript would paint the wrong rail and then
- * correct itself. This is the same threshold in the one place JavaScript genuinely needs it, which
- * is deciding which way a never-touched toggle should flip. Read at click time rather than
- * subscribed to, because it is only ever a question about right now.
+ * The default rail state itself is CSS, in `Sidebar`, because the server renders the markup without
+ * knowing the window width. This is the same threshold in the one place JavaScript needs it:
+ * deciding which way a never-touched toggle flips, read once at click time.
  */
 const RAIL_OPEN_BY_DEFAULT = "(min-width: 64rem)";
 
@@ -42,16 +50,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     }, []);
     const toggleMobile = useCallback(() => setMobileOpen((previous) => !previous), []);
 
-    // Back and forward close the drawer. Nothing else notices them: a link inside the drawer closes
-    // it on the tap, but the browser's own navigation buttons are not taps on anything.
-    //
-    // Two other shapes were tried first and both were worse. An effect watching `usePathname` is
-    // what `react-hooks/set-state-in-effect` exists to reject. Deriving it — storing which path the
-    // drawer was opened on, and calling it open only while that is still the current path — passes
-    // the lint and reads well, and it reopens the drawer on *forward*: going back closes it because
-    // the paths stop matching, and going forward makes them match again. Measured, not reasoned
-    // about. A listener has no equivalent, because it fires on the event rather than comparing two
-    // pieces of state that can drift back into agreement.
+    // A `popstate` listener closes the drawer on back and forward: a link inside the drawer closes
+    // it on the tap, but the browser's navigation buttons are not taps. A listener fires on the
+    // event, so it does not reopen on forward the way a `usePathname`-derived open state does when
+    // the paths drift back into agreement.
     useEffect(() => {
         const close = () => setMobileOpen(false);
         window.addEventListener("popstate", close);
