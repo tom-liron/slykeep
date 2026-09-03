@@ -25,26 +25,21 @@ const CARDS = [
 ];
 
 /**
- * The right half of the hero figure: a still model of the dashboard, decorative and inert.
+ * The right half of the hero figure: a still, inert model of the dashboard.
  *
- * Sized in `cqw` — percentages of the mock's own width — rather than `rem`. The panel is half of a
- * fluid container, so the mock is around 390px wide at 1000px of viewport and around 500px at
- * 1440px; with fixed type inside, every card title and sidebar row cropped somewhere in that range.
- * Container units keep type, padding, and boxes in one ratio, so what fits at one width fits at all
- * of them. The width of the sidebar lives on the sidebar for the same reason — an element cannot
- * query itself, so `cqw` in the grid template would resolve against an ancestor instead.
+ * Decorative (`aria-hidden`), built from the `LIBRARY` / `COLLECTIONS` / `CARDS` mock data above,
+ * coloured from `ITEM_TYPE_COLORS` so the palette matches the real app.
  *
- * That fluidity is also why there is no `min-height` here, unlike `ChaosField` next to it. Every
- * box inside is a fraction of this one's width, so the natural height is about 0.41× the width —
- * and a fixed floor is a floor the content outgrows in one direction and falls through in the
- * other. It fell through below roughly 730px of viewport, and the gap between the short mock and
- * the tall floor rendered as dead space inside the panel: about 150px of it on a 430px phone.
+ * @remarks
+ * Sized entirely in `cqw` (percent of the mock's own width), so type, padding, and boxes hold one
+ * ratio at every container width — with fixed `rem` type, card titles and sidebar rows would crop
+ * at some widths. The sidebar's width is set on the sidebar, not the grid template, because an
+ * element cannot container-query itself.
  *
- * Nothing is lost at desktop. Above 1024px the hero's two panels are grid columns under
- * `items-stretch`, so the row is as tall as `ChaosField` — which needs its own floor, being an
- * empty canvas of absolutely positioned icons with no intrinsic height at all — and `flex-1` here
- * takes up the slack. Below 1024px the grid is one column, each row sizes to its own content, and
- * the two are no longer linked.
+ * No `min-height`, unlike `ChaosField`: every box here is a fraction of this one's width, so the
+ * natural height tracks the width and a fixed floor would leave dead space at narrow widths. Above
+ * 1024px `flex-1` and the grid's `items-stretch` make this match `ChaosField`'s height; below, the
+ * two size independently.
  */
 export function AppPreview() {
     return (

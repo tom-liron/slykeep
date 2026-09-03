@@ -1,5 +1,12 @@
 import { Brand } from "@/components/layout/Brand";
 
+/**
+ * The landing page's footer: the {@link Brand} lockup, the in-page Product nav, and two columns of
+ * placeholder links.
+ *
+ * One of the sections composed by the `/welcome` page.
+ */
+
 const PRODUCT_LINKS = [
     { href: "#features", label: "Features" },
     { href: "#ai", label: "AI" },
@@ -7,9 +14,9 @@ const PRODUCT_LINKS = [
 ];
 
 /**
- * None of these have a page yet, so they render as muted text rather than links — the columns are
- * what give the footer its shape, and nothing on this page is allowed to point at a 404. Turn an
- * entry into an `<a>` the moment its page exists.
+ * Footer columns whose entries have no page yet, so they render as muted `<span>` rather than
+ * links — nothing on the landing page points at a 404. Turn an entry into an `<a>` once its page
+ * exists.
  */
 const PLACEHOLDER_COLUMNS = [
     { heading: "Resources", labels: ["Docs", "Changelog", "Support"] },

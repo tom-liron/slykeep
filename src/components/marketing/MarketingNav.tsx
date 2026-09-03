@@ -159,21 +159,14 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
             ref={navRef}
             data-scrolled={scrolled || onAuth || undefined}
             data-open={open || undefined}
-            // `shrink-0` matters only on the auth shell, which is a flex column: `h-16` is a
-            // *basis* to a flex child, not a floor, so a form taller than the space left over
-            // squeezes the bar instead of scrolling — and squeezes it by different amounts on
-            // sign-in and register, which is two bars of two heights across one shell.
-            // Opaque while the menu is open, translucent otherwise. The glass is the point of the
-            // bar on its own; behind an open menu it is just the hero legible through the nav.
-            // Asymmetric on purpose, via `data-[scrolled]:duration-75` against the base `duration-300`:
-            // a CSS transition reads its timing from the state being transitioned *to*, so arming
-            // the attribute takes 75ms and disarming it takes 300ms.
+            // `shrink-0` matters only on the auth shell, a flex column where `h-16` is a flex
+            // basis, not a floor: without it a tall form squeezes the bar to different heights on
+            // sign-in and register.
             //
-            // The threshold is already 8px, so the bar commits almost immediately — the visible
-            // bleed was the 300ms it then spent between `/30` and `/90`, which at scrolling speed is
-            // a lot of content passing under a bar that is still two-thirds transparent. Going
-            // opaque is a response to content arriving underneath and has to keep up with it;
-            // returning to the hero's glass is decoration and should not snap.
+            // Opaque while the menu is open, translucent otherwise. The fade to opaque on scroll
+            // is fast (`data-[scrolled]:duration-75`) and the fade back to glass is slow
+            // (`duration-300`): a CSS transition times from the state it moves *to*. Going opaque
+            // has to keep up with content arriving underneath; returning to glass is decoration.
             className="sticky top-0 z-50 h-16 shrink-0 border-b border-transparent bg-background/30 backdrop-blur-[6px] transition-[background-color,border-color,backdrop-filter] duration-300 data-[open]:bg-background data-[open]:backdrop-blur-[14px] data-[scrolled]:border-border data-[scrolled]:bg-background/90 data-[scrolled]:backdrop-blur-[14px] data-[scrolled]:duration-75"
         >
             <div className="mx-auto flex h-full w-[min(1180px,calc(100%-2.5rem))] items-center gap-6">
@@ -193,12 +186,10 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
                 </div>
 
                 <div className="flex items-center gap-2 max-[860px]:ml-auto">
-                    {/* `secondary`, not `ghost`, for the non-primary action: a button that is
-                        invisible until hovered reads as nothing at all next to the white CTA.
-                        Deliberately a neutral surface rather than a colour — blue is this page's one
-                        call to action and purple is what it uses to mean Pro, so a tinted Sign In
-                        would either compete with Get Started beside it or promise something it is
-                        not. */}
+                    {/* `secondary`, not `ghost`, for the non-primary action, so it is visible
+                        beside the white CTA. Neutral rather than tinted: blue is this page's one
+                        call to action and purple means Pro, so a coloured Sign In would compete or
+                        mislead. */}
                     {actions.map((action) => (
                         <Button
                             key={action.href}

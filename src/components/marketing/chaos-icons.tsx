@@ -1,11 +1,9 @@
 /**
- * The four product marks that drift in the chaos field.
+ * The four brand marks (Notion, GitHub, Slack, VS Code) that drift in `ChaosField`'s hero
+ * animation.
  *
- * Inline SVG rather than lucide, because these are brand logos and lucide has no equivalent for
- * any of them — its icon set is deliberately generic. Everything else in the field is a lucide
- * icon, which is why this file holds only these four.
- *
- * Each keeps its own brand colours, so they are fixed fills rather than `currentColor`.
+ * Inline SVG because these are brand logos and lucide has no equivalent — everything else in the
+ * field is a lucide icon. Each keeps its own brand colours as fixed fills, not `currentColor`.
  */
 
 type MarkProps = { className?: string };
