@@ -8,13 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { cn } from "@/lib/utils";
 
 /**
- * The shadcn `Command` component, adapted rather than installed verbatim.
+ * The shadcn `Command` primitive: cmdk's command-menu components under this app's styling.
  *
- * The registry's `radix-nova` variant builds its input on `input-group` and an icon shim that only
- * exists inside the shadcn docs app, and its installer wanted to overwrite this project's
- * `button.tsx`. What it actually contributes is a set of class names over cmdk's primitives, so
- * those are reproduced here against the `dialog.tsx` already in the project — one dependency
- * (`cmdk`) instead of three, and no rewritten components.
+ * The building blocks of the ⌘K command palette (`layout/CommandPalette.tsx`). The class names
+ * over cmdk's primitives are reproduced here directly, against this project's `dialog.tsx`, so the
+ * only dependency is `cmdk` itself. {@link CommandDialog} wraps the list in a {@link Dialog}.
  */
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
     return (
@@ -47,15 +45,13 @@ function CommandDialog({
     return (
         <Dialog {...props}>
             <DialogContent
-                // Sat high rather than centred — a palette grows downward as you type, and the
-                // `w-[calc(100%-2rem)]` the base content class carries is left alone so it still
-                // insets on a phone.
+                // Sits high rather than centred: a palette grows downward as you type. The base
+                // content class's `w-[calc(100%-2rem)]` is left in place so it still insets on a
+                // phone.
                 //
-                // `scrollbar-gutter:auto` undoes `DialogContent`'s `stable`. That reservation is there so a
-                // dialog whose height changes with its content does not shift sideways when its
-                // scrollbar appears; this one is `overflow-hidden` and never scrolls, but
-                // `overflow: hidden` is still a scroll container, so the 10px was reserved anyway —
-                // and with `p-0` it read as a dead strip down the right of the palette.
+                // `[scrollbar-gutter:auto]` overrides `DialogContent`'s `stable`. This palette is
+                // `overflow-hidden` and never scrolls, so the reserved 10px gutter would just be a
+                // blank strip down the right edge under `p-0`.
                 className={cn(
                     "top-[20%] max-w-lg translate-y-0 overflow-hidden p-0 [scrollbar-gutter:auto]",
                     className,

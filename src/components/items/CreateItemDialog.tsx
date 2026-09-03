@@ -43,16 +43,24 @@ import {
 } from "@/lib/item-schemas";
 import type { ItemDraft } from "@/types/ai";
 
+/**
+ * The item-creation dialog: the "New Item" trigger, the type picker, and the type-driven form that
+ * calls `createItem`.
+ *
+ * A centred `Dialog` rather than the drawer that view and edit share, because creating starts from
+ * nothing and has no card underneath for a side panel to sit beside. {@link CreateItemForm} is a
+ * separate component so Radix unmounting the dialog content resets every field with no teardown to
+ * remember.
+ */
+
 const DEFAULT_TYPE: CreatableItemTypeName = "snippet";
 
 /**
- * Which type the dialog opens on, read from the page behind it: on `/items/prompts` a new item is
- * almost certainly a prompt, so preselecting it saves the click that would otherwise be made on
- * every single create from a type page.
+ * The type the dialog opens on, inferred from the route behind it — a prompt on `/items/prompts`,
+ * and so on.
  *
- * Everywhere else — the dashboard, a collection, the profile — there is nothing to infer from, and
- * it falls back to the first type. The choice is only a starting point in any case; the buttons are
- * right there.
+ * Falls back to {@link DEFAULT_TYPE} everywhere with nothing to infer from (the dashboard, a
+ * collection). Only a starting point; the picker chips are right there.
  */
 function typeForPath(pathname: string): CreatableItemTypeName {
     const slug = pathname.match(/^\/items\/([^/]+)/)?.[1];
@@ -66,11 +74,9 @@ function typeForPath(pathname: string): CreatableItemTypeName {
 /**
  * The top bar's "New Item" control and the dialog behind it.
  *
- * A centered modal rather than the drawer that view and edit share: creating is the one item flow
- * that starts from nothing, so there is no card underneath for a side panel to sit beside.
- *
- * The form is a separate component on purpose — Radix unmounts the dialog's content when it closes,
- * so every field resets itself and there is no teardown to remember when a new item is started.
+ * Uncontrolled by default (own trigger, own open state). Passing `open`/`onOpenChange` drops the
+ * trigger and hands control to the caller — the top bar does this below `sm`, where one create
+ * menu replaces two buttons.
  */
 export function CreateItemDialog({
     open: controlledOpen,
@@ -93,11 +99,9 @@ export function CreateItemDialog({
         <Dialog open={open} onOpenChange={setOpen}>
             {!isControlled && (
                 <DialogTrigger asChild>
-                    {/* `lg`, measured rather than picked. The labelled pair of create buttons needs
-                        ~250px, and with the brand, the search field, and the star beside them the
-                        bar only has that from about 900px — so the labels belong at the next
-                        breakpoint above it, not at `sm`, where they overflowed their track.
-                        `aria-label` carries the name at every width regardless. */}
+                    {/* Label appears at `lg`: the top bar only has room for the labelled create
+                        buttons alongside the brand, search field and star from about 900px.
+                        `aria-label` carries the name at every width. */}
                     <Button aria-label="New Item">
                         <Plus className="size-4" aria-hidden="true" />
                         <span className="hidden lg:inline">New Item</span>
@@ -118,12 +122,11 @@ export function CreateItemDialog({
 }
 
 /**
- * Only the fields the chosen type owns are rendered, and only those are submitted — the same
- * absent-versus-empty rule the edit form follows, so a note's payload has no `url` key rather than
- * an empty one. `itemTypeOwns` is what both forms and the schema read that from.
+ * The type picker plus the fields the chosen type owns, submitted via `createItem`.
  *
- * Switching type mid-typing keeps what has been written: the fields that are still shown keep their
- * values, and anything the new type has no column for is dropped by the schema rather than here.
+ * Renders and submits only the fields `itemTypeOwns` reports for the current type — the same
+ * absent-versus-empty rule the edit form follows, so a note's payload has no `url` key. Switching
+ * type mid-typing keeps the values of the fields that stay visible; the schema drops the rest.
  */
 function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     const router = useRouter();
@@ -140,10 +143,9 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     const [content, setContent] = useState("");
     const [url, setUrl] = useState("");
     const [language, setLanguage] = useState("");
-    // Held here rather than inside `FileUpload`, because it is what the payload and the submit gate
-    // both read. It survives a type switch, exactly as the typed fields do — an upload made, then
-    // reconsidered, then chosen again is not asked for twice. `chooseType` below is the one
-    // exception, and it is about what an upload *is* rather than about keeping state.
+    // Held here, not inside `FileUpload`, because the payload and the submit gate both read it. It
+    // survives a type switch like the typed fields do, except the one case `chooseType` handles
+    // below.
     const [file, setFile] = useState<UploadedFile | null>(null);
     const [collectionIds, setCollectionIds] = useState<string[]>([]);
 
@@ -152,16 +154,12 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     const collections = useCollectionOptions();
 
     /**
-     * Switching type keeps everything typed so far, and drops a held upload in exactly one case.
+     * Sets the type, dropping a held upload only on a `file` ↔ `image` switch.
      *
-     * `file` and `image` have *disjoint* extension lists (`FILE_CONSTRAINTS`), so an object uploaded
-     * as one is never valid as the other. Keeping it across that switch left the submit button
-     * enabled over a payload `createItem` refuses — with "That upload could not be verified. Try
-     * uploading the file again.", which is a dead end: the same file re-uploaded under the same type
-     * fails identically, and nothing on screen says the type is what made it invalid.
-     *
-     * Every other switch is unaffected, including `image → snippet → image`, where the upload is
-     * still valid for the type it was made under and asking for it twice would be the bug.
+     * `file` and `image` have disjoint extension lists (`FILE_CONSTRAINTS`), so an object uploaded
+     * as one is never valid as the other — kept across that switch it would leave the submit button
+     * enabled over a payload `createItem` refuses. Every other switch keeps the upload, including
+     * `image → snippet → image`, where it is still valid.
      */
     const chooseType = (next: CreatableItemTypeName) => {
         if (isFileItemTypeName(type) && isFileItemTypeName(next) && type !== next) {
@@ -179,11 +177,11 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     } = itemTypeOwns(type);
 
     /**
-     * The item as typed right now, for whichever AI button asks — see the edit form's copy of this.
+     * The item as typed right now, for whichever AI field asks — the create-form counterpart of
+     * the edit form's `draft`.
      *
-     * The type is always the one the chips currently show, which matters more here than in the edit
-     * form: switching from Snippet to Link between typing and clicking changes what the item *is*,
-     * and reading it at click time is what keeps the prompt describing the right thing.
+     * Reads the currently selected type, so switching Snippet → Link between typing and clicking
+     * changes what the AI prompt describes.
      */
     const draft = (): ItemDraft => ({
         title,
@@ -237,22 +235,9 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     };
 
     return (
-        // One scroller, and it is `DialogContent`'s. This form used to add a second one — a body
-        // `div` capped at `60vh` with its own `overflow-y-auto` — so the dialog and the form each
-        // clipped independently, against caps that knew nothing about each other (`100dvh - 2rem`
-        // here, `60vh` there). The result was a dialog whose `scrollHeight` counted content its
-        // child had already clipped: on a 375x667 phone the box measured 621px tall and reported
-        // 885px of scroll, so the last ~264px scrolled to nothing but background. Measured, with
-        // the footer sitting at the top of the screen and a screen of empty below it.
-        //
-        // Sizing the inner scroller from the dialog instead of from the viewport does not fix it —
-        // a compressible grid row and a `minmax(0,1fr)` track were both tried and both still leak.
-        // Removing the second scroller does: scrolled fully down, the element under the pointer is
-        // the footer, which is the last real thing in the form.
-        //
-        // What this costs is a footer that no longer stays pinned while a long form scrolls. On a
-        // phone that is the better trade — the whole form is reachable and nothing scrolls into
-        // emptiness — and it is what every other dialog in the app already does.
+        // One scroller only, `DialogContent`'s — a second scroller on an inner `div` clips
+        // against its own cap and the dialog's scroll tail runs into empty space. The footer
+        // scrolls with the form rather than staying pinned, as in every other dialog.
         <form onSubmit={handleSubmit} noValidate className="flex flex-col">
             <div className="space-y-5 px-1 pb-1">
                 <fieldset className="space-y-1.5" disabled={isPending}>

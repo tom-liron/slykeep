@@ -21,12 +21,12 @@ import {
 } from "@/config/editor";
 
 /**
- * The Editor panel's rows: the five controls, wired straight to the provider.
+ * The five rows of the settings page's Editor panel — font size, tab size, word wrap, minimap,
+ * theme — wired through `useEditorPreferencesControls`.
  *
- * The rows rather than the whole panel, so `Panel` stays where it is — rendered by the page as a
- * server component, with only the controls inside it crossing to the client. There is no form and no
- * save button: each control writes as it changes, which is why every one of them is its own row
- * rather than fields in a group waiting on a submit.
+ * Just the rows, not the `Panel`, so the page keeps rendering `Panel` as a server component and
+ * only the controls cross to the client. No form and no save button: each control writes through
+ * `EditorPreferencesProvider` as it changes.
  */
 export function EditorPreferencesRows() {
     const { preferences, update } = useEditorPreferencesControls();
@@ -95,14 +95,13 @@ export function EditorPreferencesRows() {
 }
 
 /**
- * A one-of-several control, built from the dropdown menu the sidebar's account menu already uses
- * rather than from a new select primitive — three to five options in a settings row is what a menu
- * with a radio group is for, and it is already styled, keyboard-navigable, and in the bundle.
+ * A pick-one control built from `DropdownMenu` + a radio group, for the three select-style
+ * preference rows (font size, tab size, theme).
  *
- * Generic over the option type because font and tab sizes are numbers while the theme is a string
- * union, and radix radio items carry a `string` value. The round trip goes through the options list
- * — the chosen string is matched back to the option it was rendered from — so the callback hands the
- * caller its own union type, not a parsed number that could be `NaN`.
+ * @remarks
+ * Generic over the option type: font and tab sizes are numbers, the theme is a string union, and
+ * Radix radio items carry a `string`. The chosen string is matched back through the options list,
+ * so `onChange` hands the caller its own union type, not a parsed number that could be `NaN`.
  */
 function PreferenceSelect<T extends string | number>({
     label,

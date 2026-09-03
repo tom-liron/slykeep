@@ -63,12 +63,13 @@ type ChaosItem = {
  * The left half of the hero's chaos → order figure: eight app icons drifting in a box, bouncing off
  * its walls and shying away from the cursor.
  *
- * Positions are written straight to the elements. Eight `transform`s a frame through React state
- * would be eight re-renders a frame for something no other component needs to know about.
+ * The `requestAnimationFrame` loop writes `transform` straight to the elements — routing eight
+ * positions a frame through React state would be eight re-renders a frame for state no other
+ * component reads.
  *
- * Two guards on the loop, from the prototype: it runs only when the field is on screen *and* the tab
- * is visible, and a visitor who prefers reduced motion gets a still grid instead of a running
- * animation.
+ * @remarks
+ * The loop runs only while the field is on screen *and* the tab is visible, and `prefers-reduced-
+ * motion` replaces it with a still grid.
  */
 export function ChaosField() {
     const fieldRef = useRef<HTMLDivElement>(null);

@@ -1,28 +1,37 @@
 /**
- * The two ARIA attributes that point a rejected input at the message `Field` renders for it, or
- * `undefined` when there is nothing to report.
+ * Labelled form-field primitives for the item and collection forms, plus the two helpers that wire
+ * a rejected field to its error message.
  *
- * `undefined` rather than `{ "aria-invalid": false }` on purpose: spread into a JSX element, that
- * leaves the attribute off the DOM entirely, which is what assistive technology expects of a field
- * that is simply valid.
+ * {@link Field} is the item-form field shape (label, control, error-or-hint). {@link invalidProps}
+ * and {@link invalidFor} build the `aria-invalid` / `aria-describedby` attributes that point an
+ * input at the `${id}-error` element {@link Field} renders, so both halves of that id contract
+ * live in one module. The auth forms use `AuthField` in `ui/AuthField.tsx`, which composes
+ * {@link invalidProps} the same way.
+ */
+
+/**
+ * The two ARIA attributes that point a rejected input at the message {@link Field} renders for it,
+ * or `undefined` when there is no error.
  *
- * This is the other half of the `${id}-error` contract `Field` renders below — the two derivations
- * of that one string now live in the same module, which is the point. Four form modules used to
- * rebuild it from a prefix and a field name, and they agreed with `Field` only because every call
- * site happened to pass a matching `id`; renaming one prefix pointed `aria-describedby` at an
- * element that did not exist, with no error and no warning.
+ * Returns `undefined`, not `{ "aria-invalid": false }`: spread into a JSX element, `undefined`
+ * leaves the attribute off the DOM entirely, which is what assistive technology expects of a valid
+ * field.
+ *
+ * @remarks
+ * The `${id}-error` id built here has to match the one {@link Field} renders. A call site that
+ * derives the id itself and gets it wrong points `aria-describedby` at nothing, with no error and
+ * no warning — which is why the derivation lives here.
  */
 export function invalidProps(id: string, error?: string) {
     return error ? { "aria-invalid": true, "aria-describedby": `${id}-error` } : undefined;
 }
 
 /**
- * `invalidProps` bound to a form's id prefix and its error map, for the forms that key their fields
+ * {@link invalidProps} bound to a form's id prefix and error map, for forms that key their fields
  * by name rather than by full id.
  *
- * The returned function is what a call site names `invalid` and spreads onto each input. Composing
- * the id here — `${prefix}-${field}` — rather than at four call sites is what keeps the prefix a
- * single edit.
+ * Returns a function a call site spreads onto each input as `invalid`. The `${prefix}-${field}` id
+ * is composed here so the prefix stays a single edit.
  */
 export function invalidFor<F extends string>(prefix: string, errors: Partial<Record<F, string>>) {
     return (field: F) => invalidProps(`${prefix}-${field}`, errors[field]);
@@ -32,13 +41,12 @@ export function invalidFor<F extends string>(prefix: string, errors: Partial<Rec
  * A labelled form input with room for one message under it — either the validation error the server
  * reported for that field, or a hint when there is nothing to report.
  *
- * Shared by the item forms rather than declared in each, so the create dialog and the edit drawer
- * cannot drift apart on label size, spacing, or where an error appears. The `id` is the input's, and
- * the error's id is derived from it, which is what `aria-describedby` on the input points at.
+ * Shared by the item forms so the create dialog and the edit drawer cannot drift apart on label
+ * size, spacing, or where an error appears. The `id` is the input's; the error's id is derived
+ * from it, which is what `aria-describedby` on the input points at.
  *
  * `action` is an optional control on the label's own row — the tags field puts its AI suggestion
- * button there. A slot rather than each field building its own header, so a field that passes
- * nothing renders exactly the markup it did before this existed.
+ * button there. A field that passes no `action` renders just the label.
  */
 export function Field({
     id,

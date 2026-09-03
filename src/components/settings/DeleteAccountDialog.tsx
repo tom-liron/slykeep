@@ -23,26 +23,19 @@ import { Input } from "@/components/ui/input";
 import { EMPTY_ACCOUNT_STATE } from "@/types/account";
 
 /**
- * Deletes the account, behind a confirmation the user has to type out.
+ * Deletes the account, behind a confirmation the user types out, via the `deleteAccount` Server
+ * Action.
  *
- * The typed email is the point: a destructive dialog whose confirm button is one click away is
- * dismissed on reflex, and this action has no undo and no trash to recover from. Making the user
- * reproduce their own address forces them to read what they are about to lose. The action re-checks
- * the value server-side — the disabled button here is a convenience, not the control.
+ * The settings page's delete row. The typed email makes the user read what they are about to lose;
+ * the action has no undo and no trash. The disabled confirm button is a convenience — the action
+ * re-checks the value server-side. The confirm is a plain submit, not `AlertDialogAction`, since
+ * the action can fail and a closed dialog cannot report it.
  *
- * The confirm is a plain submit button rather than `AlertDialogAction`, which closes the dialog on
- * click: the action can fail, and a dialog that has already dismissed itself has nowhere to report
- * that.
- *
- * A subscriber whose card would be charged again is not offered the confirmation at all — the
- * account cannot be deleted while that is true, so the dialog explains it and hands them the portal
- * instead. The refusal has to be a route rather than a wall: a dialog that says "you can't do this"
- * and stops is the dark pattern the typed confirmation is otherwise avoiding.
- *
- * The prop is deliberately not `isPro`. Someone who has already cancelled is still Pro until their
- * period ends and *can* delete their account — branching on `isPro` told them to cancel, and then
- * told them again after they had, with no way out. `deleteAccount` asks Stripe, and that is the
- * control; this only decides which body to draw.
+ * @remarks
+ * When `subscriptionBlocksDeletion`, the dialog shows the "cancel first" body and links to the
+ * billing portal instead of the confirmation — deleting while a card would still be charged is
+ * refused. The prop is that, not `isPro`: a cancelled subscriber is still Pro until the period
+ * ends and *can* delete. `deleteAccount` asks Stripe; this only decides which body to draw.
  */
 export function DeleteAccountDialog({
     email,
@@ -67,7 +60,7 @@ export function DeleteAccountDialog({
             if (result) toast.error(result.error);
         });
 
-    // Matches the server's comparison. Case and padding are not what makes this deliberate.
+    // Case- and whitespace-insensitive, matching the server's comparison.
     const confirmed = confirmation.trim().toLowerCase() === email.toLowerCase();
 
     return (
@@ -149,8 +142,8 @@ export function DeleteAccountDialog({
                                 value={confirmation}
                                 onChange={(event) => setConfirmation(event.target.value)}
                                 autoComplete="off"
-                                // A password manager offering to fill the address here would undo the
-                                // deliberateness the field exists to create.
+                                // A password manager autofilling the address would let the user
+                                // confirm without reading it.
                                 data-1p-ignore
                                 {...invalidProps("confirmation", state.fields?.confirmation)}
                             />

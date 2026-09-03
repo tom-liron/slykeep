@@ -23,16 +23,17 @@ import type { ItemDraft } from "@/types/ai";
 import type { ItemDetailViewModel } from "@/types/view-models";
 
 /**
- * Edit mode for the item drawer — the same panel, with its fields swapped for inputs.
+ * Edit mode for the item drawer — the same panel with its fields swapped for inputs, calling
+ * `updateItem` on save.
  *
- * Only the fields an item's type actually owns are rendered, and only those are submitted: a
- * snippet's payload carries no `url` key at all, which the schema reads as "leave that column
- * alone" rather than "clear it". That is what keeps a form for one type from erasing another type's
- * column, and it is why the type itself is not editable here.
+ * Renders and submits only the fields an item's type owns (`itemTypeOwns`): a snippet's payload
+ * carries no `url` key, which `updateItemSchema` reads as "leave that column alone" rather than
+ * "clear it", so one type's form cannot erase another type's column. The type itself is not
+ * editable here for the same reason.
  *
- * Plain controlled inputs, no form library: six fields, one submit, and the server is the authority
- * on what is valid anyway. The only client-side rule is the disabled Save below, which spares an
- * obvious round trip without becoming a second copy of the validation.
+ * @remarks
+ * Plain controlled inputs, no form library — six fields, one submit, and the server validates. The
+ * only client-side rule is the disabled Save, which is not a second copy of the validation.
  */
 export function ItemEditForm({
     detail,
@@ -70,14 +71,11 @@ export function ItemEditForm({
     } = itemTypeOwns(detail.itemType.name);
 
     /**
-     * The item as typed right now, for whichever AI button asks.
+     * The item as typed right now, for whichever AI field (description, tags) asks.
      *
-     * Built here and handed to both, rather than each field assembling its own: the two would
-     * otherwise drift the first time a type gains a field, and the one that was not updated would
-     * quietly go on describing the item without it.
-     *
-     * A function rather than an object, so it reads the state at the moment of the click instead of
-     * closing over the render the button was drawn in.
+     * Built once and passed to both fields, so the two cannot drift when a type gains a field. A
+     * function, not an object, so it reads current state at click time rather than closing over the
+     * render the button was drawn in.
      */
     const draft = (): ItemDraft => ({
         title,
@@ -100,9 +98,9 @@ export function ItemEditForm({
             // Split only. Trimming, dropping blanks, and de-duplicating are the schema's job, so
             // "react, , React" is normalized in the one place that also has to reject a bad payload.
             tags: tags.split(","),
-            // Omitted entirely while the picker has nothing to show, which the update contract reads
-            // as "leave this item's collections alone". Sending the empty selection instead would
-            // mean a failed fetch silently unfiled the item from everything it was in.
+            // Omitted while the picker has nothing to show, which the update contract reads as
+            // "leave this item's collections alone". Sending an empty selection would unfile the
+            // item from every collection if the options fetch had failed.
             ...(collections.options && { collectionIds }),
             ...(showsContent && { content }),
             ...(showsUrl && { url }),
@@ -135,12 +133,10 @@ export function ItemEditForm({
                     <Check aria-hidden="true" />
                     {isPending ? "Saving…" : "Save"}
                 </Button>
-                {/* The drawer's toolbar fill, not the ghost variant's. This row *replaces* that
-                    toolbar in edit mode — Save and Cancel stand where Favorite, Pin, Copy, Edit and
-                    Delete were a moment ago — so a control that lights up more faintly than the one
-                    it took the place of reads as a different, lesser kind of button. `muted/50` in
-                    the dark theme is very nearly this panel's own surface, which is the reason the
-                    toolbar overrode it in the first place; see the note there. */}
+                {/* The drawer toolbar's hover fill, not the ghost variant's: this row replaces
+                    that toolbar in edit mode, so Cancel has to light up the same way its
+                    neighbours did. The ghost default `muted/50` is nearly this panel's own surface
+                    in the dark theme — see `ItemDrawerToolbar`. */}
                 <Button
                     type="button"
                     variant="ghost"
@@ -204,9 +200,9 @@ export function ItemEditForm({
                 </Field>
             )}
 
-            {/* Shown, but not editable: replacing an item's object is its own change, for the
-                ordering reason `updateItemSchema` states. Rendering nothing at all would read as a
-                file item having lost its file. */}
+            {/* Shown but not editable: replacing an item's object is a separate change (see
+                `updateItemSchema`). Rendering nothing would read as a file item having lost its
+                file. */}
             {showsFile && detail.fileName && (
                 <div className="space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">File</p>
@@ -220,9 +216,9 @@ export function ItemEditForm({
                 </div>
             )}
 
-            {/* Read at click time, and from the inputs rather than from `detail` — the point of
-                suggesting tags mid-edit is that they describe what has just been typed. A link has
-                no content column, so its URL is what there is to go on besides the title. */}
+            {/* `draft` reads the live inputs, not `detail`, so a mid-edit tag suggestion
+                describes what was just typed. A link has no content column, so its URL is what the
+                suggestion has to work from besides the title. */}
             <TagsField
                 id="item-tags"
                 value={tags}

@@ -12,15 +12,22 @@ import { createElement } from "react";
 import { extensionOf } from "@/lib/file-constraints";
 
 /**
- * The icon for one uploaded object, chosen by its extension.
+ * Picks the lucide icon for an uploaded object from its filename extension.
  *
- * Keyed on the extension rather than on `filePreviewFor`, which the drawer uses: that answers "can
- * this be rendered here", and its answer depends on the file's *size* — a 2 MB YAML previews as
- * `none`. An icon must not change because a file got bigger, so the two questions stay separate.
+ * Used by `FileRow` and `ImageCard` to label a file that is not being previewed. {@link fileIconFor}
+ * is the lookup; {@link FileTypeIcon} renders the result.
  *
- * The mapping is by category, not by format: every extension the upload rules allow lands on one of
- * five glyphs, and the exact format is already spelled out in the filename beside it.
+ * @remarks
+ * Keyed on the extension alone. `filePreviewFor` in `lib/file-preview.ts` answers a different
+ * question — whether a file can be *rendered* here — and its answer depends on the file's size, so
+ * the two are kept separate: an icon must not change because a file got bigger.
+ *
+ * Every allowed extension maps to one of five category glyphs; the exact format is already in the
+ * filename shown beside the icon.
  */
+
+/** Extension (lowercased, with the dot) to lucide icon. Anything unlisted falls back in
+ * {@link fileIconFor}. */
 const ICON_BY_EXTENSION: Record<string, LucideIcon> = {
     ".png": FileImage,
     ".jpg": FileImage,
@@ -46,8 +53,8 @@ export function fileIconFor(fileName: string): LucideIcon {
 }
 
 export function FileTypeIcon({ fileName, ...props }: { fileName: string } & LucideProps) {
-    // `createElement` rather than `<Icon {...props} />`: the rule that catches components defined
-    // during render cannot tell a lookup in a static table from a component built on the spot, and
-    // this is a lookup — the table above is a module constant.
+    // `createElement` rather than `<Icon {...props} />`: the lint rule against components defined
+    // during render cannot tell a lookup in the module-constant table above from a component built
+    // on the spot.
     return createElement(fileIconFor(fileName), props);
 }

@@ -6,7 +6,16 @@ import { getPageWindow } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import type { PaginationViewModel } from "@/types/view-models";
 
-/** Page 1 is the bare path — a listing's canonical URL shouldn't carry a param that means "default". */
+/**
+ * Numbered page navigation for the paginated listings (item-type pages, the collections grid, a
+ * collection's items).
+ *
+ * A server component builds a {@link PaginationViewModel} from `?page=` — see `lib/pagination.ts`
+ * and `config/pagination.ts` — and this renders the links from it. {@link getPageWindow} decides
+ * which page numbers show and where the ellipses fall.
+ */
+
+/** Page 1 is the bare path; a listing's canonical URL carries no `?page=` param for the default. */
 function pageHref(basePath: string, page: number): string {
     return page === 1 ? basePath : `${basePath}?page=${page}`;
 }
@@ -40,14 +49,11 @@ export function Pagination({
     return (
         <nav
             aria-label="Pagination"
-            // `flex-wrap`, because this row's width is set by the page count and the pointer, not
-            // by the screen. The widest window is prev, 1, …, p-1, p, p+1, …, last, next — seven
-            // `size="icon"` buttons and two ellipses, and every button size carries a
-            // `pointer-coarse:` floor of 44px, so on a phone that is ~376px of controls in the
-            // 288px a 320px screen leaves after the layout's padding. Nothing here shrinks and
-            // nothing clips it, so it grew the page instead and put a horizontal scrollbar under
-            // the whole document. A free account never sees it — 50 items is three pages — which is
-            // why it survived: it takes a Pro library to produce the window that overflows.
+            // `flex-wrap`: the widest window — prev, 1, …, p-1, p, p+1, …, last, next — is seven
+            // `size="icon"` buttons plus two ellipses, and each button carries a 44px
+            // `pointer-coarse:` floor, so on a narrow phone the row is wider than the viewport.
+            // Nothing here shrinks or clips, so it must wrap rather than push a horizontal
+            // scrollbar under the document.
             className={cn("flex flex-wrap items-center justify-center gap-1", className)}
         >
             {page > 1 ? (

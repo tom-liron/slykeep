@@ -4,15 +4,22 @@ import { Check } from "lucide-react";
 import { Reveal } from "@/components/marketing/Reveal";
 import { AI_HIGHLIGHTS } from "@/config/marketing";
 
+/**
+ * The landing page's AI section: the Pro-feature copy from `AI_HIGHLIGHTS` beside an editor mock
+ * whose tags animate in one at a time.
+ *
+ * One of the sections composed by the `/welcome` page. The tag animation keys off {@link Reveal}'s
+ * `data-revealed`, so it needs no observer of its own.
+ */
+
 const KW = "text-purple-400";
 const STR = "text-green-300";
 const FN = "text-sky-300";
 const NUM = "text-orange-300";
 
 /**
- * The snippet in the editor mock. Written out as tokens rather than run through a highlighter: it is
- * one fixed twelve-line illustration, and the app's real highlighter is monaco, which is far too
- * much machinery to load onto a marketing page for a picture of some code.
+ * The twelve-line snippet in the editor mock, written out as pre-coloured token spans rather than
+ * run through a highlighter — it is one fixed illustration, and the real highlighter is Monaco.
  */
 const CODE_LINES: readonly ReactNode[] = [
     <>
@@ -63,11 +70,7 @@ const CODE_LINES: readonly ReactNode[] = [
 
 const TAGS = ["react", "hooks", "typescript", "debounce", "performance"];
 
-/**
- * The tags land one at a time once the demo scrolls in — it is a demo of the AI writing them, so
- * they should not simply be there already. The delays key off `Reveal`'s `data-revealed`, which is
- * why this needs no observer of its own.
- */
+/** Per-tag entry delays, so the tags land one at a time after the section scrolls in. */
 const TAG_DELAYS = [
     "delay-[350ms]",
     "delay-[500ms]",

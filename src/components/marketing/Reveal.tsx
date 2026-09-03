@@ -7,20 +7,14 @@ import { cn } from "@/lib/utils";
 /**
  * Fades and lifts its children in the first time they scroll into view.
  *
- * One wrapper used by every section, rather than the prototype's `.reveal` class and the
- * `IntersectionObserver` that swept the whole document for it. The observer is one-shot — a section
- * that has arrived must not fade back out when it leaves again.
+ * The scroll-in wrapper every landing-page section uses. The `IntersectionObserver` is one-shot,
+ * so an arrived section does not fade back out when it scrolls away.
  *
+ * @remarks
  * The hidden state is CSS, so it survives a server render, and `motion-reduce` overrides it
- * outright: someone who has asked the OS for less movement sees the page fully composed even before
- * this component mounts.
- *
- * `group/reveal` and `data-revealed` are part of the contract, not incidental: descendants can key
- * their own transitions off the same signal (the AI section's tags do) without another observer.
- *
- * That flag is written to the DOM rather than held in state. It is a one-way switch that only CSS
- * ever reads — no descendant of this component renders differently for it — so putting it through a
- * render pass would buy a re-render of the whole section and change nothing about the output.
+ * outright. `group/reveal` and `data-revealed` are contract: descendants key their own transitions
+ * off the same signal (the AI section's tags do) with no second observer. The flag is written to
+ * the DOM, not React state — only CSS reads it, so a render pass would change nothing.
  */
 export function Reveal({ className, children }: { className?: string; children: React.ReactNode }) {
     const ref = useRef<HTMLDivElement>(null);

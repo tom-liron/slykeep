@@ -3,23 +3,18 @@ import { Check, X } from "lucide-react";
 import type { BillingCycle, PricingPlan } from "@/config/marketing";
 
 /**
- * One plan card: name, price for the chosen cycle, the feature list, and whatever the caller puts
- * at the bottom.
+ * One plan card: name, price for the chosen cycle, the feature list, and a caller-supplied footer.
  *
- * **Shared between the marketing page and `/upgrade` on purpose.** Those two show the same two plans
- * to the same person either side of a sign-up, so they have to be the same object rather than two
- * that resemble each other — this file existing is what stops one of them drifting into a different
- * product. It was briefly two copies, and the copy immediately grew its own palette.
+ * Shared by the landing page's `PricingPlans` and the in-app `UpgradePlans`, so a visitor meets the
+ * same card either side of sign-up rather than two that resemble each other. `cta` is the only
+ * seam: the marketing card links (no session), `/upgrade` runs a Server Action that opens Stripe
+ * with the cycle chosen. Everything above the button lives here.
  *
- * `cta` is the seam, and it is the only real difference between the callers: the marketing card
- * links somewhere, because its reader has no session, while `/upgrade` runs a Server Action that
- * opens Stripe with the cycle already chosen. Everything above the button is identical, so
- * everything above the button lives here.
+ * A server component — it renders props and holds no state; the cycle is decided above it.
  *
- * Not a client component: it renders props and holds no state. The cycle is decided above it.
- *
- * Leans on `--type-prompt` / `--type-image`, which are runtime values from the item-type catalog —
- * Tailwind cannot generate classes for them, so an ancestor must supply them (`TYPE_COLOR_VARS`).
+ * @remarks
+ * Uses `--type-prompt` / `--type-image` from the item-type catalog, which Tailwind cannot generate
+ * classes for, so an ancestor must supply them (`TYPE_COLOR_VARS` in `lib/type-color-vars.ts`).
  */
 export function PricingPlanCard({
     plan,
@@ -55,18 +50,15 @@ export function PricingPlanCard({
                 <span className="text-[0.88rem] text-zinc-400">{price.period}</span>
             </p>
 
-            {/* Two lines' worth of room, always: the yearly note runs longer than the monthly one,
-                and without a floor the Pro card grew a line the moment the switch was touched. */}
+            {/* `min-h` for two lines, so the card does not grow a line when the switch flips
+                between the shorter monthly note and the longer yearly one. */}
             <p className="mt-2 min-h-[3.2em] text-[0.85rem] text-muted-foreground">{price.note}</p>
 
-            {/* `flex-1` is what pins both CTAs to the bottom of their cards however many lines the
-                feature lists run to. */}
+            {/* `flex-1` pins both CTAs to the bottom of their cards whatever the list length. */}
             <div className="my-6 flex flex-1 flex-col border-t border-border pt-6">
-                {/* Unconditional, so every card spends exactly one line here and the lists below
-                    start on a shared baseline — two feature lists at different heights cannot be
-                    compared row against row, which is the only thing this pair of cards is for. On
-                    Pro it also carries the inheritance, which is what lets that list hold only the
-                    rows Free does not have. */}
+                {/* Unconditional, so both feature lists start on a shared baseline and can be
+                    compared row against row. On Pro it also carries the inheritance line, so that
+                    list holds only the rows Free does not have. */}
                 <p className="mb-4 text-[0.85rem] font-medium text-foreground">
                     {plan.featuresHeading}
                 </p>
@@ -75,11 +67,10 @@ export function PricingPlanCard({
                     {plan.features.map((feature) => (
                         <li key={feature.label} className="flex items-start gap-2.5">
                             {feature.included ? (
-                                // Accented only on the featured card. Both cards wore the same purple
-                                // tick, which spent the page's one accent colour on the plan it is not
-                                // trying to sell and left the two lists looking interchangeable — the
-                                // colour said "included", which the tick already says. Neutral on Free
-                                // and accented on Pro, the difference is visible before a word is read.
+                                // Accented only on the featured card: neutral on Free, purple on
+                                // Pro, so the two lists differ before a word is read. The tick
+                                // already says "included", so colour is spent on the plan being
+                                // sold.
                                 <span
                                     aria-hidden="true"
                                     className={`mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border ${
@@ -91,12 +82,10 @@ export function PricingPlanCard({
                                     <Check className="size-2.5" strokeWidth={3} />
                                 </span>
                             ) : (
-                                // Tinted rose rather than left grey. The row it marks is the only thing
-                                // on this card a reader is scanning *for* — what the cheaper plan does
-                                // not include — and a neutral circle on a near-black card is the one
-                                // element that disappeared into it. Rose at 12% is a signal, not an
-                                // error state: the excluded label itself stays `muted-foreground`, so
-                                // nothing here shouts.
+                                // Tinted rose, not grey: an excluded row is what a reader scans a
+                                // cheaper plan *for*, and a neutral circle on a near-black card
+                                // vanishes. Rose at 12% is a signal, not an error state — the label
+                                // stays `muted-foreground`.
                                 <span
                                     aria-hidden="true"
                                     className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border border-rose-500/30 bg-rose-500/12 text-rose-300"

@@ -5,24 +5,31 @@ import type { ItemSummaryViewModel } from "@/types/view-models";
 import { TypeIcon } from "./TypeIcon";
 
 /**
- * How many tags a card shows before the rest become a count.
+ * The default item-summary card: type icon and accent, title, one-line description, and a tag row.
  *
- * Two, because two is what fits on one line at the narrowest column `CARD_GRID` produces — three
- * columns inside the app shell — and one line is the whole point: see the tag row below.
+ * The `"card"` shape `ItemList` renders for every text and link type on the dashboard and on
+ * collection pages. A server-rendered `<article>` with no interactivity of its own — `ItemList`
+ * lays the click overlay and the copy button over it. `CollectionCard` is the collection
+ * equivalent.
  *
- * A fixed count rather than "as many as fit". Measuring would mean laying the chips out, reading
- * their widths, and re-rendering, which needs a client component and a `ResizeObserver` for a card
- * that is otherwise pure markup rendered on the server. A count is deterministic, costs nothing,
- * and is wrong only in the narrow case of two unusually long tags — which the row's `overflow-hidden`
- * absorbs rather than reflowing the grid.
+ * @remarks
+ * Every line except the tag row is fixed height (`truncate` title, `line-clamp-1` description), so
+ * cards in a paginated `CARD_GRID` stay the same height from one page to the next.
+ */
+
+/**
+ * Tags shown on a card before the rest collapse to a `+N` count.
+ *
+ * Two is what fits on one line at the narrowest column `CARD_GRID` produces (three columns in the
+ * app shell). A fixed count keeps the card server-rendered with no measurement; the row's
+ * `overflow-hidden` absorbs the rare case of two unusually long tags.
  */
 const MAX_VISIBLE_TAGS = 2;
 
 /**
- * `showsCopy` says whether a copy button will be laid over this card's top-right corner, which is
- * where the timestamp is — the date gives way to it on hover, and must not give way to nothing. Not
- * every card gets one: `ItemList` renders items of every type through this component on the
- * dashboard and on a collection page, and an image or a PDF has nothing to copy.
+ * @param showsCopy - Whether `ItemList` will lay a copy button over this card's top-right corner.
+ * When true, the timestamp in that corner fades out on hover/focus to make room for it; the card
+ * must not fade the date for a button that is not there.
  */
 export function ItemCard({
     item,
@@ -34,16 +41,11 @@ export function ItemCard({
     const accent = item.itemType.color;
 
     return (
-        // `h-full` because this card is **not** the grid item — `ItemList` wraps every entry in a
-        // `group relative` div to carry the click overlay, and that wrapper is what `CARD_GRID`
-        // lays out. A grid stretches its own children, so the wrapper already grows to the tallest
-        // card in its row; without this, the article inside sizes to its own content and sits in a
-        // taller box, which is why one card with three tags left its two row-mates visibly short.
-        // `CollectionCard` never had the bug for the same reason inverted: it *is* the grid item.
-        //
-        // Safe in the stacked lists too, where the dashboard renders these under `space-y-3`: the
-        // wrapper's height is `auto` there, and a percentage height against an auto parent resolves
-        // back to `auto`, so this changes nothing outside a grid.
+        // `h-full` so every card in a grid row matches the tallest. The grid item is `ItemList`'s
+        // `group relative` wrapper, not this article, and the grid stretches that wrapper; without
+        // `h-full` the article sizes to its own content inside a taller box. In the stacked lists
+        // the wrapper's height is `auto`, against which a percentage height resolves back to
+        // `auto`, so this is a no-op outside a grid.
         <article
             className="flex h-full gap-3 rounded-xl border border-border border-l-4 bg-card p-4"
             style={{ borderLeftColor: accent }}
@@ -62,18 +64,13 @@ export function ItemCard({
                         {item.isPinned && <PinnedBadge />}
                         {item.isFavorite && <FavoriteBadge />}
                     </div>
-                    {/* Gives way to the copy button, which `ItemList` puts in this corner on hover
-                        and on focus — but only when there is one, or hovering a card whose item has
-                        nothing to copy would fade the date out and leave an empty corner.
-                        `group-*` rather than `hover:` because the pointer is never over this card:
-                        a sibling covers it.
-
-                        `pointer-coarse:opacity-0` is the other half of that button being always-on
-                        under a coarse pointer — see the note in `ItemList`. Without it the two
-                        occupy the same corner at the same time, which is the one arrangement worse
-                        than either. The date is what gives way because the button is the thing you
-                        cannot get at any other way from here; the drawer prints both dates in
-                        full. */}
+                    {/* Fades out for the copy button `ItemList` puts in this corner on
+                        hover/focus, and only when `showsCopy` — otherwise a card with nothing to
+                        copy would fade its date to an empty corner. `group-*`, not `hover:`,
+                        because a sibling overlay covers this card so it never matches `:hover`.
+                        `pointer-coarse:opacity-0` pairs with the button being always-on under a
+                        coarse pointer (see `ItemList`), so the two never share the corner. The
+                        drawer shows both dates in full. */}
                     <time
                         dateTime={item.editedAt}
                         className={cn(
@@ -90,20 +87,10 @@ export function ItemCard({
                     {item.description}
                 </p>
 
-                {/* One line, always — and always present, even for an item with no tags at all.
-                    This row is the only part of the card whose height can vary: the title is
-                    `truncate` and the description is `line-clamp-1`, both deliberately, so every
-                    other line is fixed. Left wrapping, it was the one thing making a card taller
-                    than the two beside it.
-
-                    That matters more than it looks. `CARD_GRID` is paginated, so a grid that sizes
-                    itself to its tallest card changes height between pages — the same list rendered
-                    at a different size on page 2. Pinning the row here means a card is the same
-                    height at six items and at six hundred, which is how a product grid is normally
-                    built: normalise the content, rather than stretch the container around it.
-
-                    `h-5` is one chip: `text-xs` at a 1rem line box plus `py-0.5` either side. It is
-                    stated as a height rather than left to the content precisely so that the empty
+                {/* One line, always present even for an item with no tags. This row is the only
+                    part of the card whose height could vary, and a paginated `CARD_GRID` that
+                    sized to its tallest card would change height between pages. `h-5` is one chip
+                    (`text-xs` on a 1rem line box plus `py-0.5`), stated as a height so the empty
                     case still occupies it. */}
                 <div className="mt-2 flex h-5 items-center gap-1.5 overflow-hidden">
                     {item.tags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
@@ -117,9 +104,8 @@ export function ItemCard({
                             {tag}
                         </span>
                     ))}
-                    {/* The count, not the tags themselves. Nothing is lost by hiding them: the
-                        drawer this card opens lists every tag the item has, and the card's job is
-                        to be scannable rather than complete. */}
+                    {/* A count, not the tags themselves — the drawer this card opens lists every
+                        tag. */}
                     {item.tags.length > MAX_VISIBLE_TAGS && (
                         <span className="shrink-0 text-xs text-muted-foreground">
                             +{item.tags.length - MAX_VISIBLE_TAGS}

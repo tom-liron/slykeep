@@ -10,18 +10,19 @@ import {
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 /**
- * Toast host, mounted once in the root layout.
+ * Toast host, mounted once in the root layout and driven by `toast()` calls from anywhere in the
+ * app.
  *
- * Pinned to `dark` rather than reading a theme provider: this app sets `dark` as a fixed class on
- * `<html>` and has no provider to read from. shadcn ships this file wired to `next-themes`, whose
- * `useTheme()` would fall back to `"system"` here and render light toasts over a dark app whenever
- * the OS is set to light. Swap this for the real theme value when the light-mode toggle lands.
+ * shadcn ships this wired to `next-themes`; the `theme` prop is pinned to `dark` instead, because
+ * the app sets `dark` as a fixed class on `<html>` and has no theme provider to read. The
+ * light-mode toggle, when it lands, replaces this literal with the real theme value.
  *
- * `richColors` tints success and error toasts by outcome — a dark green/red surface with bright
- * text of the same hue — instead of rendering every toast on the same neutral popover surface. It is
- * sonner's own prop rather than hand-written CSS, so the palette stays consistent with the library
- * and follows the theme. Neutral (`--normal-*` below) still covers plain, info, and loading toasts,
- * which have no outcome to signal.
+ * @remarks
+ * `richColors` is sonner's own prop for tinting success and error toasts by outcome (a green/red
+ * surface with matching bright text), keeping that palette in step with the library and the theme
+ * rather than styling toasts per call site. The `--normal-*` variables cover plain, info, and
+ * loading toasts, which have no outcome to signal. `coding-standards.md` § Styling requires this
+ * prop rather than per-call styling.
  */
 const Toaster = ({ ...props }: ToasterProps) => {
     return (

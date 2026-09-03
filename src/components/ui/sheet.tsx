@@ -7,6 +7,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
 
+/**
+ * The shadcn/ui sheet primitive: a Radix dialog that slides in from an edge.
+ *
+ * The panel behind `ItemDrawer` in `items/ItemDrawer.tsx` — the slide-out where an item is viewed,
+ * edited, and created. `side` picks the edge (right by default); on `sm` and up the left/right
+ * variants cap at `max-w-sm`. Shares the `bg-popover` overlay surface with `dialog.tsx` and
+ * `dropdown-menu.tsx`.
+ */
+
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
     return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }

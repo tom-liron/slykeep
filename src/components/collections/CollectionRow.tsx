@@ -5,17 +5,12 @@ import { formatDate } from "@/lib/format";
 import type { FavoriteCollectionViewModel } from "@/types/view-models";
 
 /**
- * One collection as a dense line, the twin of `ItemRow` — same rhythm, same columns, so the two
- * sections of `/favorites` read as one list with a heading in the middle rather than two designs.
+ * One collection as a dense line — the collections half of `/favorites`, built to `ItemRow`'s
+ * rhythm and columns so the two sections read as one list.
  *
- * A link rather than an overlaid trigger. An item needs the trigger because opening it is a drawer
- * rather than a destination, and `ItemCard` is markup a `<button>` may not legally contain; a
- * collection is a page, so this is the plain anchor that a middle click, a modifier click, and "copy
- * link address" all already know what to do with.
- *
- * The folder takes the collection's dominant type colour, which is the same signal its card's accent
- * and its sidebar dot carry. A collection with no items and no default type has no dominant type, and
- * gets the neutral icon rather than a colour standing in for one.
+ * A plain `<Link>`, not an overlaid trigger: a collection is a page, so a middle click or "copy
+ * link address" work as expected. The folder icon takes the collection's dominant-type colour, the
+ * same signal the card accent and sidebar dot carry, and is neutral when there is no dominant type.
  */
 export function CollectionRow({ collection }: { collection: FavoriteCollectionViewModel }) {
     const accent = collection.dominantItemType?.color;
@@ -33,12 +28,9 @@ export function CollectionRow({ collection }: { collection: FavoriteCollectionVi
 
             <span className="min-w-0 flex-1 truncate font-mono text-sm">{collection.name}</span>
 
-            {/* The same two-column block `ItemRow` ends with, at the same widths — so the dates line
-                up down the whole page and the count sits where an item's type badge does. Which is
-                also why the count hides below `sm` exactly as that badge does: the two lists are
-                the two halves of `/favorites` and are built to one rhythm, so a phone that dropped a
-                column from one and not the other would break the very thing the shared widths are
-                for. The date stays in both. */}
+            {/* The same two-column block `ItemRow` ends with, at the same widths: the dates line up
+                down the page, and the count sits where an item's type badge does — including
+                hiding below `sm` as that badge does. The date stays at every width. */}
             <div className="flex shrink-0 items-center gap-3">
                 <span className="hidden w-20 text-right text-xs text-muted-foreground sm:inline">
                     {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}

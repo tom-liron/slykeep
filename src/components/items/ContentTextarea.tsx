@@ -7,16 +7,17 @@ import { renderedFontSize } from "@/lib/editor-metrics";
 import { cn } from "@/lib/utils";
 
 /**
- * The plain writing surface both content editors fall back to.
+ * The plain `<textarea>` writing surface that `MarkdownEditor` and `CodeEditor` both fall back to
+ * on a coarse pointer.
  *
- * It was `MarkdownEditor`'s Write tab, which is why it already looked like this: bounded by the same
- * two heights as monaco, set in the same font at the same size, wrapping according to the same
- * preference. `CodeEditor` now renders it too, under a finger, so this is one surface rather than a
- * second one that resembles the first — the point of the fallback is that an item does not change
- * shape because of what is pointing at it.
+ * One surface shared by both editors, bounded by the same two heights as monaco, set in the same
+ * mono font at the same size, and wrapping according to the same editor preference — so an item
+ * does not change shape depending on the pointer editing it. Reads the editor preferences from
+ * `EditorPreferencesContext` and the pointer type from `useCoarsePointer`.
  */
 
-/** Both editors' scrolling panels, so a note and a snippet do not sit in one drawer with different furniture. */
+/** The scroll-panel classes both editors share, so a note and a snippet sit in the drawer with
+ * the same furniture. */
 export const EDITOR_PANEL = "app-scrollbar overflow-y-auto";
 
 /**

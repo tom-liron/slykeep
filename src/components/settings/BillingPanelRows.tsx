@@ -22,21 +22,14 @@ import type { BillingViewModel } from "@/types/view-models";
 const WEBHOOK_GRACE_MS = 3000;
 
 /**
- * The billing panel's rows: which plan this account is on, what it is using, and the control that
- * changes it.
+ * The settings page's billing panel rows: the current plan and its action, and the usage meters.
  *
- * The rows rather than the whole panel, so `Panel` stays where it is — drawn by the page as a server
- * component, with only the controls inside it crossing to the client. The same split
- * `EditorPreferencesRows` uses.
+ * Just the rows, not the `Panel` — the same client/server split `EditorPreferencesRows` uses. Two
+ * rows in every state (plan, then usage). The plan name is a `Badge` inside the "Current plan"
+ * heading, so the heading is a fixed label and the changing value sits beside it.
  *
- * Two rows in both states, deliberately symmetrical: the plan, then the usage. The plan's *name* is
- * a badge rather than the row's heading, because "Free" and "Pro" are a value that changes while
- * "Current plan" is the label that does not — a heading that reads "Free plan" one day and "Pro —
- * annual" the next is a heading doing a value's job, and it gives the eye nothing fixed to find.
- *
- * Both actions redirect to Stripe on success, so neither returns anything on the happy path — a
- * result only ever arrives when something failed, which is why the handlers below toast on *any*
- * returned value rather than checking `success`.
+ * `startCheckout` and `openBillingPortal` redirect to Stripe on success and only return on
+ * failure, so the handlers toast on any returned value rather than checking `success`.
  */
 export function BillingPanelRows({
     billing,

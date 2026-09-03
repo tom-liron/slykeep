@@ -110,6 +110,56 @@ translating its identifiers into English.
 
 Neither reader wants a lab notebook. Documentation never recounts how the code came to be.
 
+### Conclusion, not investigation
+
+This is the rule that governs every other rule in this section, and the one most often broken.
+
+There are two kinds of knowledge about a piece of code:
+
+- **Knowledge required to understand or safely change the version that exists now.** This belongs
+  in the source.
+- **Knowledge about how the current version was arrived at.** This belongs in
+  `context/feature-history.md`, in the commit message, or nowhere. It never belongs in the source.
+
+Apply this test to **every sentence of every comment**, header included:
+
+> If a developer had never seen an earlier version of this code, would they need this sentence to
+> understand or safely change the version that exists now?
+
+If the answer is no, delete the sentence. Deleting it is not a loss — the sentence was describing
+something that is no longer there.
+
+**Delete outright:**
+
+- What used to be implemented, or what a previous version did.
+- What was tried first; rejected alternatives; "we considered X".
+- Debugging investigations and how a diagnosis was reached.
+- Screenshot measurements, and any measurement whose only job was proving an old diagnosis.
+- Visual symptoms that prompted a fix ("read as a broken layout", "the ✕ looked like punctuation").
+- Stale-build or stale-CSS diagnoses.
+- "for several revisions", "used to", "an earlier pass", "briefly", "it began as".
+- Explanations of code that no longer exists — a comment about a `justify-between` in a file that
+  has no `justify-between`.
+
+**Keep** the constraint that the investigation discovered — but as the rule that survives, not the
+story that found it. **Compress the investigation into the rule.** A rescue of a genuine hazard is
+one sentence, not a paragraph.
+
+| An investigation left in the source | The rule that survives |
+|---|---|
+| "Two flex arrangements were tried here and both failed on real hardware. Left to their natural size the icons clumped at one end and left a 71px dead strip. Given `grow` instead, they filled the line until one did not fit, and then the last one wrapped and grew to the whole width of the second row…" | "Narrow layouts use equal-width grid columns so every action stays evenly distributed and reachable." |
+| "A quantity query lived here for several revisions and is gone. It was introduced on the belief that the reported rendering was ~20% wider than this one, measured from a screenshot… what actually differed was the *panel*, which was 480px then…" | *(nothing — no current constraint survives)* |
+| "Four stops (440, 480, 530, 560) and a container query were tried before it was clear that the breakpoint was never the variable. At 30rem the tray was 418px against 377, 11% of slack…" | "Keep this breakpoint synchronized with `ActionLabel`: labels appear at the same width the toolbar switches from an equal-width grid to a flex row." |
+| "At 320px the six need ~294px and the panel offers 288, so `gap-0.5` rather than `gap-1` is what stops the columns dropping under 44px — measured once at 44.7px a column at 2px gaps and 43px at 4px." | "Keep the 2px narrow-layout gap; it preserves the 44px touch target when all six actions are visible on the narrowest layout." |
+
+**Module headers get the same test.** A header says what the file is, what it renders or does, and
+how it connects to its consumers. It never explains that the file used to be part of another file,
+why it was extracted, or what the old structure made difficult.
+
+**The quality target is not "capture everything we know."** It is the *minimum* documentation that
+gives a new developer the correct mental model and preserves the constraints they could
+realistically break. Prefer five excellent lines to forty historically accurate ones.
+
 ### Voice
 
 Third person, present tense, declarative. State a rule; do not defend it.
@@ -438,9 +488,14 @@ export list is the failure this method exists to prevent.
 
 ### The test
 
-A comment is not good because it is accurate or valid TSDoc. The questions are: **do I know what
-this file is, do I know why this application has it, and did this comment make the repository easier
-to understand?**
+A comment is not good because it is accurate or valid TSDoc. It is not good because it is
+*historically* accurate. Run two tests on every block:
+
+1. **Would a reader who never saw an earlier version need this to understand or change the code
+   that exists now?** If no, it is investigation, not documentation — delete it (see *Conclusion,
+   not investigation*).
+2. **Do I know what this file is, do I know why this application has it, and did this comment make
+   the repository easier to understand?**
 
 After reading a module header — without opening the imports, the filename or the export list — a
 developer unfamiliar with the repository should usually be able to say what kind of module they

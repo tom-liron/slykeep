@@ -21,10 +21,8 @@ import type { EditorPreferences } from "@/types/editor";
  */
 
 /**
- * One toast id for every save, so holding a dropdown open and stepping through five font sizes
- * replaces one toast five times instead of stacking five. This is the whole answer to auto-save's
- * noise problem — debouncing the *write* would only delay the same pile-up, and the write is a
- * single indexed update.
+ * One toast id shared by every save, so stepping through five font sizes replaces one toast five
+ * times rather than stacking five.
  */
 const SAVE_TOAST_ID = "editor-preferences";
 

@@ -1,28 +1,22 @@
 /**
- * A labelled input with room for one error message under it — the shape every auth and account form
- * uses, and one they had each written out for themselves.
+ * A labelled input with room for one error message under it — the field shape every auth and
+ * account form uses (sign-in, register, reset, change password, delete account).
  *
- * Separate from `ui/Field.tsx` rather than a variant of it, deliberately. That one labels at
- * `text-xs font-medium text-muted-foreground` and offers a `hint`, which is the item-form shape;
- * these label at `text-sm font-medium` and never hint. Collapsing the two would mean a `size` prop
- * whose two values are read as "the item forms" and "the auth forms", which is a worse thing to have
- * to know than two small components. What the two genuinely share is `invalidProps`, and they share
- * it — this composes with the one exported from `Field.tsx`.
+ * The auth counterpart to `Field` in `ui/Field.tsx`: that one labels at `text-xs` muted with an
+ * optional `hint`, for the item forms; this labels at `text-sm font-medium` and never hints. The
+ * two share `invalidProps` — this composes with the one exported from `Field.tsx`.
  *
- * The input itself is `children` rather than a prop, because the nine call sites pass four different
- * controls (`Input`, `PasswordInput`, one with `data-1p-ignore`, one controlled) and because two of
- * them need to say something about `aria-invalid` that this component cannot know — `SignInForm`
- * marks *both* of its fields when the credential is rejected without naming either. Owning the
- * wrapper, the label and the message, and leaving the control alone, is what lets those two stay
- * themselves rather than forcing an escape-hatch prop.
+ * The control is `children`, not a prop, so a call site can pass `Input`, `PasswordInput`, or a
+ * variant with its own `aria-invalid` handling — `SignInForm` marks both fields on a rejected
+ * credential without naming either. This owns the wrapper, the label, and the message, and leaves
+ * the control alone.
  *
- * The `${id}-error` here is the other half of the `aria-describedby` that `invalidProps` builds from
- * the same `id`. That is the whole reason this is worth sharing: nine hand-written pairs of ids had
- * to agree with nothing checking that they did, and a mismatch is silent — the field renders, the
- * message shows, and only a screen reader notices the two are no longer connected.
+ * Presentational and server-safe: no state, no handlers, no `"use client"`.
  *
- * Presentational and server-safe: no state, no handlers, no `"use client"`. Every current caller is
- * already a client component, but nothing here makes that necessary.
+ * @remarks
+ * The `${id}-error` id here is the other half of the `aria-describedby` that `invalidProps` builds
+ * from the same `id`. Sharing the derivation is the point: a hand-written pair that disagrees
+ * fails silently, visible only to a screen reader.
  */
 export function AuthField({
     id,
@@ -47,9 +41,8 @@ export function AuthField({
 
     return (
         <div className="space-y-1.5">
-            {/* The row only exists when something has to sit in it. Wrapping unconditionally would
-                be three lines shorter here and would add a `<div>` to the eight fields that have no
-                action — a DOM change to eight of nine call sites to serve the ninth. */}
+            {/* The label's row wrapper is rendered only when an `action` sits in it, so a field
+                without one keeps the bare `<label>` and no extra `<div>`. */}
             {action ? (
                 <div className="flex items-baseline justify-between gap-3">
                     {labelElement}

@@ -6,25 +6,16 @@ import { Button } from "@/components/ui/button";
 import type { ItemTypeViewModel } from "@/types/view-models";
 
 /**
- * What `/items/files` and `/items/images` show an account that does not have Pro.
+ * The full-page upsell `/items/files` and `/items/images` render for an account without Pro.
  *
- * A server component, and deliberately not a dialog or a redirect to `/settings`: the user asked for
- * this page by name, so the answer belongs on it. Bouncing them to billing would lose what they were
- * looking for, and a modal over an empty list would imply the list is theirs to see.
+ * A server component that stands in for the item list on those two routes. The user reached the
+ * page by name, so the answer is shown on it rather than as a redirect or a modal. Copy describes
+ * what the feature does, not the refusal.
  *
- * The copy is about the feature rather than about the refusal. "Files require Pro" states a rule;
- * naming what uploads actually do is the only part a person can decide anything from — which is the
- * same reason `DeleteAccountDialog` routes a subscriber to the portal instead of stopping at "you
- * can't".
- *
- * The only control is a link to `/upgrade`, not to checkout and not to the billing panel. The split
- * is what each page is for: this one answers "what would files give me", `/upgrade` answers "what
- * does it cost and which cycle", and Stripe takes the money. Sending this button straight to the
- * billing panel skipped the comparison for someone who has just started wondering whether Pro is
- * worth it, and sending it straight to checkout would ask them to pay before they had seen a price.
- *
- * Checkout itself stays a Server Action behind a rate limit in one place, rather than being
- * reachable from every locked page in the app.
+ * @remarks
+ * The only control links to `/upgrade` — the plan comparison — not to checkout or the billing
+ * panel. Each surface has one job: this page answers "what would files give me", `/upgrade`
+ * answers cost and cycle, and checkout stays a rate-limited Server Action reached from one place.
  */
 export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
     const isImages = itemType.name === "image";
@@ -44,8 +35,8 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
     return (
         <div className="mx-auto max-w-2xl space-y-6 py-2 text-center">
             <div className="space-y-4">
-                {/* Tinted with the type's own colour, so the page still reads as *this* type's page
-                    rather than as a generic paywall that could belong to anything. */}
+                {/* Tinted with the type's own colour, so the page reads as this type's page rather
+                    than a generic paywall. */}
                 <span
                     className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-card"
                     style={{ color: itemType.color }}
@@ -55,11 +46,8 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
 
                 <div className="space-y-2">
                     <h1 className="text-2xl font-bold">{itemType.label} are a Pro feature</h1>
-                    {/* No reserved second line here, unlike `PricingPlanCard`'s price note. That
-                        card swaps its own text as the cycle switch is touched, so a floor stops it
-                        resizing under the pointer; these two strings are on two different pages that
-                        are never seen at once, and both fit one line at this width — so a floor only
-                        bought a band of empty space under every subtitle. */}
+                    {/* Fixed one-line subtitle, no reserved height: only one of these two strings
+                        ever renders, and both fit one line at this width. */}
                     <p className="text-muted-foreground">
                         {isImages
                             ? "Stash images alongside your snippets and prompts, and find them the same way."

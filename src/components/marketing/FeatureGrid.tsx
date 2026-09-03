@@ -5,9 +5,16 @@ import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { MARKETING_FEATURES } from "@/config/marketing";
 
 /**
- * Cards arrive in sequence rather than as one block — but only at three columns. Narrower than that
- * they come into view one at a time anyway, and a delay would just hold back a card that is already
- * on screen. Static strings because Tailwind reads the source, not the rendered class list.
+ * The landing page's feature section: a {@link SectionHeading} and the grid of feature cards from
+ * `MARKETING_FEATURES`.
+ *
+ * One of the sections composed by the `/welcome` page. Each card is wrapped in {@link Reveal} for
+ * the staggered scroll-in.
+ */
+
+/**
+ * Per-card scroll-in delays, applied only at three columns ({@link Reveal} already staggers them
+ * one at a time when they stack). Static strings, since Tailwind reads the source.
  */
 const STAGGER = [
     "",

@@ -10,6 +10,13 @@ import { Brand } from "./Brand";
 import { useSidebar } from "./SidebarContext";
 import { SidebarNav } from "./SidebarNav";
 
+/**
+ * The dashboard's left navigation, in its two forms: a collapsible desktop rail and a mobile drawer.
+ *
+ * Rendered once in the dashboard layout. Both forms host the same {@link SidebarNav}; which shows
+ * is width-driven (`md`) plus the toggle state from {@link useSidebar}. The `SidebarViewModel` — item
+ * types, favourite and recent collections — is built server-side and passed in.
+ */
 export function Sidebar({ data }: { data: SidebarViewModel }) {
     const { collapsed, mobileOpen, setMobileOpen } = useSidebar();
 
@@ -18,24 +25,14 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
             <aside
                 className={cn(
                     "hidden shrink-0 overflow-hidden border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out md:block",
-                    // Three states, not two. `null` is "nobody has said", and it defers to the width:
-                    // closed on a tablet or a half-width window, open on a laptop. Expressed here in
-                    // CSS rather than measured in an effect, so the first paint is already right and
-                    // the server and the client agree on it.
+                    // Three states. `null` defers to the width — closed below `lg`, open from `lg`
+                    // — expressed in CSS so the first paint is right without an effect. The rail is
+                    // mounted from `md` so no width loses the persistent toggle, and shut below
+                    // `lg` because a rail is a quarter of a 900px window.
                     //
-                    // Why the rail is mounted from `md` but shut until `lg`: it is mounted so no
-                    // width loses persistent navigation — the top bar's toggle is one click, at
-                    // every width, and there is no hamburger-and-overlay above `md`. It is shut
-                    // below `lg` because 256px of a 900px window is a quarter of the page spent on a
-                    // rail. `lg` rather than `xl` because a laptop should arrive with its navigation
-                    // showing, and a good many laptop windows are not 1280px wide.
-                    //
-                    // `invisible` rather than relying on `w-0` and `overflow-hidden`: a zero-width
-                    // clipped box still holds its links in the tab order and reads them out to a
-                    // screen reader. That was survivable while collapsing was a deliberate act; it
-                    // is not now that closed is the default on every tablet. `visibility` is the one
-                    // property that takes them out of both, and it animates as discretely as the
-                    // width does.
+                    // `invisible`, not `w-0` + `overflow-hidden`: a zero-width clipped box still
+                    // holds its links in the tab order and reads them to a screen reader.
+                    // `visibility` removes them from both and animates as discretely as the width.
                     collapsed === null
                         ? "invisible w-0 border-r-0 lg:visible lg:w-64 lg:border-r"
                         : collapsed
@@ -57,12 +54,9 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
                             event.preventDefault();
                             document.querySelector<HTMLElement>("#mobile-menu-button")?.focus();
                         }}
-                        // Any link in the drawer closes it, whether or not it remembered to call
-                        // `onNavigate`. That prop is threaded through `SidebarNav` to every row and
-                        // is still what fires first — this is the floor under it, and it exists
-                        // because the account menu at the foot of the drawer did forget, so Profile
-                        // and Settings opened underneath a drawer that stayed put. One delegated
-                        // handler cannot be forgotten by whatever gets added to the nav next.
+                        // A delegated handler: any link in the drawer closes it, as a floor under
+                        // the `onNavigate` prop threaded through `SidebarNav` to every row.
+                        // `onNavigate` still fires first; this catches whatever forgets to call it.
                         onClick={(event) => {
                             if ((event.target as HTMLElement).closest("a[href]")) {
                                 setMobileOpen(false);

@@ -7,12 +7,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
- * A modal that interrupts to confirm something destructive.
+ * The shadcn/ui alert-dialog primitive: a modal that interrupts to confirm a destructive action.
  *
- * `AlertDialog` rather than `Dialog`: it is the role for a choice the user must answer, so it traps
- * focus on the confirm/cancel pair, is announced as `alertdialog`, and — unlike the sidebar's
- * `Dialog` — cannot be dismissed by clicking the overlay. An irreversible action should not be
- * cancellable *or* confirmable by a stray click.
+ * Used for delete-account, delete-item, and similar confirmations. Distinct from `Dialog` in
+ * `ui/dialog.tsx`: it is announced as `alertdialog`, traps focus on the confirm/cancel pair, and
+ * cannot be dismissed by an overlay click, so a stray click can neither confirm nor cancel an
+ * irreversible action.
  */
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
@@ -48,16 +48,12 @@ function AlertDialogContent({
     return (
         <AlertDialogPrimitive.Portal>
             <AlertDialogOverlay />
-            {/* `w-[calc(100%-2rem)] max-w-lg`, matching `DialogContent` — see the long note there
-                for why the gutter and the cap have to be two different properties. In short:
-                without the gutter this reached both edges of a phone, rounded corners and all,
-                since nothing else here stops at the viewport; and putting the gutter in `max-w`
-                too made the two take turns at a breakpoint, so the dialog got *narrower* as the
-                window got wider.
-
-                `max-h` with it, for the other axis of the same problem: centred by
-                `-translate-y-1/2`, a dialog taller than the window hangs off both ends and takes its
-                own footer with it. Phone landscape and a short laptop window both reach that. */}
+            {/* `w-[calc(100%-2rem)] max-w-lg` matches `DialogContent` — the 2rem gutter and the
+                size cap are separate properties so they compose instead of taking turns at a
+                breakpoint, keeping width monotonic in the viewport. `max-h-[calc(100dvh-2rem)]`
+                with `overflow-y-auto` is the vertical half: centred by `-translate-y-1/2`, a
+                dialog taller than the window would hang off both ends with its footer. See the
+                fuller note in `ui/dialog.tsx`. */}
             <AlertDialogPrimitive.Content
                 data-slot="alert-dialog-content"
                 className={cn(

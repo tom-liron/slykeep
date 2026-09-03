@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 /**
- * A password field with a reveal toggle.
+ * A password field with a show/hide toggle, wrapping {@link Input}.
  *
- * Typing a password blind is the main reason people mistype one, and on a registration form that
- * costs them a confirm-mismatch error with nothing to compare. The toggle is a `button` rather
- * than a checkbox so it stays out of the form's submitted data.
+ * Used by every credentials form — sign-in, register, reset, and the change-password dialog — so a
+ * user can check what they typed before submitting. The toggle is a `button`, not a checkbox, so
+ * it stays out of the form's submitted data.
  */
 export function PasswordInput({
     className,

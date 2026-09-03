@@ -27,12 +27,11 @@ const MAX_ITEM_RESULTS = 8;
 const MAX_COLLECTION_RESULTS = 5;
 
 /**
- * What an item can be found by, and how much each way of finding it counts. A title is what someone
- * is most likely to be typing; the type label is last because "snippet" would otherwise return every
- * snippet ahead of the one actually named that.
+ * The searchable fields of an item and their weights, for `rankBySearch`.
  *
- * Only the title and the tags accept a scattered match. A description is prose, and prose contains
- * the letters of a short query in order whether or not it is about it.
+ * Title first as the most-typed field; the type label last, so "snippet" does not return every
+ * snippet ahead of the one named that. Only title and tags accept a scattered (non-contiguous)
+ * match — a description is prose, which contains the letters of a short query in order by chance.
  */
 function itemFields(item: ItemSummaryViewModel): SearchField[] {
     return [
@@ -48,21 +47,18 @@ function collectionFields(collection: SearchCollectionViewModel): SearchField[] 
 }
 
 /**
- * The ⌘K palette: everything the user has stashed, matched in the browser against data the dashboard
- * layout already fetched.
+ * The ⌘K command palette: the search trigger in the top bar and the dialog behind it, matching in
+ * the browser against the `SearchDataViewModel` the dashboard layout already fetched.
  *
- * Selecting a collection navigates to its page. Selecting an item opens `ItemDrawer` — the same
- * drawer the item lists open, rendered here for the same reason it is rendered there: there is no
- * item route, so the drawer is state rather than a destination. The search data carries whole item
- * summaries precisely so this can happen without a second round trip.
+ * Selecting a collection navigates to its page; selecting an item opens {@link ItemDrawer}, the
+ * same drawer the item lists use, because there is no item route. The search data carries whole
+ * item summaries so this needs no round trip.
  *
- * cmdk's own filtering is off. The ranking lives in `lib/fuzzy-search.ts`, which can weigh a title
- * hit above a description hit — something a single flattened `value` string per item cannot express.
- *
- * It owns its trigger as well as its dialog, the way `CreateItemDialog` and `CreateCollectionDialog`
- * do — the top bar places it and nothing else. That is also what keeps the query reset out of an
- * effect: every path that opens the palette is an event handler here, so the field is cleared on the
- * way in rather than by watching `open` change.
+ * @remarks
+ * cmdk's own filtering is off — ranking is `rankBySearch` in `lib/fuzzy-search.ts`, which weighs a
+ * title hit above a description hit, something a flattened `value` string cannot. This owns its
+ * trigger as well as its dialog, so the query reset is an event handler here rather than an effect
+ * watching `open`.
  */
 export function CommandPalette({ data }: { data: SearchDataViewModel }) {
     const router = useRouter();
@@ -75,7 +71,7 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
     const [selectedItem, setSelectedItem] = useState<ItemSummaryViewModel | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
 
-    // A palette that reopens on last week's query is one you have to clear before using.
+    // Cleared on the way in, so the palette never reopens on a stale query.
     const openPalette = () => {
         setQuery("");
         setOpen(true);
@@ -132,24 +128,12 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
 
     return (
         <>
-            {/* A button dressed as the input it replaces, not an input. It opens a dialog rather
-                than accepting text — the palette owns the field you actually type in — and a
-                `readOnly` input that swallows its own focus is a control that lies about what it
-                does to anyone reaching it by keyboard or screen reader.
-
-                Two shapes, one control. Below `sm` it is a square icon button like the rest of the
-                bar, because a field wide enough to read its own placeholder is wider than a phone
-                has to spare once the brand and the create actions have taken theirs. From `sm` up it
-                is the field again. Collapsing it rather than shrinking it is what keeps the bar off
-                the point where every control is squeezed and none of them fit.
-
-                The dialog behind it is unchanged and already insets itself on a phone, so only the
-                trigger has two shapes.
-
-                `aria-label` because the visible text is one of the things that goes: without it the
-                icon-only state would be a button with no accessible name at all. It repeats the
-                visible label rather than replacing it, so the two agree at the widths where both
-                exist. */}
+            {/* A `<button>` dressed as the search field, not a `readOnly` input, since it opens a
+                dialog rather than accepting text. Two shapes: a square icon button below `sm`
+                where a full field would not fit, the field itself from `sm` up. The dialog behind
+                it insets itself on a phone, so only the trigger changes shape. `aria-label`
+                repeats the visible label, which is one of the things that goes in the icon-only
+                state. */}
             <button
                 type="button"
                 onClick={openPalette}

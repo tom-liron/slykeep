@@ -18,20 +18,17 @@ import { Button } from "@/components/ui/button";
 import type { CollectionActionTarget } from "@/types/collection";
 
 /**
- * The confirmation in front of deleting a collection.
+ * The confirmation dialog for deleting a collection, calling `deleteCollection`.
  *
- * Controlled from outside for the same reason `EditCollectionDialog` is: it opens from a header
- * button on the collection's page and from a dropdown item on a card, and a Radix menu unmounts
- * anything nested inside the item it closes on.
+ * Controlled from outside, like `EditCollectionDialog`: it opens from a header button on the
+ * collection page and a dropdown item on a card, and a Radix menu unmounts anything nested in the
+ * item it closes on. The wording states that the items are kept — `ItemCollection` cascades on the
+ * collection side only, so they stop belonging to this collection but keep existing.
  *
- * The wording carries the one thing a user is right to worry about — that deleting a collection
- * might take its items with it. It does not: `ItemCollection` cascades on the collection side only,
- * so the items keep existing and simply stop belonging to this collection.
- *
- * `afterDeleteHref` is what a card and a page disagree about. From a card the list behind it just
- * needs re-fetching, so it stays put and refreshes; from the collection's own page there is nowhere
- * to stay — that route 404s the moment the row is gone — so it navigates. A string rather than a
- * callback, because both call sites are reached from server components, which cannot pass functions.
+ * @remarks
+ * `afterDeleteHref` differs by call site: a card refreshes in place, the collection's own page
+ * navigates away because that route 404s once the row is gone. A string, not a callback, since
+ * both call sites are server components.
  */
 export function DeleteCollectionDialog({
     collection,
@@ -61,24 +58,19 @@ export function DeleteCollectionDialog({
             toast.success("Collection deleted.");
 
             if (afterDeleteHref) {
-                // Navigate away, and do *not* refresh on the way out. `router.refresh()` re-renders
-                // the route you are currently on — which here is the collection that has just been
-                // deleted, so it re-runs the page, hits `notFound()`, and paints a 404 over the page
-                // being left. Refreshing after the push does not avoid it either: the two are
-                // dispatched in the same transition and the refresh still targets the dead route.
-                //
-                // Nothing is lost by dropping it. `deleteCollection` revalidates on the server, so
-                // the destination and the sidebar above it are both re-fetched by this navigation.
-                //
-                // `replace` rather than `push`, so the deleted collection's URL does not stay in
-                // history one Back press away from a 404.
+                // Navigate away with no `router.refresh()`: refreshing re-runs the current route,
+                // which is the collection just deleted, so it hits `notFound()` and paints a 404
+                // over the page being left — and a refresh after the push targets the same dead
+                // route in the same transition. `deleteCollection` revalidates on the server, so
+                // this navigation re-fetches the destination and the sidebar anyway. `replace`, not
+                // `push`, so the deleted URL is not one Back press from a 404.
                 router.replace(afterDeleteHref);
 
                 return;
             }
 
-            // Staying put: this is the one case where re-rendering the current route is the point —
-            // the list this card was in, and the sidebar and stat cards around it.
+            // Staying put: re-render the current route — the list this card was in, and the
+            // sidebar and stat cards around it.
             router.refresh();
         });
     };

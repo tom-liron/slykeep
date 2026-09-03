@@ -8,33 +8,23 @@ import { CreateCollectionDialog } from "./CreateCollectionDialog";
 /**
  * The trailing cell of the collections grid: a dashed card that opens the create dialog.
  *
- * `/collections` had no create affordance of its own — the only way to make one was the top bar,
- * which is chrome shared by every page and so reads as belonging to none of them. On the page whose
- * whole subject is collections, the grid ending in a gap where the next card would go is where
- * someone looks for it.
+ * Gives `/collections` a create affordance on the page itself, where someone looks for it, rather
+ * than only in the shared top bar. Drives {@link CreateCollectionDialog} in its controlled mode —
+ * one more surface for the same flow, not a second copy.
  *
- * It drives `CreateCollectionDialog` in its controlled mode rather than reaching for a second
- * trigger, so this is a new *surface* for the create flow and not a second copy of it — same
- * dialog, same action, same validation, same toasts.
- *
- * Deliberately not hidden at the free tier's three-collection cap. The action is the authority on
- * limits (see `lib/limits.ts` and the note in the project overview), and it answers with an
- * upgrade-flavoured refusal — which is a better answer than a create affordance that silently stops
- * existing, since a missing button explains nothing about why. It is also what the top bar's own
- * "New Collection" already does, and the two must not disagree.
+ * @remarks
+ * Not hidden at the free tier's three-collection cap: the create action is the authority on limits
+ * and answers with an upgrade-flavoured refusal, which the top bar's "New Collection" does too. A
+ * missing button would explain nothing.
  */
 export function NewCollectionCard() {
     const [open, setOpen] = useState(false);
 
     return (
         <>
-            {/* `min-h-40` rather than a stretched cell: the grid's rows are sized by the tallest
-                real card, and a button with two lines in it would otherwise collapse to those two
-                lines and sit as a stub beside full-height neighbours. The floor is close to a
-                populated card's natural height, and `h-full` lets it grow to match a taller row.
-
-                Dashed and `bg-transparent` so it reads as a slot rather than as a collection — this
-                is the one cell in the grid that is not a thing the user has made. */}
+            {/* `min-h-40` near a populated card's natural height, with `h-full` to grow to a
+                taller row, so this does not sit as a two-line stub beside full-height neighbours.
+                Dashed and `bg-transparent` so it reads as an empty slot, not a collection. */}
             <button
                 type="button"
                 onClick={() => setOpen(true)}

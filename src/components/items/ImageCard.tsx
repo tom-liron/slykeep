@@ -7,30 +7,30 @@ import { FileTypeIcon } from "./FileTypeIcon";
 /**
  * One image item as a gallery tile — the picture itself, with a caption under it.
  *
- * An image is the one item type whose content can be shown at list size, so a card that summarised
- * it in words would be describing something already on screen. The tile is a fixed 16:9 so the grid
- * lines up, but the picture is `object-contain` inside it rather than `object-cover`: the spec asked
- * for cover, and the first portrait photograph through it — a full-height statue — came out as a
- * torso with the head cropped off. A gallery is browsed by recognising a picture, and cover crops
- * exactly the part that identifies one. Letterbox bars are the cheaper cost.
+ * The list shape for the `image` type: an image is the one item type whose content shows at list
+ * size, so this renders the picture rather than a worded summary. `ItemList` chooses it for that
+ * type.
  *
- * A plain `<img>`, not `next/image`, for the reason the drawer's preview gives: the source is an
- * authorized route that answers from the session cookie, and Next's optimizer fetches the URL itself
- * without one, so the optimized variant would 404 while the direct request succeeds.
+ * @remarks
+ * The tile is a fixed 16:9 for grid alignment, and the picture is `object-contain` inside it: a
+ * gallery is browsed by recognising a picture, and `object-cover` crops the part that identifies
+ * one. Letterbox bars are the trade.
  *
- * The zoom on hover is `group-hover`, not `hover`, because the click target is a sibling laid over
- * this card rather than a parent of it — the pointer is never over the `<article>`, so it can never
- * match `:hover`. `ItemList` puts `group` on the wrapper they share.
+ * A plain `<img>`, not `next/image` — the same reason `FilePreview` gives: the source is an
+ * authorized route that reads the session cookie, and Next's optimizer fetches the URL without
+ * one, so the optimized variant 404s.
+ *
+ * The hover zoom is `group-hover`, not `hover`: the click target is a sibling laid over this card,
+ * so the pointer is never over the `<article>`. `ItemList` puts `group` on the shared wrapper.
  */
 export function ImageCard({ item }: { item: ItemSummaryViewModel }) {
-    // A file item is created with its object, so `fileName` is all but always set; the title stands
-    // in for the row that somehow has none, so the alt text still names something.
+    // A file item is created with its object, so `fileName` is almost always set; the title stands
+    // in when a row has none, so the alt text still names something.
     const name = item.fileName || item.title;
 
     return (
-        // `h-full` for the reason `ItemCard` explains at length: the grid item is the wrapper
-        // `ItemList` puts around this, not the article itself. Thumbnails share one aspect ratio, so
-        // this only shows when a title wraps or the tag rows differ.
+        // `h-full` so every tile in a grid row matches height — the grid item is the wrapper
+        // `ItemList` puts around this, not the article. See `ItemCard` for the fuller note.
         <article className="h-full overflow-hidden rounded-xl border border-border bg-card">
             <div className="aspect-video overflow-hidden bg-muted/40">
                 {isRenderableImage(name) ? (

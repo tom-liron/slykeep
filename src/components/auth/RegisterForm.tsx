@@ -12,6 +12,15 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { registerSchema } from "@/lib/auth-schemas";
 
+/**
+ * The account-creation form, posting to `POST /api/auth/register` (a route, not a Server Action,
+ * so the client can tell a 400 from a 409).
+ *
+ * The credentials half of `/register`, beside `GitHubSignInButton`. On success it redirects to
+ * `/sign-in` with a flag saying whether the verification email was sent — the new account is not
+ * signed in here (see below).
+ */
+
 type FieldErrors = Partial<Record<"name" | "email" | "password" | "confirmPassword", string[]>>;
 
 const FIELDS = [
@@ -83,17 +92,14 @@ export function RegisterForm() {
             return;
         }
 
-        // `isPending` stays true through the redirect on purpose: the button keeps its disabled,
-        // "Creating account…" state until the new page takes over, which is what stops a second
-        // submission during the navigation. Clearing it here would flash an enabled button.
+        // `isPending` stays true through the redirect: the button keeps its disabled
+        // "Creating account…" state until the next page takes over, which stops a second
+        // submission during the navigation.
 
-        // The account is deliberately *not* signed in here. It is created with `emailVerified`
-        // null, and `authorize` refuses that — attempting a sign-in would fail on purpose and read
-        // to the user as a broken registration. The link in their inbox is the next step.
-        //
-        // `emailSent` only means Resend accepted the request, so `registered=sent` is a claim about
-        // what we attempted, not proof anything was delivered. When the send fails outright the
-        // sign-in page says so rather than pointing at an inbox that will stay empty.
+        // The account is not signed in here. It is created with `emailVerified` null, which
+        // `authorize` refuses, so a sign-in attempt would fail and read as a broken registration.
+        // The link in the inbox is the next step. `emailSent` only means Resend accepted the
+        // request, so `registered=sent` is a claim about the attempt, not proof of delivery.
         router.push(`/sign-in?registered=${emailSent ? "sent" : "unsent"}`);
     }
 

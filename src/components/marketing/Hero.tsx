@@ -7,26 +7,21 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { Button } from "@/components/ui/button";
 
 /**
- * The headline, and under it the chaos → order figure the whole page turns on: eight app icons
- * drifting on the left, the dashboard they collapse into on the right.
+ * The landing page's hero: the headline and the chaos → order figure the page turns on —
+ * {@link ChaosField} drifting on the left, {@link AppPreview} on the right.
  *
- * The two panels stack below 1024px rather than at the nav's 860. Side by side each one is half the
- * container, and the dashboard mock — which scales its own type to its width — gets too small to
- * read well before the bar itself needs to collapse.
+ * The first section the `/welcome` page composes. The two panels stack below 1024px, not the nav's
+ * 860: side by side, {@link AppPreview}'s self-scaling type gets too small to read before the nav
+ * itself needs to collapse.
  */
 export function Hero() {
     return (
         <header
-            // `-mt-16` puts the top of this box back under the bar, and the `4rem` added to the top
-            // padding puts the content back where it was — together they restore the prototype's
-            // geometry, where the nav is `fixed` and the hero starts at the top of the document
-            // rather than below the bar.
-            //
-            // That is what makes the bar look like glass. The glow below is clipped by this
-            // element's `overflow-hidden`, so while the hero began at the bar's bottom edge there
-            // was nothing behind the bar to see through it — 30% of the page background over the
-            // page background, which reads as flat black, with a hard horizontal cut where the clip
-            // started. The bar was transparent the whole time; it had nothing to be transparent to.
+            // `-mt-16` pulls the box up under the fixed nav and the extra `4rem` of top padding
+            // puts the content back, so the hero starts at the top of the document. This lets the
+            // background glow sit behind the nav, which is what makes the nav read as glass —
+            // `overflow-hidden` here clips the glow, so a hero starting at the nav's bottom edge
+            // would leave nothing behind it to see through.
             className="relative -mt-16 overflow-hidden pt-[calc(4rem_+_clamp(3rem,8vw,6rem))] pb-[clamp(3rem,7vw,6rem)]"
         >
             <div

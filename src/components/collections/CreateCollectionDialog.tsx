@@ -23,14 +23,15 @@ import { Textarea } from "@/components/ui/textarea";
 import type { CreateCollectionField, CreateCollectionInput } from "@/lib/collection-schemas";
 
 /**
- * The top bar's "New Collection" control and the dialog behind it.
+ * The collection-creation dialog: the "New Collection" trigger and the two-field form behind it,
+ * calling `createCollection`.
  *
- * A centered modal for the same reason `CreateItemDialog` is one: creating starts from nothing, so
- * there is no card underneath for a side panel to sit beside.
+ * A centred `Dialog`, like `CreateItemDialog`, since creating starts from nothing.
+ * {@link CreateCollectionForm} is a separate component so Radix unmounting the dialog content
+ * resets every field.
  *
- * The form is a separate component on purpose — Radix unmounts the dialog's content when it closes,
- * so every field resets itself and there is no teardown to remember when a new collection is
- * started.
+ * Uncontrolled by default; passing `open`/`onOpenChange` drops the trigger and hands control to
+ * the caller (`TopBar` below `sm`, and `NewCollectionCard`).
  */
 export function CreateCollectionDialog({
     open: controlledOpen,
@@ -49,8 +50,8 @@ export function CreateCollectionDialog({
         <Dialog open={open} onOpenChange={setOpen}>
             {!isControlled && (
                 <DialogTrigger asChild>
-                    {/* `lg` for the reason `CreateItemDialog`'s label is: the two are measured
-                        together, since they share a track and appear at the same time. */}
+                    {/* Label at `lg`, in step with `CreateItemDialog`'s — the two share a track
+                        and appear together. */}
                     <Button variant="outline" aria-label="New Collection">
                         <FolderPlus className="size-4" aria-hidden="true" />
                         <span className="hidden lg:inline">New Collection</span>
@@ -72,6 +73,7 @@ export function CreateCollectionDialog({
     );
 }
 
+/** The name and description fields, submitted via `createCollection`. */
 function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();

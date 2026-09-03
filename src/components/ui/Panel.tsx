@@ -1,24 +1,18 @@
 import { cn } from "@/lib/utils";
 
 /**
- * A titled group of related content, rendered as one bordered surface.
+ * A titled group of related content, rendered as one bordered surface — the section container for
+ * the settings and profile pages.
  *
- * The settings and profile pages were both a stack of independent cards, each with its own border
- * and its own heading floating above it — which reads as unrelated widgets that happen to share a
- * page. One panel per subject, with the content divided inside it, is what an account page
- * conventionally looks like, and it gives both pages somewhere to add a subject later without
- * becoming a column of loose boxes.
+ * One panel per subject, with its content divided inside it by the same divider, so a page reads as
+ * a few labelled groups rather than a column of loose cards. Lives in `ui/` because both pages
+ * render it. What goes *inside* is each page's own: {@link PanelRow} is the settings shape (a label
+ * and a control), and the profile page passes bands of its own.
  *
- * Lives in `ui/` rather than `settings/` because both pages render it. What goes *inside* is each
- * page's own: `PanelRow` is the settings shape (a label and a control), and the profile page passes
- * bands of its own instead.
- *
- * The title sits *inside* the border, as the panel's first band, rather than floating above it —
- * a heading outside the surface it names belongs to the page, and this one belongs to the panel. It
- * is separated by the same divider the rows use, so the card reads top to bottom as one object.
- *
- * The heading is `h2` and the rows inside are `h3`, so the structure a screen reader announces is
- * the structure the borders draw.
+ * @remarks
+ * The title is the panel's first band, inside the border, so the heading belongs to the panel
+ * rather than to the page. The heading is `h2` and {@link PanelRow}'s titles are `h3`, so the
+ * structure a screen reader announces matches the one the borders draw.
  */
 export function Panel({
     id,
@@ -54,17 +48,15 @@ export function Panel({
 }
 
 /**
- * One setting: what it is, what it does, and the control that does it.
+ * One row inside a {@link Panel}: what a setting is, what it does, and the control that does it.
  *
- * The control sits at the end of the row rather than under the copy, which lines every action in a
- * panel up on the same edge — the thing that makes a settings page scannable is that the buttons are
- * always in the same place. Below `sm` it stacks, since a sentence sharing a narrow row with a
- * button wraps to a few words per line.
+ * The control sits at the end of the row so every action in a panel lines up on the same edge,
+ * which is what makes a settings page scannable. Below `sm` it stacks, since a sentence and a
+ * button sharing a narrow row wrap badly.
  *
- * `tone="destructive"` replaces the red border the delete card used to carry on its own. Inside a
- * shared panel there is no separate border left to tint, so the warning moves to the row's surface —
- * still the design language naming the action and letting colour carry the weight, rather than a
- * "Danger zone" heading (see project-overview.md §8 — Notion, Linear, Raycast).
+ * `tone="destructive"` tints the row surface for a dangerous action (delete account). Colour
+ * carries the weight rather than a "Danger zone" heading — see `project-overview.md` §8 (Notion,
+ * Linear, Raycast).
  */
 export function PanelRow({
     title,

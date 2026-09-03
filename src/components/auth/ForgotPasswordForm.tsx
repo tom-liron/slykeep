@@ -7,26 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 /**
- * Asks for the address to send a reset link to, then confirms.
+ * Asks for the address to send a reset link to, then shows the confirmation.
  *
- * The heading lives in here rather than in the page because it has to change: the conventional
- * confirmation is "Check your email", and leaving a static "Reset your password / enter your email"
- * header above a message saying a link was already sent is the contradiction this rewrite fixes.
+ * The whole `/forgot-password` page's body, heading included — the heading changes between the
+ * form ("Reset your password") and the confirmation ("Check your email").
  *
- * The confirmation is worded as what *would* have happened, and reads identically for every address.
- * `POST /api/auth/forgot-password` answers 200 for all input precisely so this control cannot be
- * used to test which emails are registered — saying "sent!" for one and "no such account" for
- * another would hand that straight back in the UI. Naming the address is still worth it: it is the
- * one thing the user can check, and a typo is the likeliest reason nothing arrives.
+ * @remarks
+ * `POST /api/auth/forgot-password` answers 200 for every input so this cannot test which emails
+ * are registered, so the confirmation is worded as what *would* have happened and reads the same
+ * for every address. It still names the address, since a typo is the likeliest reason nothing
+ * arrives.
  */
 export function ForgotPasswordForm() {
     const [email, setEmail] = useState("");
     const [isPending, setIsPending] = useState(false);
     const [sentTo, setSentTo] = useState<string | null>(null);
-    // The one outcome this form is allowed to report. A 429 is a fact about how often *this browser*
-    // has posted here, not about any address, so showing it discloses nothing the confirmation below
-    // is built to hide — and it has to be shown, because a "link on its way" for a request the
-    // server refused is simply a lie that leaves the user waiting on an email that will never come.
+    // The one outcome this form reports. A 429 is a fact about how often this browser has posted
+    // here, not about any address, so it discloses nothing the confirmation hides — and it must be
+    // shown, or a "link on its way" for a refused request leaves the user waiting on nothing.
     const [limitError, setLimitError] = useState<string | null>(null);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -97,8 +95,8 @@ export function ForgotPasswordForm() {
         );
     }
 
-    // `noValidate` for the same reason as the sign-in form: a native `type="email"` rejection does
-    // not survive a React submit handler, so the field would refuse silently with no message.
+    // `noValidate` as on the sign-in form: a native `type="email"` rejection does not survive a
+    // React submit handler, so it would refuse with no message.
     return (
         <>
             <div className="mb-6 space-y-1">

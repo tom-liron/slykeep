@@ -1,6 +1,13 @@
 import { CtaButton } from "@/components/marketing/CtaButton";
 import { Reveal } from "@/components/marketing/Reveal";
 
+/**
+ * The landing page's closing call-to-action panel: a headline, a line of copy, and the
+ * "Get Started Free" button.
+ *
+ * One of the sections composed by the `/welcome` page. Static content wrapped in {@link Reveal} for
+ * the scroll-in animation.
+ */
 export function CtaSection() {
     return (
         <section className="pt-[clamp(4rem,9vw,7rem)] pb-[clamp(4rem,9vw,7rem)]">

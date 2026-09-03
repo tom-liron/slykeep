@@ -5,22 +5,18 @@ import { ITEM_TYPE_COLORS } from "@/config/item-type-catalog";
 import { cn } from "@/lib/utils";
 
 /**
- * The page's one blue call to action — the hero's and the closing section's "Get Started Free".
+ * The landing page's one blue call to action — "Get Started Free" in the hero and the closing
+ * section.
  *
- * Blue rather than the shared white `default` so the single action the page is asking for is the
- * item-type blue everything else on it is built from. It is a wrapper here rather than a new
- * `buttonVariants` entry because nothing in the signed-in app wants a coloured button, and a
- * variant that exists for one page is a variant everyone else has to read past.
+ * A wrapper around {@link Button} rather than a new `buttonVariants` entry, since nothing in the
+ * signed-in app wants a coloured button. The colour is the snippet blue from `ITEM_TYPE_COLORS`,
+ * passed as a `--cta` custom property so the fill, hover, and glow all mix off one value.
  *
- * The colour is a runtime value from the catalog, so it arrives as a custom property and the fill,
- * hover, and shadow are all mixed off it — that keeps the hex in exactly one place.
- *
- * The fill is the catalog blue darkened rather than the blue itself. `#3b82f6` carries white at
- * 3.68:1, under the 4.5:1 AA needs at this size, and this is the one button the page exists to get
- * clicked; 85% of it against black measures ~4.9:1. Mixed rather than hardcoded as a second hex,
- * because `ITEM_TYPE_COLORS.snippet` is what makes this button the same blue as everything else on
- * the page — a literal here would drift from the catalog the first time the catalog moved. The glow
- * still mixes off the undarkened value, since a shadow carries no text.
+ * @remarks
+ * The fill is that blue darkened to ~85%: `#3b82f6` carries white at 3.68:1, under AA at this
+ * size, and 85% against black measures ~4.9:1. It is mixed from the catalog value rather than
+ * hardcoded so it cannot drift from the rest of the page's blue. The glow mixes off the undarkened
+ * value, since a shadow carries no text.
  */
 export function CtaButton({
     href,

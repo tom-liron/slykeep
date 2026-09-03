@@ -10,12 +10,13 @@ import { formatFileSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
- * The file picker behind a `file` or `image` item: a drop zone, an upload, and what was uploaded.
+ * The file picker behind a `file` or `image` item form: a drop zone, an in-progress upload, and the
+ * uploaded-file row.
  *
- * The transfer itself lives in `useFileUpload` — it is an `XMLHttpRequest` for a reason that has
- * nothing to do with how any of this looks, and separating the two leaves this component about the
- * drop target and its two states. What stays here is what is genuinely presentational: whether the
- * pointer is dragging over the zone, and the file input the zone stands in for.
+ * The transfer itself is `useFileUpload` (an `XMLHttpRequest`, for the progress events `fetch`
+ * cannot give). This component owns only the presentational state: whether the pointer is dragging
+ * over the zone, and the hidden file input the zone stands in for. The parent form holds the
+ * resulting {@link UploadedFile} and submits it.
  */
 export function FileUpload({
     itemType,
@@ -152,9 +153,8 @@ export function FileUpload({
                         button inside it would be a second one firing the same picker. */}
                     <p className="text-sm text-muted-foreground">
                         Drag and drop, or{" "}
-                        {/* `whitespace-nowrap` so the phrase breaks *before* it and not inside it:
-                            at phone width the line wrapped after "choose a", leaving a lone "file"
-                            on the next line under a link that reads as two. */}
+                        {/* `whitespace-nowrap` so the link wraps as a unit rather than splitting
+                            across two lines at narrow widths. */}
                         <span className="font-medium whitespace-nowrap text-primary underline-offset-4 group-hover:underline">
                             choose a file
                         </span>
@@ -170,10 +170,10 @@ export function FileUpload({
 }
 
 /**
- * What the field shows once a file is on the server: the object, and a way to change your mind.
+ * The field's state once a file is on the server: the object's name and size, and a Remove button.
  *
- * The drop zone is gone at this point rather than sitting underneath — there is one file per item,
- * so an upload is a replacement, and offering both at once would suggest otherwise.
+ * Replaces the drop zone rather than sitting below it — there is one file per item, so a new upload
+ * is a replacement.
  */
 function UploadedFileRow({
     file,

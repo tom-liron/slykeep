@@ -17,20 +17,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * Picks what `/favorites` is ordered by, and which way.
+ * The client-side sort control for `/favorites`: a `DropdownMenu` of sort keys and a separate
+ * direction toggle.
  *
- * A dropdown and a separate arrow rather than one menu of six combinations ("Name A–Z", "Name Z–A",
- * …): the key and the direction are two questions, and folding them into one list means the answer
- * to the second is buried in the wording of the first. It is a `DropdownMenu` rather than a `Select`
- * because there is no `select.tsx` in `components/ui` — the radio group here is the same primitive
- * `CollectionActions` already opens, and one sort control is not a reason to take on another
- * dependency.
+ * Rendered by `FavoritesView`, which holds the sort state and re-orders both lists from it. Key
+ * and direction are two controls, not one list of every combination.
  *
- * Changing the key resets the direction to that key's own default rather than carrying the previous
- * one across. Dates want newest first and names want A–Z, so any single shared default is backwards
- * for one of them — and going from date to name would otherwise land on Z–A, which reads as a bug
- * rather than as something the user asked for.
+ * @remarks
+ * Changing the key resets the direction to that key's default (from `DEFAULT_SORT_DIRECTION`):
+ * dates want newest first and names want A–Z, so carrying the old direction across would land one
+ * of them backwards.
  */
+
+/** The visible label for each sort key. */
 const SORT_KEY_LABELS: Record<FavoriteSortKey, string> = {
     name: "Name",
     date: "Date",

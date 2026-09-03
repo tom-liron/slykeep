@@ -2,9 +2,10 @@ import { signInWithGitHub } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 
 /**
- * Inlined rather than imported: lucide-react dropped its brand icons in v1, so there is no
- * `Github` export to use. This is the official mark, which the alternatives (a generic code glyph,
- * a letter) would not be — users look for the logo on an OAuth button.
+ * The GitHub logo, inline SVG.
+ *
+ * Inline because lucide-react dropped its brand icons in v1, so there is no `Github` export — and
+ * users look for the real logo on an OAuth button, not a generic glyph.
  */
 function GitHubMark() {
     return (
@@ -27,11 +28,9 @@ export function GitHubSignInButton({ callbackUrl }: { callbackUrl?: string }) {
             {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
             <Button type="submit" variant="outline" className="w-full">
                 <GitHubMark />
-                {/* "Continue", not "Sign in" — the same button now renders on `/register`, and this
-                    control cannot know which of the two it is doing. The OAuth handshake creates the
-                    account or signs into the existing one depending on state Auth.js resolves after
-                    the redirect, so any wording that picks one is wrong half the time. It is also
-                    why the providers all word it this way. */}
+                {/* "Continue", not "Sign in": the same button renders on `/register`, and the
+                    OAuth handshake creates or signs in depending on state Auth.js resolves after
+                    the redirect, so neither verb is right at both call sites. */}
                 Continue with GitHub
             </Button>
         </form>

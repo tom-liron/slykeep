@@ -20,16 +20,17 @@ import { Button } from "@/components/ui/button";
 import { ActionLabel } from "./ActionLabel";
 
 /**
- * The drawer's Delete control, and the confirmation in front of it.
+ * The drawer's Delete control and its confirmation dialog.
  *
- * One click behind a dialog rather than the typed confirmation `DeleteAccountDialog` demands: an
- * item is one row a user can re-create, not their whole account. The dialog names the item so the
- * one being deleted is never in doubt — the drawer is open over a list of cards that all look alike.
+ * One click behind an `AlertDialog` — an item is one row a user can re-create, so it does not need
+ * the typed confirmation `DeleteAccountDialog` uses. The dialog names the item, since the drawer is
+ * open over a list of similar-looking cards.
  *
- * The confirm is a plain button rather than `AlertDialogAction`, which dismisses the dialog on
- * click: the action can fail, and a dialog that has already closed has nowhere to report that. On
- * success the caller closes the drawer, and `router.refresh()` re-fetches the list behind it — the
- * cards were rendered on the server and still include the row that has just gone.
+ * @remarks
+ * The confirm is a plain `<Button>`, not `AlertDialogAction`, which dismisses the dialog on click:
+ * `deleteItem` can fail, and a closed dialog has nowhere to report it. On success the caller closes
+ * the drawer and `router.refresh()` re-fetches the server-rendered list, which still holds the
+ * deleted row.
  */
 export function DeleteItemDialog({
     itemId,
@@ -64,24 +65,18 @@ export function DeleteItemDialog({
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
-                {/* Built like the four controls beside it in the drawer's action row, because it
-                    is the fifth of them: the same `size`, the same `title` and `aria-label` pair,
-                    and the same `ActionLabel` — so it shows the word "Delete" on a wide screen and
-                    drops to the icon alone below `sm`, in step with the rest. It was `icon-sm` with
-                    a bare `sr-only` name and no `title` at all, which made it the one button in the
-                    row with no visible word at any width *and* no tooltip on hover.
+                {/* The fifth control in the drawer's action row, built like the other four: same
+                    `size`, same `title`/`aria-label` pair, same `ActionLabel`, so it shows "Delete"
+                    on a wide screen and drops to the icon alone below `sm` in step with them.
 
-                    What stays different is the colour, and only the colour: `text-destructive` on
-                    the glyph and its word, held through hover. `hover:text-destructive` is not
-                    redundant — the ghost variant sets `hover:text-foreground`, which outranks a
-                    plain `text-destructive`, so without it the one control that destroys something
-                    turns the same white as the four that do not, at exactly the moment the pointer
-                    is on it. Red on hover is also what `CollectionActions` already does for its own
-                    delete, and it is the ordinary convention: a destructive action keeps its
-                    colour, because the colour *is* the warning.
+                    Only the colour differs: `text-destructive` on the glyph and word, held through
+                    hover. `hover:text-destructive` is required because the ghost variant's
+                    `hover:text-foreground` outranks a plain `text-destructive`, which would turn
+                    this control the same colour as the others under the pointer. A destructive
+                    action keeps its colour — the colour is the warning — as `CollectionActions`
+                    does for its own delete.
 
-                    No hover fill of its own either — the row states one for every control inside
-                    it, and repeating it here is how the two would come to disagree. */}
+                    No hover fill here: the row sets one for every control inside it. */}
                 <Button
                     variant="ghost"
                     size="sm"

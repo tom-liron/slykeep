@@ -11,15 +11,14 @@ import { Button } from "@/components/ui/button";
 import { PRICING_PLANS, type BillingCycle } from "@/config/marketing";
 
 /**
- * The two plans, and the monthly/yearly switch above them.
+ * The landing page's pricing section: the monthly/yearly switch and the two plan cards from
+ * `PRICING_PLANS`.
  *
- * The cycle is the only state on the page that two things depend on — the switch and the Pro card's
- * price — so it lives here and the cards stay a single component rendered twice from config.
- *
- * The cards themselves are `PricingPlanCard`, shared with `/upgrade` inside the app. What stays here
- * is the landing page's own furniture: the section, the heading with its eyebrow, and the `Reveal`
- * animations — none of which belongs on a short page inside a workspace. The card's `cta` is a link,
- * because this page's reader has no session yet.
+ * One of the sections composed by the `/welcome` page. Holds the `cycle` state that the
+ * {@link BillingCycleToggle} and the Pro card's price both depend on. The cards are
+ * {@link PricingPlanCard}, shared with `/upgrade`; this adds the landing page's own section,
+ * heading, and {@link Reveal} animations, and passes a `<Link>` as the `cta` since the reader has
+ * no session.
  */
 export function PricingPlans() {
     const [cycle, setCycle] = useState<BillingCycle>("monthly");
@@ -44,9 +43,8 @@ export function PricingPlans() {
                     {PRICING_PLANS.map((plan) => (
                         <Reveal
                             key={plan.name}
-                            // The second card follows the first in, while they are still side by
-                            // side. Once they stack it leads instead, and a delay would only hold
-                            // back the card the visitor is already looking at.
+                            // The featured card follows the first in while side by side, and leads
+                            // (no delay) once they stack.
                             className={
                                 plan.featured
                                     ? "h-full max-[680px]:order-first min-[681px]:delay-[80ms]"

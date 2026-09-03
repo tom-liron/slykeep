@@ -20,19 +20,16 @@ import { DeleteCollectionDialog } from "./DeleteCollectionDialog";
 import { EditCollectionDialog } from "./EditCollectionDialog";
 
 /**
- * Edit, delete, and favorite for one collection, in the two shapes the app needs them.
+ * Edit, delete, and favorite for one collection, in two layouts.
  *
- * One component rather than two, because the part worth sharing is not the buttons — it is the state
- * behind them. Both dialogs are controlled and both are rendered here as *siblings* of the trigger,
- * which is what makes the card's menu work at all: a Radix menu closes on select and unmounts its
- * items, so a dialog nested inside a `DropdownMenuItem` is torn down in the same frame it opens.
- * Hoisting `editOpen` / `deleteOpen` to the component that owns both layouts solves that once.
+ * One component so the {@link EditCollectionDialog} / {@link DeleteCollectionDialog} open state is
+ * hoisted above both layouts: both dialogs are controlled and rendered here as siblings of the
+ * trigger, because a Radix menu unmounts a dialog nested inside a `DropdownMenuItem` in the same
+ * frame it opens.
  *
- * `layout` chooses the shape and nothing else:
- * - `"menu"` — the three-dot control on a card, where the rest of the card is a link to the
- *   collection and only this may swallow a click.
- * - `"inline"` — the row of buttons in the collection page's header, where there is room to name
- *   what each one does and no link to compete with.
+ * `layout` chooses the shape:
+ * - `"menu"` — the three-dot control on a card, over a card that is otherwise a link.
+ * - `"inline"` — the labelled button row in the collection page's header.
  */
 export function CollectionActions({
     collection,
@@ -89,25 +86,15 @@ export function CollectionActions({
 
     const favoriteLabel = isFavorite ? "Remove from favorites" : "Add to favorites";
 
-    // Filled when it is on, in `--favorite` — the colour every star in the app shares. Colour alone
-    // carried this for one revision and was the weaker signal: grey-outline against yellow-outline
-    // is a hue change, where hollow against solid is the shape itself.
+    // Filled in `--favorite` when on, hollow when off. The app-wide rule this is one case of:
+    // **a filled star asserts that this particular thing is favourited; an outline star is the
+    // word "favourites" as a place or a concept.** So every badge fills (item/image/file/
+    // collection cards, a collection page's title, the sidebar's favourite-collection rows), and
+    // every destination stays hollow (the sidebar's Favorites link, the top bar's button,
+    // `/favorites`' heading, the dashboard's stat icons). A toggle is the one star that does both.
     //
-    // The rule the whole app follows, of which this is one case: **a filled star asserts that this
-    // particular thing is favourited; an outline star is the word "favourites" as a place or a
-    // concept.** So the badges — on item cards, image cards, file rows, collection cards, a
-    // collection page's title, and the sidebar's favourite-collection rows — all fill, because each
-    // one is a statement about the object beside it. The destinations stay hollow: the sidebar's
-    // Favorites link, the top bar's button, `/favorites`' own heading, the dashboard's stat icons.
-    // A toggle is the one star that does both, and shows the off state as the outline.
-    //
-    // This replaces an earlier rule that filled *only* the toggles, on the grounds that a badge has
-    // no off state to contrast against. True, but it argued that outline was harmless there rather
-    // than right, and the cost was that one fact — "this is favourited" — was drawn two ways
-    // depending on which component you were looking at.
-    //
-    // Placement carries the same distinction and is worth keeping consistent: a star *before* a
-    // heading labels it (`/favorites`), a star *after* a name badges it (a collection's title).
+    // Placement carries the same distinction: a star *before* a heading labels it (`/favorites`),
+    // a star *after* a name badges it (a collection's title).
     const star = (
         <Star className={cn(isFavorite && "fill-favorite text-favorite")} aria-hidden="true" />
     );
@@ -170,9 +157,9 @@ export function CollectionActions({
                 </div>
             )}
 
-            {/* Outside the menu on purpose — see the note above. Rendered unconditionally rather
-                than behind their own flags: a closed Radix dialog portals nothing, so this costs a
-                pair of empty roots and keeps the close animation that unmounting would cut off. */}
+            {/* Siblings of the menu — see the header. Rendered unconditionally: a closed Radix
+                dialog portals nothing, so this costs a pair of empty roots and keeps the close
+                animation that unmounting would cut off. */}
             <EditCollectionDialog
                 collection={collection}
                 open={editOpen}
