@@ -235,11 +235,9 @@ function CreateItemForm({ onCreated }: { onCreated: () => void }) {
     };
 
     return (
-        // One scroller only, `DialogContent`'s. A second scroller on an inner `div` clips against
-        // its own cap independently of the dialog's, so the dialog measures scroll height for
-        // content its child has already clipped and the tail scrolls into empty background. The
-        // cost is a footer that scrolls with the form rather than staying pinned, which is what
-        // every other dialog in the app does.
+        // One scroller only, `DialogContent`'s — a second scroller on an inner `div` clips
+        // against its own cap and the dialog's scroll tail runs into empty space. The footer
+        // scrolls with the form rather than staying pinned, as in every other dialog.
         <form onSubmit={handleSubmit} noValidate className="flex flex-col">
             <div className="space-y-5 px-1 pb-1">
                 <fieldset className="space-y-1.5" disabled={isPending}>

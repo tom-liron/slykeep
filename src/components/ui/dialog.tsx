@@ -58,30 +58,21 @@ function DialogContent({
     return (
         <DialogPortal>
             <DialogOverlay />
-            {/* The 2rem gutter is in `w-` and the size cap is in `max-w-` — two unconditional
-                properties, so they compose rather than take turns at a breakpoint: viewport minus
-                gutter up to the cap, cap beyond it, and width monotonic in the viewport
-                throughout. Both being `max-width` (`max-w-[calc(100%-2rem)]` plus a `sm:` cap)
-                lets tailwind-merge keep only one, which is what makes width non-monotonic.
+            {/* The 2rem gutter lives in `w-` and the size cap in `max-w-`, so the two compose:
+                viewport minus gutter up to the cap, cap beyond. Keep them on different properties
+                — two `max-width` values let tailwind-merge drop one.
 
-                `max-h-[calc(100dvh-2rem)]` is the vertical half: centred by `-translate-y-1/2`, a
-                dialog taller than the window would carry its footer and submit button off screen.
+                `max-h-[calc(100dvh-2rem)]` is the vertical half: a dialog taller than the window
+                would carry its footer off screen. It is a floor under every dialog; a long form
+                scrolls its own fields instead (see `CreateItemDialog`).
 
-                It is a floor under every dialog, not the scroller any of them uses: a long form
-                scrolls its own fields and leaves its header and footer in place (see
-                `CreateItemDialog`). This catches whatever does not.
+                `[scrollbar-gutter:stable]` reserves the `.app-scrollbar` width so fields do not
+                shift sideways when a height-changing dialog starts to overflow.
 
-                `[scrollbar-gutter:stable]` because `.app-scrollbar` is a classic 10px bar that
-                takes width from the content box when it appears; reserving it stops fields
-                shifting sideways when a height-changing dialog (the New item form) starts to
-                overflow.
-
-                `@container` so `DialogFooter` lays its buttons out against this element's width —
-                the cap is per-dialog, so a viewport breakpoint cannot answer it.
-
-                `overflow-x-hidden` because `overflow-y: auto` also computes `overflow-x` to
-                `auto`, and `DialogFooter`'s `-mx-4` bleed is inline overflow that would otherwise
-                draw a horizontal scrollbar. */}
+                `@container` so `DialogFooter` lays its buttons out against this element's per-dialog
+                width, not the viewport. `overflow-x-hidden` because `overflow-y: auto` also
+                resolves `overflow-x` to `auto`, and `DialogFooter`'s `-mx-4` bleed would draw a
+                scrollbar. */}
             <DialogPrimitive.Content
                 data-slot="dialog-content"
                 className={cn(

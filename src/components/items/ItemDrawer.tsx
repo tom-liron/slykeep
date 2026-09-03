@@ -245,106 +245,27 @@ export function ItemDrawer({
                 }
             }}
         >
-            {/* Both width utilities carry the sheet's own `data-[side=right]` variant, because that is
-                the only way to replace what `SheetContent` already declares.
+            {/* `--breakpoint-drawer` (600px, `globals.css`) is the drawer's one stop. Below it,
+                `w-full` and no left border — full screen, because on a phone the item is the page.
+                From it up, a fixed `w-[min(92vw, 36rem)]` panel with a left border.
 
-                Its defaults are `data-[side=right]:w-3/4` and `data-[side=right]:sm:max-w-sm`, which
-                compile to `.class[data-side="right"]` — specificity (0,2,0). A plain `sm:max-w-xl`
-                passed in here is (0,1,0) and loses, and `cn` cannot merge the two because the
-                modifiers differ, so both survive into the DOM. The panel was therefore **24rem** on
-                every viewport at or above `sm`, whatever cap this file asked for. That is the whole
-                explanation for the drawer feeling cramped and for the horizontal scrollbar: five
-                labelled toolbar buttons need about 400px, which 384px cannot give them — and the
-                file types were the ones to show it because "Download" is wider than "Copy".
+                Every width class carries the `data-[side=right]` variant so it can beat
+                `SheetContent`'s own `data-[side=right]:*` defaults; a plain `max-w-*` would lose on
+                specificity and both would reach the DOM.
 
-                Matching the variant exactly lets `cn` drop both defaults instead of fighting them.
-
-                30rem is the smallest this can be while the toolbar still reads as one row: its five
-                labelled buttons need about 400px and the panel adds 40px of padding, so 440px is the
-                point below which they start to squeeze — 480px leaves that a little air and nothing
-                more. Deliberately minimal: a drawer beside the page, not a second page. Going
-                narrower means giving up the button labels at every width rather than only below
-                560px, which is a different decision from this one.
-
-                **600px is where the drawer stops being the page and becomes a panel**, and it is
-                the only stop this component has — the width, the header's shape, where the ✕ sits,
-                the toolbar's grid-or-flex, and whether its buttons carry words are all the same
-                question asked once. It was `sm` (640px), which was too high to be logical: a 700px
-                window is a laptop, and a laptop does not want one item taking the whole screen.
-
-                **36rem, and the cap is the variable — not the breakpoint.** Whether the toolbar's
-                words fit is not a question a breakpoint can answer: above the stop the panel is a
-                fixed width at every window size, so the row's headroom is identical at 600px and at
-                4K. The words either always fit or never do. Four breakpoints were moved chasing a
-                wrapping report before that became obvious.
-
-                The rows are not all the same width, which is what made 30rem look sufficient. A
-                snippet's five controls measure 377px, so against a 418px tray they fitted by 41px
-                and the arithmetic looked fine. But `Copy` and `Download` are conditional and not
-                mutually exclusive. An **image** swaps the first for the second — five controls
-                again, but 406px, because "Download" is the longest word in the set, and 406 against
-                that 418px tray is 12px from wrapping, which is exactly what it did. A **previewable
-                text file** shows both: `showsCopy` is `!isFile || isTextPreview`, so a `.txt` or
-                `.json` under the preview size cap gets six controls and 481px, while the same file
-                over the cap — or any extension the language map does not know — is back to five.
-                Sizing the panel to the common row is what put a two-line toolbar on every image.
-
-                36rem gives a 525px tray: 148px spare for a snippet and 119px for an image, both
-                comfortable. The six-control row is not solved by the cap and cannot be. Above the
-                stop the panel is capped, so the tray is a constant 525px at every window size, and
-                just above the stop it is ~501px against a 481px row — 4%. Making *that* fit would
-                need the stop near 700px, which is the full-screen takeover this moved away from.
-                So the six-control row drops its words instead; see the quantity query below.
-
-                600 rather than something smaller because of what the panel becomes: the cap only
-                binds once `92vw` exceeds it, so below ~592px a "panel" would show a crack of page
-                rather than a margin, which reads as a broken full-screen instead of a drawer. At
-                600 it leaves 56px, and it grows from there. The stop also sits above every phone in
-                portrait — a 16 Pro Max is 440px — and below every tablet, which is the line asked
-                for.
-
-                Below it this is not a panel at all — it is `w-full`, the whole screen, and the
-                border down its left edge goes with it. A drawer that leaves 8vw of blurred page
-                behind it is showing a strip of something you cannot read or touch, and charging the
-                panel's own contents ~30px for it; on a phone the item *is* the page. It also fixes
-                the two things that made this header look broken at that width, rather than papering
-                over them: the close button and the six-button toolbar both get that room back.
-                `ActionLabel` drops the words when the row is too narrow for them, so it cannot
-                squeeze either.
-
-                All item types share this panel, so they all widen together.
-
-                `overflow-x-hidden` is deliberate and belongs with it. The sheet needs `overflow-y`,
-                and CSS computes the other axis to `auto` when one axis is not `visible` — so *any*
-                child a few pixels too wide, on any item type, silently becomes a scrollbar under the
-                whole drawer. Naming the axis says what is actually meant: this panel scrolls one
-                way. Content that needs horizontal room scrolls inside its own box, as monaco and the
-                PDF viewer already do. */}
+                `overflow-x-hidden` with `overflow-y-auto`: CSS resolves the unset axis to `auto`
+                when the other is not `visible`, so any too-wide child would draw a scrollbar under
+                the whole drawer. Content that needs horizontal room scrolls in its own box (monaco,
+                the PDF viewer). */}
             <SheetContent
                 showCloseButton={false}
                 className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-full data-[side=right]:border-l-0 data-[side=right]:drawer:w-[min(92vw,36rem)] data-[side=right]:drawer:max-w-none data-[side=right]:sm:max-w-none data-[side=right]:drawer:border-l"
             >
                 <SheetHeader className="gap-3 p-4 drawer:p-5">
-                    {/* `sm:pr-12` and nothing below it, because the close button is only laid over
-                        this row from 600px up — see it below. Padding is the wrong instrument on a
-                        phone: it has to be guessed against a button whose width depends on the
-                        pointer (28px with a mouse, 44px under `pointer-coarse:`), and on a 344px
-                        Galaxy Fold the reserved strip and the title still ended up close enough
-                        that the ✕ read as the last character of the title rather than as a control.
-                        48px is generous for the wide case and costs nothing there. */}
-                    {/* One row at every width: the type icon, the title block, then the ✕.
-
-                        It briefly wrapped below the stop — `basis-full order-last` on the title
-                        block, putting the icon and the ✕ alone on a bar with the title beneath
-                        them. That was aimed at the ✕ colliding with the title, but the collision
-                        was already fixed by taking the button out of `position: absolute` and
-                        making it a member of this row, where it cannot overlap anything. The
-                        second line was solving a problem that no longer existed, and it made the
-                        narrow header a different shape from the wide one for no reason. One shape
-                        everywhere is both simpler and what the drawer looked like before.
-
-                        `drawer:pr-12` only above the stop, because that is the only place the ✕
-                        leaves the flow and is laid over this row's right-hand end. */}
+                    {/* `drawer:pr-12` reserves space for the ✕ only from 600px up, where it leaves
+                        the flow and is laid over this row's right-hand end. */}
+                    {/* One row at every width: the type icon, the title block, then the ✕. Below
+                        600px the ✕ is an in-flow member of the row and needs no reserved strip. */}
                     <div className="flex items-start gap-3 drawer:pr-12">
                         <span
                             className="flex size-10 shrink-0 items-center justify-center rounded-lg"
@@ -368,54 +289,18 @@ export function ItemDrawer({
                             </div>
                         </div>
 
-                        {/* One button, two placements — which is why `SheetContent` is told not to
-                            draw its own. `showCloseButton` is a boolean prop and cannot answer "it
-                            depends how wide the screen is", and this is the one drawer in the app
-                            that goes full-screen, so the choice belongs here rather than in the
-                            primitive.
-
-                            Below 600px it is a member of this row: last item, after a `flex-1` title
-                            block that pushes it to the edge. In flow it cannot overlap anything, at
-                            any width, under either pointer — which is the whole reason to move it,
-                            rather than keep tuning a reserved strip against a button that is 28px
-                            or 44px depending on the device. It also stops the ✕ sitting on the
-                            title's own baseline, where at 344px it read as punctuation.
-
-                            From 600px up it returns to the panel's top-right corner, where it is the
-                            same control in the same place every other overlay in the app puts it,
-                            and the row takes its `sm:pr-12` back. `SheetContent` is `fixed`, so it
-                            is the containing block for this — the same one the primitive's own
-                            button uses, which is what makes the two placements identical. */}
+                        {/* Two placements, which is why `SheetContent` is told not to draw its own
+                            (`showCloseButton` is a boolean and cannot depend on width). Below
+                            600px it is an in-flow member of the header row, pushed to the edge by
+                            the `flex-1` title block; from 600px up it is absolutely positioned in
+                            the panel's top-right corner like every other overlay's close button. */}
                         <SheetClose asChild>
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                // `size-10`, which is the type icon's box, and that is the whole
-                                // point: in flow these two are the row's bookends, and the eye
-                                // reads them as a pair. At the variant's own 28px, top-aligned
-                                // against a 40px icon, the ✕ sat 6px high — level with the title's
-                                // first line and level with nothing else, which is what "not
-                                // aligned" was. At 40px the two centres land within 2px. It stays
-                                // 44px under a coarse pointer, because `pointer-coarse:size-11` is
-                                // a media rule layered on top of this rather than replaced by it,
-                                // and 44 against 40 is still centred to within 2px.
-                                //
-                                // No negative margins. They were pulling it up and out past the
-                                // row's right edge, so it aligned with neither the icon beside it
-                                // nor the content below it. Flush is what reads as deliberate.
-                                // `ml-auto` puts it at the far end of the bar it shares with the
-                                // type icon. That is the whole of the narrow placement — the size
-                                // is left to the variant, 28px with a mouse and 44px under a coarse
-                                // pointer, which is what pairs it with the 40px icon on the device
-                                // that actually shows this bar. An earlier pass forced `size-10` so
-                                // the two matched at any pointer, and since only `position` changes
-                                // at that stop, it followed the button to the desktop corner and made
-                                // its hover fill a 40px square for a 16px glyph.
-                                // `hover:bg-foreground/15` is the toolbar's fill, written out
-                                // because this is the one control of the set that does not sit
-                                // inside the tray and so is not reached by its rule. Same value on
-                                // purpose: the ✕ and the six below it are the drawer's controls,
-                                // and they should answer the pointer the same way.
+                                // Hover fill written out here because this control sits outside
+                                // `ItemDrawerToolbar`'s tray and so misses its hover rule; the
+                                // value matches so the ✕ and the toolbar answer the pointer alike.
                                 className="ml-auto hover:bg-foreground/15 dark:hover:bg-foreground/15 drawer:absolute drawer:top-3 drawer:right-3 drawer:ml-0"
                             >
                                 <X aria-hidden="true" />
