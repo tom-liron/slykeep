@@ -25,11 +25,10 @@ export const dynamic = "force-dynamic";
 /**
  * The events acted on.
  *
- * `checkout.session.completed` is what grants Pro on the way back from checkout. The subscription
- * trio covers everything afterwards — plan switches, cancellations, and the move to `past_due` when
- * a card fails. `invoice.payment_failed` is deliberately absent: it changes no entitlement on its
- * own (the subscription's *status* is what does), and handling it would only duplicate what the
- * status transition already reports.
+ * `checkout.session.completed` grants Pro on the way back from checkout. The subscription trio
+ * covers everything afterwards — plan switches, cancellations, and the move to `past_due` when a
+ * card fails. `invoice.payment_failed` is absent: it changes no entitlement on its own, since the
+ * subscription's status is what does, and handling it would duplicate the status transition.
  */
 const HANDLED = new Set([
     "checkout.session.completed",
@@ -75,8 +74,8 @@ export async function POST(request: Request) {
     }
 
     if (!HANDLED.has(event.type)) {
-        // 200, not an error. An unhandled type is an event we subscribe to but have no work for,
-        // and answering anything else earns a retry of something that will never be handled.
+        // 200, not an error. An unhandled type is one the endpoint is subscribed to but has no work
+        // for, and any other status earns a retry of something that will never be handled.
         return NextResponse.json({ received: true });
     }
 

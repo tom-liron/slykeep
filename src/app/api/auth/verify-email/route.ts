@@ -7,18 +7,16 @@ import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
 import { createVerificationToken, verifyEmailToken } from "@/server/verification";
 
 /**
- * Email verification: `GET` consumes a link, `POST` issues a new one.
+ * Email verification: `GET` consumes a link, `POST` reissues one.
  *
- * Lives under `api/auth` for the same two reasons `register` does — a static segment beside the
- * `[...nextauth]` catch-all wins over it, and `src/proxy.ts` excludes `api/auth` from the
- * deny-by-default matcher. That exclusion is load-bearing here: someone clicking a verification link
- * is by definition signed out, and any protected path would bounce them to `/sign-in` and discard
- * the token on the way.
+ * Under `api/auth` so it wins over the `[...nextauth]` catch-all and sits outside `src/proxy.ts`'s
+ * matcher. That exclusion is load-bearing: someone clicking a verification link is signed out, and
+ * a protected path would bounce them to `/sign-in` and drop the token.
  */
 
 /**
- * Where each outcome lands. Everything returns to the sign-in form, because signing in is what the
- * user was trying to do — and the form already knows how to render `?error=` (see `lib/auth-errors.ts`).
+ * Where each `GET` outcome lands. Every branch returns to the sign-in form — signing in is what the
+ * user was doing — and the form renders `?error=` through `lib/auth-errors.ts`.
  */
 const OUTCOME_PARAMS: Record<string, string> = {
     verified: "verified=1",
@@ -43,28 +41,17 @@ const resendSchema = z.object({
 });
 
 /**
- * Reissues a verification email.
+ * Reissues a verification email in response to a "resend the link" request.
  *
- * Answers 200 no matter what — unknown address, already verified, GitHub-only account, malformed
- * input, a Resend failure. This endpoint is reachable by anyone, and a response that varied would
- * turn it into the account-enumeration oracle that `authorize` in `src/auth.ts` goes to some length
- * to deny. The caller learns only that something was sent if it needed to be.
- *
- * A matching body is not enough on its own, because *how long* the answer takes discloses the same
- * thing. Issuing a token is a write and sending is a network round trip to Resend, so the one path
- * that does both would answer several hundred milliseconds later than every path that does neither
- * — sorting a wordlist by latency would pick out exactly the unverified credentials accounts. So
- * the work happens in `after`, once the response is already on its way: every caller now gets the
- * same reply after the same JSON parse and schema check, and nothing observable depends on which
- * branch the deferred half takes. That is the same leak `ABSENT_USER_HASH` closes for sign-in.
- *
- * `after` rather than a floating promise because this runs serverless: the platform may freeze the
- * instance once the response is flushed, and `after` is what keeps the runtime alive for work that
- * was deliberately deferred.
- *
- * The 429 is the one answer that is allowed to differ, and it does not reopen the oracle: it depends
- * on how many times *this caller* has posted *this address* here, which they already know, and not
- * on whether the address exists or has been confirmed.
+ * @remarks
+ * Answers 200 for every input — unknown address, already verified, GitHub-only account, malformed
+ * body, a Resend failure — because a varying response is an account-enumeration oracle, the one
+ * `authorize` in `src/auth.ts` works to deny. Response timing discloses the same thing: the lookup
+ * and send run in `after`, once the response is on its way, so every caller gets the same reply
+ * after the same parse and schema check. `ABSENT_USER_HASH` closes the equivalent leak for sign-in.
+ * `after` rather than a floating promise because a serverless instance may freeze once the response
+ * flushes. The 429 is the one answer allowed to differ — it depends on how often this caller has
+ * posted this address here, not on whether the address exists or is confirmed.
  */
 export async function POST(request: Request) {
     const ok = NextResponse.json({ ok: true });
@@ -112,8 +99,8 @@ export async function POST(request: Request) {
                 token: await createVerificationToken(email),
             });
         } catch (error) {
-            // Logged, not reported — the response is long gone, and the caller is told the same
-            // thing either way. Only we need to know that Resend refused.
+            // Logged, not reported: the response is long gone and every caller is told the same
+            // thing. Only the server logs record that Resend refused.
             console.error("Resending the verification email failed:", error);
         }
     });

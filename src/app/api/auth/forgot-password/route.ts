@@ -7,35 +7,24 @@ import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
 import { createPasswordResetToken } from "@/server/verification";
 
 /**
- * Issues a password-reset email.
+ * Issues a password-reset email in response to a "forgot password" submission.
  *
- * Lives under `api/auth` for the same two reasons `register` and `verify-email` do — a static
- * segment beside the `[...nextauth]` catch-all wins over it, and `src/proxy.ts` excludes `api/auth`
- * from the deny-by-default matcher. Someone who has forgotten their password is by definition signed
- * out, so a protected path would bounce them to `/sign-in` instead.
+ * Under `api/auth` so it wins over the `[...nextauth]` catch-all and sits outside `src/proxy.ts`'s
+ * matcher — a person who has forgotten their password is signed out, so a protected path would
+ * bounce them to `/sign-in`.
  *
- * Answers 200 no matter what — unknown address, GitHub-only account, malformed input, a Resend
- * failure. This endpoint is reachable by anyone, and a response that varied would turn it into the
- * account-enumeration oracle that `authorize` in `src/auth.ts` goes to some length to deny.
- *
- * A matching body is not enough on its own, because *how long* the answer takes discloses the same
- * thing. Issuing a token is a write and sending is a network round trip to Resend, so a path that
- * does both would answer several hundred milliseconds later than one that does neither — sorting a
- * wordlist by latency would pick out the registered addresses. So the lookup and the send happen in
- * `after`, once the response is already on its way: every caller gets the same reply after the same
- * JSON parse and schema check, and nothing observable depends on which branch the deferred half
- * takes. That is the same leak `ABSENT_USER_HASH` closes for sign-in, and the same fix
- * `POST /api/auth/verify-email` uses.
- *
- * `after` rather than a floating promise because this runs serverless: the platform may freeze the
- * instance once the response is flushed, and `after` is what keeps the runtime alive for work that
- * was deliberately deferred.
- *
- * The 429 is the one answer that is allowed to differ, and it does not reopen the oracle: it depends
- * on how many times *this caller* has posted here, which they already know, and not on whether any
- * address they named exists. Keyed by IP alone for the same reason as `register` — a key that
- * included the email would hand a fresh budget to every address a script cares to type, which is
- * exactly the email bomb this limit exists to stop.
+ * @remarks
+ * Answers 200 for every input — unknown address, GitHub-only account, malformed body, a Resend
+ * failure — because the endpoint is public and a varying response is an account-enumeration oracle,
+ * the one `authorize` in `src/auth.ts` works to deny. Response *timing* discloses the same thing:
+ * issuing a token is a write and sending is a Resend round trip, so the lookup and send run in
+ * `after`, once the response is on its way, and every caller gets the same reply after the same
+ * parse and schema check. `ABSENT_USER_HASH` closes the equivalent leak for sign-in;
+ * `POST /api/auth/verify-email` uses the same `after` pattern. `after` rather than a floating
+ * promise because a serverless instance may freeze once the response flushes. The 429 is the one
+ * answer allowed to differ — it depends on how often this caller has posted here, not on whether
+ * any address exists — and is keyed by IP alone, as `register` is, so a script cannot buy a fresh
+ * budget per invented address.
  */
 export async function POST(request: Request) {
     const ok = NextResponse.json({ ok: true });
@@ -83,8 +72,8 @@ export async function POST(request: Request) {
                 token: await createPasswordResetToken(email),
             });
         } catch (error) {
-            // Logged, not reported — the response is long gone, and the caller is told the same
-            // thing either way. Only we need to know that Resend refused.
+            // Logged, not reported: the response is long gone and every caller is told the same
+            // thing. Only the server logs record that Resend refused.
             console.error("Sending the password-reset email failed:", error);
         }
     });

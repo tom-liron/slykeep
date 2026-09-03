@@ -9,6 +9,14 @@ import { CARD_GRID, FILE_ROW_GRID } from "@/config/dashboard";
 import { parsePageParam } from "@/lib/pagination";
 import { getItemTypePageData } from "@/server/items";
 
+/**
+ * The item-type listing at `/items/<slug>` — one route for all seven system types.
+ *
+ * `getItemTypePageData` resolves the slug, scopes the read to the user, and paginates. An unknown
+ * slug is a 404; a Pro-gated type a free account cannot open renders `ProTypeUpgrade` instead. The
+ * page chooses a list variant per type — files as a column, images as a gallery, everything else as
+ * cards — so the one route serves them all.
+ */
 export default async function ItemTypePage({
     params,
     searchParams,
@@ -19,8 +27,8 @@ export default async function ItemTypePage({
     const [{ slug }, { page }] = await Promise.all([params, searchParams]);
     const data = await getItemTypePageData(slug, parsePageParam(page));
 
-    // Only an unknown slug is a 404 now. A Pro-gated type the account cannot open is a page about
-    // the feature instead, which is the one place a free user meets it at the moment they want it.
+    // An unknown slug is a 404; a Pro-gated type the account cannot open is handled below as a page
+    // about the feature, not a 404.
     if (!data) {
         notFound();
     }
@@ -31,10 +39,9 @@ export default async function ItemTypePage({
 
     const { totalCount } = data.pagination;
 
-    // Files read as a list, not a grid: they are compared by name, size, and date down a column, the
-    // way every file manager shows them. Images go the other way — the content is the picture, so
-    // they are browsed as a gallery of thumbnails. This is the one route serving all seven types, so
-    // the choice is made per type here rather than by changing what the page renders for everything.
+    // Files as a column, compared by name, size and date the way a file manager shows them; images
+    // as a gallery, since the content is the picture; everything else as cards. Chosen per type
+    // here because this one route serves all seven.
     const variant =
         data.itemType.name === "file" ? "file" : data.itemType.name === "image" ? "image" : "card";
 
@@ -49,7 +56,7 @@ export default async function ItemTypePage({
                 </span>
                 <div>
                     <h1 className="text-2xl font-bold">{data.itemType.label}</h1>
-                    {/* The whole type's count, not the page's — `data.items` is now one page of it. */}
+                    {/* The whole type's count, not the page's — `data.items` is one page of it. */}
                     <p className="text-muted-foreground">
                         {totalCount} {totalCount === 1 ? "item" : "items"}
                     </p>

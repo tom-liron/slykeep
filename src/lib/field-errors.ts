@@ -1,16 +1,23 @@
 import type { z } from "zod";
 
 /**
- * The first message reported against each field, keyed by field name — the toast needs one sentence
- * and the inputs need their own messages, and both come from the same parse, so there is no second
- * set of rules to keep in step.
+ * Turns a Zod parse failure into what a Server Action returns to a form.
  *
- * Read off `issues` rather than `z.flattenError`, whose field map is typed from the schema's input
- * and degrades to `any` once a helper accepts more than one schema.
+ * The item, collection, auth and account actions validate with the schemas in `lib/*-schemas.ts`;
+ * on failure they call {@link fieldFailure} to get the `{ success: false, error, fields }` shape the
+ * form contracts in `types/item.ts` and `types/collection.ts` expect. The form renders
+ * `fields[name]` under each input and `error` in a toast.
  *
- * It lives here rather than beside the actions that call it because a `"use server"` module may only
- * export async functions, so `actions/items.ts` cannot share it with `actions/collections.ts`
- * directly — the choice is one module or one copy per action file.
+ * @remarks
+ * It lives in `lib/` rather than beside the actions because a `"use server"` module may only export
+ * async functions, so `actions/items.ts` cannot share a plain helper with `actions/collections.ts`.
+ */
+
+/**
+ * The first error message for each field, keyed by field name.
+ *
+ * Reads `error.issues` directly rather than `z.flattenError`, whose field map is typed from the
+ * schema's input and degrades to `any` once a helper accepts more than one schema.
  */
 export function fieldErrorsOf(error: z.ZodError): Record<string, string> {
     const fields: Record<string, string> = {};
@@ -27,16 +34,12 @@ export function fieldErrorsOf(error: z.ZodError): Record<string, string> {
 }
 
 /**
- * The whole failure result a Server Action returns when its Zod parse did not pass.
+ * The complete failure result a Server Action returns for a rejected parse.
  *
- * The toast shows the *first* field's message, and falls back to a generic sentence only when the
- * parse produced no field-scoped issue at all — a form-level `.refine()` with an empty `path`. That
- * ordering rule is the reason this is one function rather than four copies: it is a real decision,
- * and so is the fallback sentence, which was a user-facing string with four identical copies and
- * nothing keeping them identical.
- *
- * `success` is typed as the literal `false` rather than inferred as `boolean`, or the discriminated
- * result unions in `types/item.ts` and `types/collection.ts` stop accepting the return.
+ * `error` is the first field's message, falling back to a generic sentence only when the parse
+ * produced no field-scoped issue at all — a form-level `.refine()` with an empty `path`. `success`
+ * is the literal `false` rather than `boolean`, or the discriminated result unions in
+ * `types/item.ts` and `types/collection.ts` stop accepting the return.
  */
 export function fieldFailure(error: z.ZodError): {
     success: false;

@@ -9,18 +9,22 @@ import {
 import type { EditorPreferences } from "@/types/editor";
 
 /**
- * Input contract for the editor preferences, and the one way the stored JSON becomes a usable value.
+ * The editor-preferences contract, in both directions: validating what a client submits, and making
+ * the stored `User.editorPreferences` JSON safe to render with.
  *
- * Both directions matter here, which is why this is a `lib` module rather than a schema next to the
- * action: the write path validates what a client sends, and the read path has to survive whatever is
- * already in the column. A `Json` column has no shape — it holds what some earlier release wrote, so
- * a theme that has since been dropped, a font size that was offered once, or a hand-edited row are
- * all things a query can hand back, and none of them may be allowed to reach monaco.
+ * `actions/editor-preferences.ts` parses a write against {@link editorPreferencesSchema}; the code
+ * editors read the stored value through {@link parseEditorPreferences}. A `lib` module rather than
+ * a schema beside the action because both directions matter.
+ *
+ * @remarks
+ * A `Json` column has no shape — it holds what an earlier release wrote — so a retired theme, a
+ * font size offered once, or a hand-edited row are all values a query can return, and none may
+ * reach monaco.
  */
 
 /**
- * Built from the same arrays the dropdowns render, so the set a user can pick from and the set the
- * server accepts are the same set by construction. Adding an option is one edit in `config/editor.ts`.
+ * Built from the same arrays the dropdowns render, so the set a user can pick and the set the
+ * server accepts are one set by construction. Adding an option is one edit in `config/editor.ts`.
  */
 export const editorPreferencesSchema = z.object({
     fontSize: z.literal(EDITOR_FONT_SIZES),
@@ -33,10 +37,9 @@ export const editorPreferencesSchema = z.object({
 /**
  * One stored field, or the default in its place.
  *
- * Field by field rather than one `safeParse` of the whole object, because those two differ in
- * exactly the case this exists for: a row written before an option was retired parses everything
- * except that one key, and validating the object as a unit would throw the user's other four
- * settings away with it.
+ * Field by field rather than one `safeParse` of the whole object, because those differ in exactly
+ * the case this exists for: a row written before an option was retired parses every key except that
+ * one, and validating the object as a unit would discard the user's other four settings with it.
  */
 function pick<K extends keyof EditorPreferences>(
     key: K,
@@ -50,9 +53,9 @@ function pick<K extends keyof EditorPreferences>(
 /**
  * The stored `User.editorPreferences` value, made safe to render with.
  *
- * Total by design — it returns a complete set of preferences for any input at all, including the
- * `null` every account starts with. Nothing downstream then has to decide what a missing or
- * malformed preference means, and no editor ever receives a partial object.
+ * Total by design: it returns a complete set of preferences for any input, including the `null`
+ * every account starts with, so nothing downstream has to decide what a missing or malformed
+ * preference means and no editor receives a partial object.
  */
 export function parseEditorPreferences(stored: unknown): EditorPreferences {
     const source =

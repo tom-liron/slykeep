@@ -52,9 +52,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             "Content-Type": object.contentType,
             ...(object.contentLength ? { "Content-Length": String(object.contentLength) } : {}),
             "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${asciiFilename(file.name)}"; filename*=UTF-8''${encodeURIComponent(file.name)}`,
-            // Now that responses are rendered rather than only downloaded, the declared type has to
-            // be the last word on what this is: without `nosniff` a browser may inspect the bytes,
-            // decide a `.txt` full of markup is HTML, and run it here.
+            // Responses are rendered, not only downloaded, so the declared type has to be the last
+            // word: without `nosniff` a browser may inspect the bytes, decide a `.txt` full of
+            // markup is HTML, and run it on this origin.
             "X-Content-Type-Options": "nosniff",
             "Cache-Control": "private, max-age=3600",
         },

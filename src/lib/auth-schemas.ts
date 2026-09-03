@@ -1,23 +1,32 @@
 import { z } from "zod";
 
 /**
- * Input contracts for the two credential entry points. Both live here because the register route
- * and the Credentials `authorize` callback have to agree on what a valid email and password are —
- * if registration accepted something `authorize` later rejects, the account would be unusable.
+ * Zod contracts for the credential entry points — sign-in, registration, and the two password-reset
+ * steps.
+ *
+ * The register route and the Credentials `authorize` callback both parse against these, so they
+ * agree on what a valid email and password are: if registration accepted something `authorize`
+ * later rejected, the account would be unusable. The reset form and the reset endpoint share
+ * {@link newPasswordSchema} and {@link resetPasswordSchema} for the same reason.
  */
 
 /**
- * Normalize *before* validating, not after. `z.email().trim()` reads as though it strips padding,
- * but the transform runs on the parsed output — the anchored email pattern has already rejected
- * " you@example.com " by then, so a pasted address with a trailing space is reported as malformed.
- * Piping puts the trim and the lowercase ahead of the check, where they can still do something.
+ * A normalized email: trimmed and lowercased, then checked.
+ *
+ * @remarks
+ * The trim and lowercase are piped ahead of the check. `z.email().trim()` runs its transform on the
+ * parsed output, by which point the anchored pattern has already rejected `" you@example.com "`, so
+ * a pasted address with a trailing space would be reported as malformed.
  */
 const email = z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address."));
 
 /**
- * Eight characters is the floor, not a policy. The upper bound is what matters: bcrypt truncates
- * at 72 *bytes*, so anything longer is silently ignored during hashing and a user could sign in
- * with a prefix of the password they chose. Rejecting is honest; truncating is not.
+ * A new password: at least 8 characters, at most 72 bytes.
+ *
+ * @remarks
+ * The upper bound is the one that matters: bcrypt truncates at 72 bytes, so a longer password is
+ * silently shortened during hashing and the user could sign in with a prefix of what they chose.
+ * Rejecting is honest where truncating is not.
  */
 const password = z
     .string()
@@ -27,10 +36,10 @@ const password = z
     });
 
 /**
- * Choosing a password and confirming it — shared by registration and reset, which have to agree.
+ * The password-and-confirmation pair, shared by registration and reset.
  *
- * Kept as a plain shape rather than a finished schema because both users of it add fields *and* the
- * cross-field refinement below, and a refinement cannot be extended after the fact.
+ * A plain shape rather than a finished schema because both users add fields *and* the cross-field
+ * refinement below, and a refinement cannot be extended after the fact.
  */
 const newPasswordFields = { password, confirmPassword: z.string() };
 
@@ -49,12 +58,12 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
-/** Asking for a reset link. Only the address, and only well-formed enough to look up. */
+/** Requesting a reset link — the address alone, well-formed enough to look up. */
 export const forgotPasswordSchema = z.object({ email });
 
 /**
- * What the reset *form* validates: the two password fields, since the token is not something the
- * user typed and nothing they could fix if it were wrong.
+ * What the reset *form* validates: the two password fields. The token is not something the user
+ * typed, and not something they could fix if it were wrong.
  */
 export const newPasswordSchema = z.object(newPasswordFields).refine(passwordsMatch, mismatchError);
 
@@ -69,9 +78,9 @@ export const resetPasswordSchema = z
 /**
  * Changing a password from the profile page, where the account is already signed in.
  *
- * `currentPassword` is only checked for presence, for the same reason `signInSchema` is loose: it
- * is an existing credential, and applying today's rules to it would reject an account whose
- * password predates them — locking a user out of the very form that would fix it.
+ * `currentPassword` is checked for presence only, matching {@link signInSchema}: it is an existing
+ * credential, and applying today's rules to it would reject an account whose password predates them
+ * — locking a user out of the form that would fix it.
  */
 export const changePasswordSchema = z
     .object({
@@ -81,9 +90,8 @@ export const changePasswordSchema = z
     .refine(passwordsMatch, mismatchError);
 
 /**
- * Deliberately looser than `registerSchema`: sign-in only needs the fields to be present and
- * well-formed enough to query with. Applying the password rules here would reject valid legacy
- * credentials the moment those rules change.
+ * Sign-in: the fields present and well-formed enough to query with, and no more. Applying the
+ * password rules here would reject valid legacy credentials the moment those rules change.
  */
 export const signInSchema = z.object({
     email,

@@ -12,29 +12,32 @@ Not Started
 
 <!-- Populated by `/feature load`. -->
 
-### Next up: code documentation, part 2
+### Next up: code documentation, part 3
 
-The source-documentation overhaul is under way. `context/features/code-docs-overhaul-spec.md` is the
+The source-documentation overhaul continues. `context/features/code-docs-overhaul-spec.md` is the
 authority — its four-part table carries the batching, and `context/coding-standards.md`
 § Documentation carries the standard itself.
 
-**Parts 1a and 1b are done** (`src/config/` 8 files, entry 118; the server half, 39 files, entry
-119). **Part 2 is next**: 61 files in five commits — `lib/` security and the data boundary 11 ·
-`lib/` domain rules 11 · `lib/` AI and editor 10 · `app/api` 12 · `app/` pages 17. Load it with
-`/feature load code-docs-overhaul-spec.md` and say **part 2**, since the spec describes all four
-parts and cannot tell which one is starting.
+**Parts 1a, 1b and 2 are done** (`src/config/` 8 files, entry 118; the server half, 39 files, entry
+119; the middle — `lib/`, `app/api`, `app/` pages — 55 files, entry 120). **Part 3 is last**: 89
+files in `components/` across six commits — `ui/` 20 · `items/` 18 · `layout/` + `collections/` 15
+· `marketing/` + `pricing/` + `billing/` 16 · `auth/` + `settings/` + `favorites/` + `dashboard/`
+17 · the drawer trio 3. Load it with `/feature load code-docs-overhaul-spec.md` and say **part 3**.
+
+**The drawer trio is a reconciliation, not a rewrite.** `ItemDrawer.tsx`, `ItemDrawerToolbar.tsx`
+and `ActionLabel.tsx` come last and are held out of the `components/` pass: their comments no longer
+match their `className`s (a `justify-between`, a container query and an `sm:` floor that are not in
+the file; three incompatible sets of panel measurements). Every surviving constraint there has to
+be checked against the actual markup first, and the three must agree afterwards.
 
 Every pass ends with both proofs green: `npm run docs:comments-only` and `npm run docs:links`,
 alongside `npm test`, `npm run lint` and `npm run build`.
 
-**Two corrections land in part 2**, both noted in the spec: `lib/r2.ts` cites `current-feature.md`
-for why the bucket is private (the rationale is in `project-overview.md` §10, Phase 4), and
-`lib/rate-limit.ts` describes itself as throttling "the auth endpoints" and refers to "the five
-budgets" — there are 11, covering uploads, checkout and the four AI actions.
-
-**Two standard changes from part 1b apply from here on.** A module header goes **below** the
-imports, with the first declaration given its own block so the header cannot attach to it. And no
-paragraph opens by negating something — say what the thing is before ruling an alternative out.
+**Standard as it stands after part 2.** Module header **below** the imports, first declaration given
+its own doc block. No paragraph opens by negating something. No history, symptoms, argument against
+roads not taken, or first person (including "we"/"our"). Constraints live under `@remarks` as
+present-tense rules. `{@link}` only for symbols imported into or declared in the file; prose (symbol
++ module) for anything else.
 
 ### Standing items for Tom, not Claude
 
@@ -45,6 +48,10 @@ paragraph opens by negating something — say what the thing is before ruling an
   in `.env.production.example`, so the record does not say whether production has it.
 - The next production deploy runs `prisma migrate deploy` — the tag migration is DDL plus a
   row-rewriting backfill.
+- **`scripts/verify-comments-only.py` gained a regex-literal lexer in part 2a.** It is a heuristic
+  (preceding-token based) and was validated against `tsc --removeComments` and against its own old
+  output across all 245 `src` files. If a future pass makes it disagree with `tsc` on a file, the
+  heuristic is the thing to check, not the pass.
 
 ### Queued behind the documentation work
 

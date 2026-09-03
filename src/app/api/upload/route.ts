@@ -14,14 +14,15 @@ import { getCurrentUser } from "@/server/current-user";
  * item row itself is still written by `createItem` — this route stores the object and hands back the
  * key, and the dialog submits that key with the rest of the form.
  *
- * Which means the key is client input by the time it comes back. `createItem` re-checks it against
- * the signed-in user (`isOwnedKey`) rather than trusting the round trip; nothing here can prevent
- * that, because nothing here is what writes the row.
+ * The key is client input by the time it comes back, so `createItem` re-checks it against the
+ * signed-in user (`isOwnedKey`) rather than trusting the round trip; nothing here writes the row,
+ * so nothing here can enforce that.
  *
- * The upload deliberately happens before the item exists. The alternative — create the row, then
- * upload — leaves a file item with no file on screen whenever the upload fails, which is worse than
- * this one's failure mode: an object in R2 that no row points at. Those orphans are accepted (see
- * `context/current-feature.md`); a sweep is a later chore.
+ * @remarks
+ * The upload runs before the item row exists. Creating the row first would leave a file item with
+ * no file on screen whenever the upload failed; this ordering's failure mode is instead an object
+ * in R2 that no row points at. Those orphans are accepted for now — `project-overview.md` §11 tracks
+ * the cleanup sweep as an open item.
  */
 export async function POST(request: Request) {
     const user = await getCurrentUser();

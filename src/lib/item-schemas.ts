@@ -5,54 +5,58 @@ import { MAX_UPLOAD_BYTES } from "@/lib/file-constraints";
 import type { ItemTypeName } from "@/types/item-type";
 
 /**
- * Input contract for editing an item from the detail drawer.
+ * Validation contracts for item create and edit writes, and the rule for which content columns each
+ * type owns.
  *
- * Every field except the title is optional, and optional here means *absent*, not *empty*. The
- * drawer only renders the fields an item's type owns — a snippet has no URL input, a link has no
- * content textarea — so it only submits those, and `undefined` has to survive parsing as "leave this
- * column alone". Prisma skips `undefined` in a `data` object, which is what makes that work end to
- * end: omitting `url` for a snippet touches nothing, while sending `url: ""` deliberately clears it.
+ * The create dialog and the detail drawer submit raw input; `actions/items.ts` parses it with
+ * {@link createItemSchema} or {@link updateItemSchema} before writing. {@link itemTypeOwns} is the
+ * shared rule the forms build their field list from and the create schema strips against, so a
+ * payload cannot populate a column its type does not own and contradict `Item.contentType`. The AI
+ * modules in `lib/ai-*.ts` import {@link TAG_MAX_LENGTH} to bound their suggestions to the same
+ * limit.
  *
- * The item's type is not here at all. It is not editable, and accepting it would mean a payload
- * could re-type an item — turning a snippet into a link — while `contentType` and the populated
- * content column stayed as they were.
+ * @remarks
+ * Optional means *absent*, not *empty*. A form renders only the fields its type owns and submits
+ * only those, and `undefined` has to parse as "leave this column alone" — which works because
+ * Prisma skips `undefined` in a `data` object. Sending `""` instead deliberately clears the column.
+ *
+ * The item's type is not in the edit contract at all: accepting it would let a payload re-type an
+ * item — a snippet into a link — while `contentType` and the populated column stayed as they were.
  */
 
 const TITLE_MAX_LENGTH = 200;
-/** Exported so the AI tag suggestions are filtered against the same bound the schema enforces. */
+
+/** A single tag's length limit. Exported so the AI tagger filters its output to the same bound. */
 export const TAG_MAX_LENGTH = 50;
 const MAX_TAGS = 20;
 
 /**
- * A bound on how many collections one item may be filed into at once. Nothing caps how many
- * collections an account holds yet, so this is a bound on the *payload* rather than a product limit:
- * the picker submits one id per checkbox, and a hand-made request should not be able to ask for an
- * unbounded `IN (...)` and an unbounded insert.
+ * How many collections one payload may file an item into. A bound on the request rather than a
+ * product limit — nothing caps how many collections an account holds — so a hand-made request
+ * cannot ask for an unbounded `IN (...)` and an unbounded insert.
  */
 const MAX_COLLECTIONS = 100;
 
 /**
- * Normalize before validating, for the reason `auth-schemas.ts` spells out: a check that runs first
- * rejects input the trim would have made valid. Blank collapses to `null` rather than `""` so the
- * nullable columns hold one representation of "nothing" instead of two — the view models already
- * turn `null` back into `""` for display.
+ * Collapses blank input to `null` before validation, so a leading check cannot reject input the
+ * trim would make valid, and the nullable columns hold one representation of "nothing" rather than
+ * two. View models turn `null` back into `""` for display. `lib/auth-schemas.ts` spells the
+ * ordering out.
  */
 const blankToNull = (value: unknown) => (typeof value === "string" ? value.trim() || null : value);
 
 const optionalText = z.preprocess(blankToNull, z.string().nullable().optional());
 
 /**
- * A link item's URL, restricted to the two schemes a link is allowed to be.
+ * A link item's URL, restricted to the `http` and `https` schemes.
  *
- * `z.url()` alone validates *shape*, not scheme: it accepts `javascript:`, `data:`, `vbscript:` and
- * `file:` as readily as `https:`, because the WHATWG parser it defers to does. `ItemDrawer` renders
- * the stored value as `href`, so without the `protocol` bound a saved `javascript:` URL executes on
- * this origin the moment the link is clicked — stored XSS, reachable through both the create and the
- * edit path, since both use this field.
- *
- * Only the owner can open their own item's drawer, so today this is self-inflicted. It is bounded
- * anyway because it costs one regular expression, and because it stops being self-inflicted the
- * moment an item is shared or exported into any other surface.
+ * @remarks
+ * `z.url()` validates shape, not scheme — it accepts `javascript:`, `data:`, `vbscript:` and
+ * `file:` because the WHATWG parser it defers to does. `ItemDrawer` renders the stored value as an
+ * `href`, so without the `protocol` bound a saved `javascript:` URL executes on this origin when
+ * the link is clicked: stored XSS, reachable through both the create and the edit path. Only the
+ * owner can open their own item's drawer, so the exposure is self-inflicted today; the bound costs
+ * one regular expression and holds once an item is shared or exported into another surface.
  */
 const optionalUrl = z.preprocess(
     blankToNull,
@@ -63,25 +67,24 @@ const optionalUrl = z.preprocess(
 );
 
 /**
- * A tag's identity, as opposed to its spelling.
+ * Reduces a tag to the form its uniqueness is enforced on: `name.trim().toLowerCase()`.
  *
- * `Tag.name` holds what was typed — `PostgreSQL`, `React` — because that is what every badge renders.
- * `Tag.normalized` holds this, and the unique constraint is on it, so one account cannot end up with
- * `react` and `React` as two tags. The write paths connect through it too, which is why it is a real
- * column rather than a functional index: `connect` can only target one.
+ * `Tag.name` holds what was typed — `PostgreSQL`, `React` — because that is what every badge
+ * renders. `Tag.normalized` holds this value and carries the unique constraint, so one account
+ * cannot end up with `react` and `React` as two tags. The write paths `connect` through it too,
+ * which is why it is a real column rather than a functional index: `connect` can only target one.
  *
- * Case folding is the *only* collapsing done. `react` and `reactjs` are different strings and no rule
- * can know they mean the same thing; that is what tag autocomplete is for, not this.
+ * Case folding is the only collapsing done. `react` and `reactjs` are different strings and no rule
+ * can know they mean the same thing; that is what tag autocomplete is for.
  */
 export const normalizeTagName = (name: string): string => name.trim().toLowerCase();
 
 /**
- * Tags arrive as an array the drawer split out of a comma-separated input, so blanks ("a,,b") and
- * repeats ("react, React") are ordinary typing rather than misuse — they are dropped rather than
- * rejected. Deduplication is case-insensitive but keeps the first spelling, which is the same rule
- * the database now enforces across submissions: `@@unique([userId, normalized])` means the row for
- * `React` is the row for `react`, so letting both through would make the `set` below connect one tag
- * twice.
+ * Drops blank and duplicate tags from the array the drawer split out of a comma-separated input.
+ * `"a,,b"` and `"react, React"` are ordinary typing rather than misuse, so they are cleaned rather
+ * than rejected. Deduplication is case-insensitive but keeps the first spelling, matching what the
+ * database enforces across submissions: `@@unique([userId, normalized])` means the row for `React`
+ * is the row for `react`, so letting both through would connect one tag twice in the `set` below.
  */
 const normalizeTags = (value: unknown) => {
     if (!Array.isArray(value)) {
@@ -117,15 +120,13 @@ const tags = z.preprocess(
 /**
  * The collections an item is filed into, as ids.
  *
- * Blanks are dropped and repeats collapsed for the same reason tags are — the difference is that
- * this list is not typed by hand, so a duplicate is a bug rather than ordinary input. It is still
- * removed rather than rejected: `ItemCollection`'s primary key is `[itemId, collectionId]`, so the
- * same id twice is a unique-constraint violation reported as "could not save your changes" when
- * dropping it costs one `Set`. Deduplication is exact, not case-insensitive: these are ids, and two
- * casings are two different rows rather than two spellings of one.
- *
- * Whether an id is *the caller's* is deliberately not decided here. Only the server knows who is
- * signed in, so `createItem` and `updateItem` check ownership — the same split `fileKey` takes.
+ * Blanks are dropped and exact duplicates collapsed. This list is not typed by hand, so a
+ * duplicate is a bug rather than input — but it is still removed rather than rejected:
+ * `ItemCollection`'s primary key is `[itemId, collectionId]`, so the same id twice is a
+ * unique-constraint violation reported as "could not save your changes" where a `Set` costs
+ * nothing. Deduplication is exact, not case-insensitive: these are ids, and two casings are two
+ * rows. Whether an id belongs to the caller is decided in `createItem` and `updateItem` — the same
+ * split `fileKey` takes — because only the server knows who is signed in.
  */
 const collectionIds = z.preprocess(
     (value) => (Array.isArray(value) ? [...new Set(value.filter(Boolean))] : value),
@@ -139,11 +140,13 @@ const title = z
     .max(TITLE_MAX_LENGTH, `Title must be at most ${TITLE_MAX_LENGTH} characters.`);
 
 /**
- * There are no file fields here, deliberately: an uploaded object cannot be replaced from the
- * drawer. Doing so is the one item mutation with an ordering hazard — the old object may only be
- * deleted once the row has committed, or a failed write leaves the item pointing at nothing — and it
- * is not what the spec asked for, so it gets its own change rather than riding along with this one.
- * The edit form shows a file item's object read-only; everything else about the item still edits.
+ * The edit contract: everything the drawer can change on an existing item.
+ *
+ * @remarks
+ * No file fields. Replacing an uploaded object from the drawer is the one item mutation with an
+ * ordering hazard — the old object may only be deleted once the row has committed, or a failed
+ * write leaves the item pointing at nothing — so it is left to its own change. A file item's object
+ * shows read-only in the edit form; everything else about the item still edits.
  */
 export const updateItemSchema = z.object({
     title,
@@ -156,8 +159,8 @@ export const updateItemSchema = z.object({
 });
 
 /**
- * What the drawer submits: raw strings straight from the inputs, with the type-specific fields
- * omitted for an item whose type does not have them.
+ * What the drawer submits for an edit: raw strings straight from the inputs, with the type-specific
+ * fields omitted for an item whose type does not have them.
  *
  * Declared by hand rather than inferred with `z.input`, because `z.preprocess` widens its input to
  * `unknown` — which parses fine but would give the one caller that has to build this payload no
@@ -183,9 +186,8 @@ export type UpdateItemInput = {
 export type UpdateItemField = keyof UpdateItemInput;
 
 /**
- * The types the create dialog offers — now every system type. `file` and `image` were held back
- * until there was something to upload with; `FileUpload` and `POST /api/upload` are that. A unit
- * test pins this list against the catalog, so a type added there is not silently left out here.
+ * The item types the create dialog offers — every system type. A unit test pins this list against
+ * {@link ITEM_TYPE_CATALOG}, so a type added there is not silently left out here.
  */
 const creatableItemTypeName = z.enum(
     ["snippet", "prompt", "command", "note", "link", "file", "image"],
@@ -201,11 +203,11 @@ export const CREATABLE_ITEM_TYPE_NAMES: readonly CreatableItemTypeName[] =
 const TYPES_WITH_LANGUAGE = new Set<ItemTypeName>(["snippet", "command"]);
 
 /**
- * Which content columns a type owns — one rule, read by everything that has to agree on it: the
- * create dialog and the edit form decide which inputs to render from it, and `createItemSchema`
+ * Which content columns a type owns — one rule, read by everything that has to agree on it. The
+ * create dialog and the edit form decide which inputs to render from it, and {@link createItemSchema}
  * strips whatever a type does not own before the payload reaches Prisma. Without that last step the
  * form's field list would be the only thing keeping a link out of the `content` column, which makes
- * a hand-made payload enough to contradict `contentType`.
+ * a hand-made payload enough to contradict `Item.contentType`.
  */
 export function itemTypeOwns(name: ItemTypeName) {
     const { contentType } = ITEM_TYPE_CATALOG[name];
@@ -221,15 +223,12 @@ export function itemTypeOwns(name: ItemTypeName) {
 }
 
 /**
- * Input contract for creating an item from the top bar's dialog.
+ * The create contract: the fields the top bar's dialog submits, including the item type.
  *
- * Unlike the edit contract this one carries the type, because choosing it is the whole point of the
- * dialog — and it is the only place a type is ever accepted from a client. Everything downstream of
- * it is derived rather than submitted: the item type's id is resolved by name in the action, and
- * `contentType` comes from the catalog, so a payload cannot claim a URL item holds text.
- *
- * Absent still means absent, exactly as it does for an edit: a note submits no `url` key and the
- * column stays null.
+ * This is the only place a client-supplied type is accepted. Everything downstream of it is derived
+ * rather than submitted — the item type's id is resolved by name in the action, and `contentType`
+ * comes from the catalog — so a payload cannot claim a URL item holds text. Absent still means
+ * absent, exactly as it does for an edit: a note submits no `url` key and the column stays null.
  */
 export const createItemSchema = z
     .object({
@@ -241,27 +240,25 @@ export const createItemSchema = z
         url: optionalUrl,
         fileKey: optionalText,
         fileName: optionalText,
-        // Bounded, because this is a claim rather than a measurement. `createItem` re-derives the
-        // key's owner and pins the name's extension to the stored object — the rule this module
-        // states is that every value that leaves for the browser and comes back is checked again,
-        // and this was the one field exempt from it. It is what `filePreviewFor` tests against
-        // `TEXT_PREVIEW_MAX_BYTES` to decide whether the drawer renders a file, so an unbounded
-        // claim of `1` on a 10 MB object makes the drawer fetch the whole thing and hand it to
-        // monaco. Owner-only in effect, which is why the ceiling is the crude one that needs no
-        // extra query rather than a comparison against the object itself.
+        // Bounded because this is a claim rather than a measurement. `filePreviewFor` tests it
+        // against `TEXT_PREVIEW_MAX_BYTES` to decide whether the drawer renders a file inline, so
+        // an unbounded claim of `1` on a 10 MB object would make the drawer fetch the whole thing
+        // and hand it to monaco. `createItem` re-derives the key's owner and pins the name's
+        // extension to the stored object; the size is owner-only in effect, so the ceiling is the
+        // crude `MAX_UPLOAD_BYTES` rather than a comparison against the object itself.
         fileSize: z.number().int().positive().max(MAX_UPLOAD_BYTES).nullable().optional(),
         tags,
         collectionIds,
     })
-    // A link with no URL is an empty row: `optionalUrl` checks the shape of one that was given, and
-    // this is what insists there is one. Only URL types have anywhere to put it.
+    // A URL type with no URL is an empty row: `optionalUrl` checks the shape of one that was given,
+    // and this insists there is one. Only URL types have anywhere to put it.
     .refine((data) => !itemTypeOwns(data.type).url || Boolean(data.url), {
         message: "URL is required.",
         path: ["url"],
     })
     // The same rule for a file: an image with no object is a card that renders nothing. What the key
-    // may *be* is not decided here — `createItem` checks it against the signed-in user, because only
-    // the server knows who that is.
+    // may *be* is checked in `createItem` against the signed-in user, because only the server knows
+    // who that is.
     .refine((data) => !itemTypeOwns(data.type).file || Boolean(data.fileKey), {
         message: "Upload a file first.",
         path: ["fileKey"],

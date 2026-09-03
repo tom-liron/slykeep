@@ -1,23 +1,21 @@
 /**
- * The matching rule behind the command palette.
+ * The match-and-rank rule behind the command palette.
  *
- * cmdk ships its own filter, and it is deliberately not used: the palette turns it off
- * (`shouldFilter={false}`) and ranks here instead. Two reasons. Its filter scores one string per
- * item, so a title, a description, a tag list, and a type label have to be flattened into a single
- * `value` before it sees them — which loses the ability to say a title hit is worth more than a
- * description hit. And a rule that lives in a component is a rule that can only be checked by
- * rendering one; this one is a pure function with a unit test.
+ * `CommandPalette` sets cmdk's `shouldFilter={false}` and ranks results with this module instead;
+ * `server/search.ts` supplies the prefetched item and collection summaries it scores. cmdk's own
+ * filter scores one string per item, which would force a title, description, tag list and type label
+ * to be flattened into a single value and lose the ability to weight a title hit above a description
+ * hit. A pure function is also checkable by a unit test rather than by rendering a component.
  *
- * Scoring is tiered: how the query matched decides the band, and only ties inside a band are broken
- * by how much of the text the query accounted for. That ordering is the point — a title starting
- * with what you typed beats a long description that merely contains it, however tight the
- * containment.
+ * Scoring is tiered: how the query matched sets the band ({@link TIER}), and only ties within a band
+ * are broken by how much of the text the query covered. A title starting with the query outranks a
+ * long description that merely contains it.
  *
  * The loosest band — the query's characters scattered through the text rather than adjacent — is
- * deliberately hard to reach: a field has to opt into it, the query has to be long enough to mean
- * something, and the match has to be tight. Without those, it is not a filter: any four letters are
- * hiding in order inside almost any paragraph, which is what made an early version of this return
- * half the library for "test".
+ * guarded three ways: a field opts in with {@link SearchField.scattered}, the query must be at least
+ * {@link MIN_SCATTERED_QUERY_LENGTH} characters, and the run must be tight
+ * ({@link MAX_SCATTER_GAPS}). Any few letters hide in order inside almost any paragraph, so without
+ * those guards it is not a filter.
  */
 
 /** One piece of text a record can be matched on, and what a hit in it is worth. */
@@ -26,20 +24,19 @@ export interface SearchField {
     /** Multiplier applied to this field's score, so a title can outrank a description. */
     weight: number;
     /**
-     * Whether the query's characters may be *scattered* through this field — "ustate" finding
-     * "useState" — rather than appearing together.
+     * Whether the query's characters may be *scattered* through this field — "ustate" matching
+     * "useState" — rather than contiguous.
      *
-     * Off by default, because over long text it is barely a filter at all: a paragraph of prose
-     * almost always contains the letters of a short query somewhere in order, which is how a search
-     * for "test" came back with everything that merely had a description. Titles and tags are short
-     * and deliberately chosen, so a scattered hit in one of those means something.
+     * Off by default: over long prose the letters of a short query almost always appear in order
+     * somewhere, so it barely filters. Titles and tags are short and hand-chosen, so a scattered hit
+     * in one of those carries signal.
+     *
+     * @defaultValue `false`
      */
     scattered?: boolean;
 }
 
-/**
- * The bands, spaced wide enough that the coverage bonus below can never lift one into the next.
- */
+/** The score bands, spaced wide enough that the coverage bonus below can never lift a hit into the next. */
 const TIER = {
     exact: 500,
     prefix: 400,
@@ -55,18 +52,17 @@ const MAX_COVERAGE_BONUS = 90;
 const WORD_BOUNDARY = /[\s\-_/.:,;()[\]{}]/;
 
 /**
- * How many characters may be interleaved through a scattered match before it stops being one.
+ * How many extra characters may be interleaved through a scattered match before it stops being one.
  *
- * Two, in total — not a ratio. A ratio scales the allowance with the query, which is exactly
- * backwards: it is the *short* queries that need holding down, and "test" spanning eight characters
- * of a sentence is the noise this is here to refuse. What survives is a query missing a letter or
- * two from what it is aiming at ("ustate" → "useState"), which is what someone typing fast produces.
+ * Two in total, not a ratio. A ratio grows the allowance with the query, but it is the short
+ * queries that need holding down — "test" spanning eight characters of a sentence is the noise this
+ * refuses. A query missing a letter or two from its target ("ustate" → "useState") still passes.
  */
 const MAX_SCATTER_GAPS = 2;
 
 /**
- * Below this, a scattered match is meaningless — two or three letters appear in order almost
- * everywhere. Short queries still match by prefix, word start, or substring.
+ * Below this length a scattered match is meaningless — two or three letters appear in order almost
+ * everywhere. Shorter queries still match by prefix, word start or substring.
  */
 const MIN_SCATTERED_QUERY_LENGTH = 4;
 
@@ -74,7 +70,7 @@ const MIN_SCATTERED_QUERY_LENGTH = 4;
  * The length of the tightest run of `text` that contains every character of `query` in order, or 0
  * if there is none.
  *
- * The span, rather than a yes/no: it is what separates "ustate" inside "useState" from the same
+ * The span rather than a yes/no: it is what separates "ustate" inside "useState" from the same
  * letters spread over a paragraph, and the caller rejects the loose ones outright.
  */
 function scatteredSpan(query: string, text: string): number {
@@ -106,11 +102,13 @@ function scatteredSpan(query: string, text: string): number {
 }
 
 /**
- * How well one query term matches one string. Zero means no match — which is what lets a caller
- * require every term of a query to hit something.
+ * How well one query term matches one string. Zero means no match, which lets a caller require every
+ * term of a query to hit something.
  *
  * Case-insensitive, and both sides are trimmed, so callers can pass raw input and raw stored text.
  * `scattered` opens the loosest tier, and is off unless the field asks for it.
+ *
+ * @defaultValue `scattered` is `false`
  */
 export function fuzzyScore(query: string, text: string, scattered = false): number {
     const needle = query.trim().toLowerCase();
@@ -133,8 +131,8 @@ export function fuzzyScore(query: string, text: string, scattered = false): numb
                   ? TIER.wordPrefix
                   : TIER.substring;
 
-        // How much of the text the query accounted for: "api" is a better hit on "API client" than
-        // on a paragraph mentioning it once.
+        // How much of the text the query accounted for: "api" scores higher on "API client" than on
+        // a paragraph that mentions it once.
         return tier + Math.round((MAX_COVERAGE_BONUS * needle.length) / haystack.length);
     }
 
@@ -147,8 +145,8 @@ export function fuzzyScore(query: string, text: string, scattered = false): numb
         return 0;
     }
 
-    // Scored on the span rather than the whole text: what makes a scattered hit good is how tightly
-    // packed it is, not how short the string it was found in happens to be.
+    // Scored on the span rather than the whole text: a scattered hit is good for being tightly
+    // packed, not for the string it was found in being short.
     return TIER.subsequence + Math.round((MAX_COVERAGE_BONUS * needle.length) / span);
 }
 
@@ -184,9 +182,9 @@ export function scoreRecord(query: string, fields: readonly SearchField[]): numb
 /**
  * The matching records, best first, capped at `limit`.
  *
- * Equal scores keep the order they arrived in — the server hands both lists over most-recently-
- * updated first, so a tie between two equally good matches is settled by recency without this
- * having to know that is what it is doing.
+ * Equal scores keep the order they arrived in — the server hands both lists over
+ * most-recently-updated first, so a tie between two equally good matches is settled by recency
+ * without this having to know that is what it is doing.
  */
 export function rankBySearch<T>(
     query: string,

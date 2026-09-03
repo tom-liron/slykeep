@@ -10,11 +10,12 @@ import { checkPasswordResetToken, consumePasswordResetToken } from "@/server/ver
 /**
  * Sets a new password from a reset link.
  *
- * Unlike `forgot-password`, this one says exactly what went wrong. It can afford to: the caller is
- * identified by a 256-bit token they had to receive by email, not by an address anyone can type, so
- * a specific answer tells an attacker nothing they could have guessed their way into. The failures
- * it reports are also the only ones a user can act on — an expired link needs a new one, and a
- * generic error would leave them retrying a form that can never succeed.
+ * @remarks
+ * This route reports the specific failure — expired link, invalid link — where `forgot-password`
+ * stays uniform. It can: the caller is identified by a 256-bit token received by email, not an
+ * address anyone can type, so a specific answer discloses nothing guessable. Those failures are
+ * also the only ones a user can act on, and a generic error would leave them retrying a form that
+ * can never succeed.
  */
 
 const TOKEN_ERRORS = {
@@ -75,14 +76,11 @@ export async function POST(request: Request) {
             );
         }
 
-        // Two statements, because the second must not touch an account that was already confirmed:
-        // stamping `emailVerified` unconditionally would move an old, genuine confirmation date to
-        // today and quietly destroy the only record of when it happened.
-        //
-        // Verifying here at all is not a bonus, it is the same proof by a different route: receiving
-        // this link demonstrates control of the inbox, which is exactly what the confirmation email
-        // asks for. Without it, an account that never confirmed could complete a reset and still be
-        // refused at sign-in by `authorize` — a dead end with a correct password.
+        // Two statements. The second is conditional on `emailVerified: null` so it cannot move an
+        // old, genuine confirmation date to today. Verifying here is the same proof by another
+        // route — receiving this link demonstrates control of the inbox — so an account that never
+        // confirmed can still finish a reset and sign in, rather than hitting a dead end at
+        // `authorize` with a correct password.
         //
         // `updateMany` rather than `update`: the account may have been deleted between the email
         // being sent and this submission, and a missing row should read as a dead link, not throw.

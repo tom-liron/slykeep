@@ -1,24 +1,17 @@
 import type { FavoriteCollectionViewModel, ItemSummaryViewModel } from "@/types/view-models";
 
 /**
- * How `/favorites` orders its two lists, client-side.
+ * The client-side sort behind `/favorites`.
  *
- * The page reads both sections already sorted — newest date first, `id desc` to break ties — and
- * that is the only order the server offers. Reordering by name or by type is a preference, not a
- * query: the rows are already on the client, both lists are small (one person's stars), and a round
- * trip to re-`ORDER BY` what is sitting in memory would be slower than the sort and would cost a
- * database read per click. So the rule lives here, as a pure function with a test, rather than in the
- * component that renders the dropdown.
- *
- * Items and collections are sorted by the same rule but are not the same shape — an item has a
- * `title` and always has a type, a collection has a `name` and may have none, and since the
- * `editedAt` split they do not even date themselves from the same column. Rather than a generic
- * constrained on fields they do not share, each shape projects to `FavoriteSortFields` and the
- * comparator sees only that. Which is the honest version of "these are different things": they are,
- * they merely sort by the same four values.
+ * The page receives both starred lists already ordered newest-first (`id desc` breaks ties), which
+ * is the only order the server offers. Re-ordering by name or type is a preference over rows already
+ * in memory, not a query — `FavoritesSortControl` sets the {@link FavoriteSort} and `FavoritesView`
+ * calls {@link sortFavorites}. Items and collections use one comparator: each shape projects to
+ * {@link FavoriteSortFields} through {@link itemSortFields} or {@link collectionSortFields}, and
+ * {@link compareFavorites} sees only that.
  */
 
-/** The three things a favourite can be ordered by. */
+/** The three keys a favourite list can be ordered by. */
 export type FavoriteSortKey = "name" | "date" | "type";
 
 export type SortDirection = "asc" | "desc";
@@ -29,36 +22,33 @@ export interface FavoriteSort {
 }
 
 /**
- * Everything the comparator is allowed to look at, whatever it came from.
+ * Everything the comparator is allowed to look at, whatever row it came from.
  *
  * `typeLabel` is nullable because a collection with no items and no `defaultTypeId` has no dominant
- * type. An item's type is never null, so that branch only ever fires on the collections list — but
- * it stays in the shared comparator rather than becoming a special case there, so both sections keep
- * one rule.
+ * type. An item's type is never null, so that branch only fires on the collections list — it stays
+ * in the shared comparator rather than becoming a special case there, so both sections keep one
+ * rule.
  */
 export interface FavoriteSortFields {
     /** What the row is called: an item's title, a collection's name. */
     label: string;
     /**
-     * The date the row actually renders, which is not the same column on both sides: an item's
-     * `editedAt` (when its content last changed) and a collection's `updatedAt`. Named for what it
-     * is used for rather than after either column, so neither side has to pretend to be the other.
+     * The date the row renders, which is a different column on each side: an item's `editedAt` (when
+     * its content last changed) and a collection's `updatedAt`. Named for its use rather than after
+     * either column, so neither side has to pretend to be the other.
      *
-     * ISO-8601, UTC, as both view models serialize it. Compared as a string — see `byDateDesc`.
+     * ISO 8601, UTC, as both view models serialize it. Compared as a string — see {@link byDateDesc}.
      */
     sortDate: string;
-    /** The item type's display label, which is the only part of a type a user can see. Null when absent. */
+    /** The item type's display label, the only part of a type a user sees. Null when absent. */
     typeLabel: string | null;
     id: string;
 }
 
 /**
- * The direction each key opens in, which is not the same for all three.
- *
- * A date sorts newest-first and a name sorts A–Z, so a single shared default is wrong for one of
- * them whichever way it points. The control resets to these when the key changes rather than
- * carrying the previous direction across — switching from date to name would otherwise land on Z–A,
- * which reads as a bug rather than as a choice.
+ * The direction each key opens in. A date opens newest-first and a name opens A–Z, so there is no
+ * single correct shared default. The control resets to these when the key changes rather than
+ * carrying the previous direction across, which would land a date-to-name switch on Z–A.
  */
 export const DEFAULT_SORT_DIRECTION: Record<FavoriteSortKey, SortDirection> = {
     name: "asc",
@@ -70,21 +60,19 @@ export const DEFAULT_SORT_DIRECTION: Record<FavoriteSortKey, SortDirection> = {
 export const DEFAULT_FAVORITE_SORT: FavoriteSort = { key: "date", direction: "desc" };
 
 /**
- * Case-insensitive and digit-aware, so `apiKey` and `APIKEY` tie rather than landing either side of
- * `Zebra`, and `item2` comes before `item10`. Punctuation still counts — `API_KEY` is a different
- * string, not a cased spelling of the same one.
- *
- * Built once: constructing a collator per comparison is the expensive half of this sort.
+ * Case-insensitive and digit-aware: `apiKey` and `APIKEY` tie, `item2` sorts before `item10`.
+ * Punctuation still counts, so `API_KEY` is its own string. Built once — a collator per comparison
+ * is the expensive part of this sort.
  */
 const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 /**
- * Newest first, then newest id, which is the order both server queries use.
+ * Newest first, then newest id — the order both server queries use.
  *
- * A string comparison rather than `Date.parse`, because both view models build this with
- * `toISOString()` — always UTC, always the same width — so lexicographic order *is* chronological.
- * That skips parsing two dates per comparison and, more usefully, makes this identical to what the
- * database returned rather than merely equivalent to it.
+ * A string comparison rather than `Date.parse`: both view models build the field with
+ * `toISOString()` — always UTC, always the same width — so lexicographic order is chronological.
+ * That skips parsing two dates per comparison and makes this identical to what the database
+ * returned rather than merely equivalent to it.
  */
 function byDateDesc(left: FavoriteSortFields, right: FavoriteSortFields): number {
     if (left.sortDate !== right.sortDate) {
@@ -94,7 +82,7 @@ function byDateDesc(left: FavoriteSortFields, right: FavoriteSortFields): number
     return byIdDesc(left, right);
 }
 
-/** The last resort, and the only one that can return 0 — ids are unique, so it does so only for a row against itself. */
+/** The last resort, and the only comparator that can return 0 — ids are unique, so only for a row against itself. */
 function byIdDesc(left: FavoriteSortFields, right: FavoriteSortFields): number {
     if (left.id === right.id) {
         return 0;
@@ -104,21 +92,18 @@ function byIdDesc(left: FavoriteSortFields, right: FavoriteSortFields): number {
 }
 
 /**
- * Orders two favourites.
+ * Orders two favourites under a {@link FavoriteSort}.
  *
- * A total order, not a partial one: every pair is decided, so the result never depends on the order
- * the rows arrived in and the tests do not have to care either.
+ * A total order: every pair is decided, so the result never depends on the order the rows arrived
+ * in, and the tests do not have to care either.
  *
- * Two things here are load-bearing and both look like details:
+ * @remarks
+ * The tiebreak stays outside the direction flip — only the primary key reverses. A tiebreak that
+ * reversed with it would reshuffle every equal-keyed row each time the arrow is toggled.
  *
- * **The tiebreak is outside the direction flip.** Only the primary key reverses. A tiebreak that
- * reversed with it would reshuffle every equal-named row each time the arrow is toggled — jitter
- * that is harder to notice than the reordering the user asked for, and impossible to explain.
- *
- * **So is the missing-type branch.** Collections with no dominant type sink to the bottom in *both*
- * directions, so the check has to be answered before the multiplier is applied. Multiplied, "no type
- * last" quietly becomes "no type first" in descending, which is exactly the reading it exists to
- * avoid — a run of blank rows at the top of the list looks like the sort broke.
+ * The missing-type branch is answered before the flip multiplier is applied, so collections with no
+ * dominant type sink to the bottom in both directions. Multiplied, "no type last" becomes "no type
+ * first" when descending.
  */
 export function compareFavorites(
     left: FavoriteSortFields,
@@ -128,8 +113,8 @@ export function compareFavorites(
     const flip = sort.direction === "asc" ? 1 : -1;
 
     if (sort.key === "date") {
-        // The date is the primary here, so the tiebreak below it is `id desc` alone — running the
-        // full `byDateDesc` would compare the same field a second time.
+        // The date is the primary key here, so the tiebreak below it is `id desc` alone; running the
+        // full byDateDesc would compare the same field a second time.
         if (left.sortDate !== right.sortDate) {
             return flip * (left.sortDate < right.sortDate ? -1 : 1);
         }
@@ -154,8 +139,8 @@ export function compareFavorites(
 }
 
 /**
- * Sorts a list of favourites without mutating it — the arrays come from a server component's props,
- * which are not ours to reorder in place.
+ * Sorts a list of favourites without mutating it — the arrays are server-component props and must
+ * not be reordered in place.
  *
  * Decorate, sort, undecorate: `project` runs once per row rather than twice per comparison, which is
  * the difference between n and n log n calls into the view model.
@@ -171,7 +156,7 @@ export function sortFavorites<T>(
         .map(({ row }) => row);
 }
 
-/** An item's sort key. Its type is required, so `typeLabel` is never null on this side. */
+/** An item's projection. Its type is always set, so `typeLabel` is never null on this side. */
 export function itemSortFields(item: ItemSummaryViewModel): FavoriteSortFields {
     return {
         label: item.title,
@@ -181,7 +166,10 @@ export function itemSortFields(item: ItemSummaryViewModel): FavoriteSortFields {
     };
 }
 
-/** A collection's sort key. The null is the rule, not a gap: see `compareFavorites`. */
+/**
+ * A collection's projection. `typeLabel` is null when the collection has no dominant type — the rule
+ * {@link compareFavorites} handles, not a gap.
+ */
 export function collectionSortFields(collection: FavoriteCollectionViewModel): FavoriteSortFields {
     return {
         label: collection.name,

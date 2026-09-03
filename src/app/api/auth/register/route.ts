@@ -11,19 +11,18 @@ import { createVerificationToken } from "@/server/verification";
 /**
  * Account creation for the Credentials provider.
  *
- * A route handler rather than a Server Action because the client needs the status code: the form
- * has to tell "this email is taken" (409) apart from "your input is invalid" (400), and actions
- * return a body with a 200 either way.
+ * A route handler rather than a Server Action because the form needs the status code — "this email
+ * is taken" (409) apart from "your input is invalid" (400) — where an action returns a 200 either
+ * way.
  *
- * The path is a static segment under `api/auth`, so it wins over the `[...nextauth]` catch-all
- * beside it, and `src/proxy.ts` already excludes `api/auth` from the deny-by-default matcher —
- * which it must, since the whole point is to be reachable while signed out.
+ * A static segment under `api/auth`, so it wins over the `[...nextauth]` catch-all and sits outside
+ * `src/proxy.ts`'s matcher, which it must be to work while signed out.
  */
 export async function POST(request: Request) {
-    // Before the body is even read: an account creation costs a row and an outbound email, and this
-    // is the endpoint that turns one anonymous caller into an unbounded number of both. Keyed by IP
-    // alone deliberately — mixing the submitted email into the key would let a script buy a fresh
-    // budget for every address it invents, which is the whole abuse.
+    // Before the body is read: an account creation costs a row and an outbound email, and this is
+    // the endpoint that turns one anonymous caller into an unbounded number of both. Keyed by IP
+    // alone — an email in the key would let a script buy a fresh budget for every address it
+    // invents.
     const limit = await checkRateLimit("register", await clientIp());
 
     if (!limit.success) return tooManyRequests(limit);

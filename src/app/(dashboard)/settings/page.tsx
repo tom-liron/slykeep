@@ -16,16 +16,17 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * Settings: the things you can *do* to the account, as opposed to the profile page, which is a
- * read-only account of what is in it.
+ * `/settings` — the account *actions*: billing, change password, delete account, and editor
+ * preferences. The profile page is the read-only counterpart.
  *
- * A server component that reads once and passes view models down — the billing rows, the password
- * form, and the delete confirmation are the only client components, and none of them fetches.
+ * A server component that reads once and passes view models down; the billing rows, the password
+ * form, the delete confirmation and the editor rows are the only client components, and none
+ * fetches.
  *
- * Billing sits first because it is the panel a user arrives at from somewhere else: the marketing
- * page's Pro call to action and the delete dialog's cancel route both land on `#billing`, and a
- * destination that needs scrolling to is a destination that looks broken. Export is the next one,
- * and becomes another `Panel` rather than another loose card.
+ * @remarks
+ * The Billing panel is first because other surfaces link into it — the marketing Pro CTA and the
+ * delete dialog's cancel route both land on `#billing` — and an anchor target that needs scrolling
+ * to looks broken.
  */
 export default async function SettingsPage({
     searchParams,
@@ -72,10 +73,8 @@ export default async function SettingsPage({
                         <ChangePasswordDialog />
                     </PanelRow>
                 ) : (
-                    // Not an error and not something to fix — an OAuth-only account has no password
-                    // by design. Saying only that one is absent reads as a missing feature, so this
-                    // names the reason and where the credential actually lives, which is the only
-                    // thing the user could act on. No control, so the row is copy alone.
+                    // An OAuth-only account has no password. The row names the reason and where the
+                    // credential lives rather than just stating an absence, and carries no control.
                     <PanelRow
                         title="Password"
                         description="You sign in with GitHub, so there's no DevStash password to manage. Your sign-in credentials are managed by GitHub."

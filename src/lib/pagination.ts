@@ -1,10 +1,20 @@
 import type { PaginationViewModel } from "@/types/view-models";
 
 /**
- * Page numbers are read from the URL, so every value here arrives as untrusted text. The rule is the
- * same one the rest of the app applies to input: normalize rather than reject. A `?page=` that is
- * missing, empty, negative, fractional, or the word "banana" all mean the same thing to a reader —
- * they want the listing — so they all resolve to page 1 rather than a 404 on a link somebody shared.
+ * Page-number parsing and pagination-model construction for the listing pages.
+ *
+ * The item-type, collections and single-collection pages read `?page=` from the URL, call
+ * {@link parsePageParam} then {@link buildPagination} to get a {@link PaginationViewModel}, and hand
+ * {@link paginationSkip} to Prisma's `skip`. `components/ui/Pagination.tsx` renders the control from
+ * the same model, taking {@link getPageWindow} for the run of page links to show.
+ */
+
+/**
+ * Reads a page number from a URL query value, resolving anything unusable to page 1.
+ *
+ * A `?page=` that is missing, empty, negative, fractional or non-numeric all mean "show the
+ * listing", so each resolves to 1 rather than a 404 on a link someone shared. Normalizing rather
+ * than rejecting is the rule the rest of the app applies to input.
  */
 export function parsePageParam(value: string | string[] | undefined): number {
     // Next.js gives an array when a param is repeated (`?page=2&page=5`); the first wins.
@@ -18,11 +28,11 @@ export function parsePageParam(value: string | string[] | undefined): number {
 }
 
 /**
- * Clamps a requested page against what the result set actually has, so callers can turn it into a
- * `skip` without checking anything themselves.
+ * Clamps a requested page against what the result set actually has, so a caller can turn it into a
+ * `skip` without checking anything itself.
  *
- * An empty result set is one page rather than zero: the listing still renders — as its empty state —
- * and "page 1 of 0" is not a thing to show anyone.
+ * An empty result set is one page, not zero: the listing still renders as its empty state, and
+ * "page 1 of 0" is not something to show anyone.
  */
 export function buildPagination(
     totalCount: number,
@@ -45,11 +55,11 @@ export function paginationSkip(pagination: PaginationViewModel): number {
 }
 
 /**
- * The page numbers to render as links, with `"ellipsis"` standing in for a run that is hidden.
+ * The page numbers to render as links, with `"ellipsis"` standing in for a hidden run.
  *
  * Always the first page, the last page, and the current one with a neighbour either side. A gap of
- * exactly one page is spelled out instead of elided — an ellipsis hiding a single number is both
- * longer to render and harder to use than the number itself.
+ * exactly one page is spelled out rather than elided: an ellipsis hiding a single number is longer
+ * to render and harder to use than the number.
  */
 export function getPageWindow(page: number, pageCount: number): (number | "ellipsis")[] {
     const shown = [...new Set([1, page - 1, page, page + 1, pageCount])]

@@ -12,9 +12,23 @@ is applying.
 """
 import subprocess, re, sys
 
+# A `/` starts a regex literal rather than a division when the previous significant character is one
+# of these (or there is none). Without this, a regex such as `/"/g` opens a phantom string and the
+# lexer stops recognizing comments for the rest of the file. The set omits the arithmetic and
+# comparison operators and the newline, so a JSX `/>` on its own line or a `</tag>` is never
+# mistaken for the start of a regex.
+_REGEX_PRECEDERS = set("(,=:[!&|?{;")
+
+def _regex_position(out):
+    for ch in reversed(out):
+        if ch in " \t\r":
+            continue
+        return ch in _REGEX_PRECEDERS
+    return False
+
 def strip(src):
     out, i, n = [], 0, len(src)
-    in_line = in_block = in_str = False
+    in_line = in_block = in_str = in_regex = in_class = False
     q = ''
     while i < n:
         c = src[i]
@@ -35,11 +49,24 @@ def strip(src):
                 out.append(c)
                 if c == q:
                     in_str = False
+        elif in_regex:
+            out.append(c)
+            if c == '\\':
+                i += 1
+                out.append(src[i] if i < n else '')
+            elif c == '[':
+                in_class = True
+            elif c == ']':
+                in_class = False
+            elif c == '/' and not in_class:
+                in_regex = False
         else:
             if c == '/' and nxt == '/':
                 in_line = True; i += 1
             elif c == '/' and nxt == '*':
                 in_block = True; i += 1
+            elif c == '/' and _regex_position(out):
+                in_regex = True; in_class = False; out.append(c)
             elif c in '"\'`':
                 in_str = True; q = c; out.append(c)
             else:
