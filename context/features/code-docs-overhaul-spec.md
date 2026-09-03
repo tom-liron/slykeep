@@ -10,9 +10,16 @@ separate feature and is already done.
 
 > **Extended 2026-09-03, after Part 2.** An audit of the "out of scope" files found the same
 > lab-notebook comments in `next.config.ts`, `.env.example`, `prisma/schema.prisma`, `prisma/seed*.ts`
-> and most of `scripts/`. **Part 4 — "the rest"** brings those ~14 files up to the standard, after
-> Part 3. `prototypes/`, the test suites and the trivial/clean root configs stay out. See
+> and most of `scripts/`. **Part 4 — "the rest"** brings those ~14 files up to the standard.
+> `prototypes/`, the test suites and the trivial/clean root configs stay out. See
 > the **Part 4** section at the end of this spec.
+>
+> **Extended again 2026-09-03, after Part 3.** A senior review of Part 3's drawer components found
+> the passes were preserving *compressed investigation* — rejected layouts, screenshot
+> measurements, dead-`className` notes — where they should have kept only the surviving rule.
+> `coding-standards.md` gained § *Conclusion, not investigation* in response. **Part 5 — the
+> re-sweep** re-reads every file Parts 1a–3 touched against that sharper bar, and runs **before
+> Part 4**. Order is now: Parts 1a–3 (done) → **Part 5** → Part 4.
 
 ## Why
 
@@ -49,6 +56,17 @@ class is present, including the visual symptom that prompted it.
 **`context/coding-standards.md` § Documentation is the rule.** It is written and is the authority;
 this spec does not restate it. In summary:
 
+- **Conclusion, not investigation — the rule that governs the rest.** For every sentence of every
+  comment, header included: *would a reader who never saw an earlier version need this to
+  understand or safely change the code that exists now?* If no, delete it. Delete what used to be
+  implemented, what was tried first, rejected alternatives, debugging investigations, screenshot
+  measurements, visual symptoms that prompted a fix, stale-build diagnoses, "for several
+  revisions", "used to", and any explanation of code that no longer exists. Keep the constraint the
+  investigation found — as the surviving rule, one sentence, not the story. A module header never
+  explains why a file was extracted or what an old structure made hard. The target is the
+  *minimum* documentation that gives the mental model and preserves the breakable constraints —
+  five excellent lines over forty accurate ones. See `coding-standards.md` § Conclusion, not
+  investigation for the worked before/after table.
 - Third person, present tense, declarative. Never history, symptoms, rejected alternatives, first
   person, or words that argue rather than state.
 - **Every file opens with a header, without exception.** A header orients before it explains:
@@ -183,17 +201,20 @@ everything rather than the current part.
 | **1b — the server half** | `types/` 10 + `hooks/` 6 · `server/` 13 · `actions/` 7 + `auth.ts`, `auth.config.ts`, `proxy.ts` 3 | **39** |
 | **2 — the middle** | `lib/` security and the data boundary 11 · `lib/` domain rules 11 · `lib/` AI and editor 10 · `app/api` 12 · `app/` pages 17 | **61** |
 | **3 — the components** | `ui/` 20 · `items/` 18 · `layout/` + `collections/` 15 · `marketing/` + `pricing/` + `billing/` 16 · `auth/` + `settings/` + `favorites/` + `dashboard/` 17 · the drawer trio 3 | **89** |
+| **5 — the re-sweep** | every file Parts 1a–3 touched, re-read against *Conclusion, not investigation*, folder by folder | **~183** |
 
 `config/` is split out as **1a** because it ran first, alone, to calibrate the standard against real
 files. Everything after it runs in passes of ten to twenty files.
 
-**Why the later passes are larger, and safely so.** One folder at a time was the rule while the
-standard was still being settled; a pass could be wrong in a way only reading it would reveal. That
-is no longer the risk. Three checks now make a pass's correctness mechanical rather than a reading
-job — `npm run docs:comments-only` proves no code moved, `npm run docs:links` proves no cross-reference is
-dead, and `npm test`, `lint` and `build` prove nothing broke. What review is left is judgement on
-the prose, which is spot-checking two or three headers per commit and costs the same whether the
-commit holds eight files or twenty.
+**The mechanical checks do not catch the failure that matters most.** `docs:comments-only` proves
+no code moved, `docs:links` proves no dead cross-reference, `npm test` / `lint` / `build` prove
+nothing broke — and Part 3 passed all of them while its prose still carried compressed
+investigation history: rejected flex layouts, screenshot measurements, "for several revisions",
+explanations of `className`s that were no longer in the file. Spot-checking two or three headers
+per commit did not find it. **Prose review is not a spot-check.** Every block in a pass — every
+header, every inline comment — is run through the *Conclusion, not investigation* test before the
+commit: would a reader who never saw an earlier version need this sentence? A pass is not done
+until that is true of every line it touched.
 
 Passes group folders that share consumers, so the analysis behind one file serves its neighbours
 instead of being re-derived a folder later. `components/` is 45% of the work on its own and goes
@@ -263,6 +284,54 @@ wrong symbol and a comment claiming four stat cards where the page renders two; 
 orphaned doc blocks, where one symbol's description sat stranded above a different symbol, leaving
 the documented function with none. Fix them in the pass that finds them and name them in the commit.
 
+## Part 5 — the re-sweep (added 2026-09-03, after Part 3)
+
+Part 3's first pass over the `items/` drawer components was reviewed by a senior reader and failed
+the standard: it understood each component correctly, then preserved the *investigation* —
+previous flex attempts, screenshot measurements, dead `className` explanations, stale-stylesheet
+diagnoses, "for several revisions", exact historical widths. A compressed lab notebook is still a
+lab notebook. `coding-standards.md` was sharpened in response (§ *Conclusion, not investigation*),
+and the drawer trio was redone.
+
+**The concern is that Parts 1a, 1b and 2 have the same defect**, applied more quietly. Those passes
+removed the largest narrative blocks but frequently *compressed* an investigation into two or three
+sentences rather than discarding it and keeping only the surviving rule. Under the sharpened
+standard, that is still wrong.
+
+**Part 5 re-reads every file Parts 1a–3 touched — `config/`, `types/`, `hooks/`, `server/`,
+`actions/`, `auth.ts` / `auth.config.ts` / `proxy.ts`, `lib/`, `app/api`, `app/` pages, and all of
+`components/` — against one question per block:**
+
+> Would a developer who never saw an earlier version of this code need this sentence to understand
+> or safely change the version that exists now?
+
+If no, the sentence goes. The constraint it was wrapped around stays, as one present-tense rule.
+
+### How it runs
+
+- **Folder by folder, one commit each**, in the same batches Parts 1a–3 used, on its own branch
+  (`feature/code-docs-resweep`). Roughly ten commits.
+- **This is a reading pass, not a mechanical one.** The three checkers still gate every commit
+  (`docs:comments-only`, `docs:links`, `npm test` / `lint` / `build`), but they cannot see the
+  defect being fixed. Every header and every inline comment in the folder is read and tested.
+- **Bias hard toward deletion.** The failure mode is keeping too much, so when a sentence is
+  borderline — "is this a constraint or the story of a constraint?" — it goes. A genuine hazard
+  survives as one sentence; if it needs a paragraph, the paragraph is the tell.
+- **Module headers**: strip any account of extraction, of what an old version did, or of what an
+  old structure made hard. A header is identity, purpose, connections, and — only where a
+  constraint needs it — one `@remarks` rule.
+- **`feature-history.md` is the home for the deleted rationale.** Before deleting a substantial
+  block, confirm its content is findable there; if not, quote it in the commit body (the same
+  salvage step Decision 6 already defines).
+- Runs **before Part 4** — the files outside `src/` are written in the same over-preserving voice,
+  and it is cheaper to document them once against the final standard than to sweep them twice.
+
+### Done when
+
+Every file Parts 1a–3 touched has been re-read, and a senior reader picking any file at random
+finds documentation that reads as *the operating manual for the code that exists*, with no trace
+of how it got there.
+
 ## Part 4 — the files outside `src/` (added 2026-09-03, after Part 2)
 
 The original scope stopped at `src/` to keep the overhaul finishable. That line held for Parts 1–3.
@@ -318,7 +387,7 @@ cross-reference in Part 4 files as prose (symbol + file named in words).
 
 ### How to run it, later
 
-Part 3 first. Then, in a fresh session:
+**Part 5 first** (the re-sweep of Parts 1a–3), then Part 4 in a fresh session:
 
 ```
 /clear

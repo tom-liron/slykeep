@@ -27,6 +27,20 @@ In Progress
 
 ## Notes
 
+### Standard sharpened 2026-09-03 — Conclusion, not investigation
+
+A senior review of Part 3's drawer components found the passes were keeping *compressed
+investigation* — rejected layouts, screenshot measurements, "for several revisions",
+explanations of `className`s no longer in the file — where they should have kept only the
+surviving rule. `context/coding-standards.md` § Documentation now opens with **§ Conclusion, not
+investigation**: for every sentence, *would a reader who never saw an earlier version need this to
+understand or safely change the code that exists now?* If no, delete it. The spec carries the same
+rule at the top of § The standard, and a new **Part 5 — the re-sweep** re-reads every file Parts
+1a–3 touched against it, before Part 4.
+
+**Next after Part 3 merges: Part 5** (`/feature load code-docs-overhaul-spec.md part 5`). Then
+Part 4. Part 3's drawer trio was already redone to the sharper bar in commit 6/6.
+
 `context/features/code-docs-overhaul-spec.md` is the authority — load it with
 `/feature load code-docs-overhaul-spec.md part 3`. The standard itself is in
 `context/coding-standards.md` § Documentation.
