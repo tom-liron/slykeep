@@ -3,19 +3,29 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * Whether a CSS media query currently matches, asked from JavaScript.
+ * A CSS media query as React state.
  *
- * Some decisions cannot be made in CSS. A stylesheet can hide an element, but it cannot stop the
- * browser having built it first — which for monaco is several megabytes of editor and for a PDF
- * embed is the whole document fetched and rendered into a frame nobody will look at. Where the
- * choice is *which element exists*, it has to be made here; where it is only how one looks, it
- * belongs in a class and not in this hook.
+ * The escape hatch for the cases where a stylesheet is not enough. CSS can hide an element, but it
+ * cannot stop the browser building it first — several megabytes of monaco for an editor, or a whole
+ * document fetched into a frame for a PDF embed. Where the decision is *which element exists*, it
+ * has to be made in JavaScript, and this is where. Where it is only how an element looks, it belongs
+ * in a class instead.
  *
- * `useSyncExternalStore` rather than `useState` in an effect — the React Compiler rejects that shape
- * (`set-state-in-effect`), and this is what it is for. The server snapshot is `false`, so SSR and
- * first paint agree on the non-matching case and the client corrects itself on hydration; the
- * alternative is rendering nothing until mounted, which costs every visitor a layout shift. Write
- * queries so that `false` is the safe answer.
+ * Used by `useCoarsePointer` (which editor surface to mount) and directly by `FilePreview` (which
+ * viewer a file opens in).
+ */
+
+/**
+ * Subscribes to a media query and returns whether it currently matches.
+ *
+ * @param query - Raw media-query text, as `matchMedia` takes it.
+ *
+ * @remarks
+ * The server snapshot is `false`, so SSR and first paint agree on the non-matching case and the
+ * client corrects itself on hydration. Write queries so that `false` is the safe answer.
+ *
+ * `useSyncExternalStore` rather than `useState` in an effect: the React Compiler rejects that shape
+ * (`set-state-in-effect`), and a subscription is what this is.
  */
 export function useMediaQuery(query: string): boolean {
     const subscribe = useCallback(

@@ -4,6 +4,28 @@ import { useState } from "react";
 
 import { validateUpload, type FileItemTypeName } from "@/lib/file-constraints";
 
+/**
+ * Uploads one file to `POST /api/upload` and reports how much of it has gone out.
+ *
+ * The browser half of the file/image upload path: `FileUpload` renders the field and the progress
+ * bar, this hook sends the bytes, and the route authorizes the request, re-runs the constraints and
+ * puts the object in R2 — the browser never talks to R2 itself. What comes back is an
+ * {@link UploadedFile}, which `CreateItemDialog` holds and submits with the rest of the form.
+ *
+ * @remarks
+ * `XMLHttpRequest` rather than `fetch`, which is why this is its own module: `fetch` cannot report
+ * how much of a *request* body has been sent, and `xhr.upload.onprogress` can. The manual response
+ * parsing below follows from the same choice, since an XHR hands back a string rather than something
+ * with `.json()`.
+ *
+ * The upload runs the moment a file is chosen rather than on submit, because progress is only
+ * meaningful while something is happening. The cost is an object in R2 that no item points at if the
+ * dialog is then abandoned; that trade is recorded with the route.
+ *
+ * Outcomes are reported through callbacks rather than as returned state, because the caller is
+ * already holding the uploaded file for its own payload and its own submit gate.
+ */
+
 /** What an upload leaves behind for the create dialog to submit with the rest of the form. */
 export type UploadedFile = {
     key: string;
@@ -11,23 +33,6 @@ export type UploadedFile = {
     fileSize: number;
 };
 
-/**
- * Sends one file to `POST /api/upload` and reports how much of it has gone out.
- *
- * `XMLHttpRequest` rather than `fetch`, and that is the whole reason this exists as its own module:
- * `fetch` cannot report how much of a *request* body has been sent, and `xhr.upload.onprogress` can.
- * On a 10 MB file over a slow connection that is the difference between a real answer and a spinner.
- * Everything here is that one constraint and its consequences — the response parsing included, since
- * an XHR hands back a string rather than something with `.json()`.
- *
- * The upload runs the moment a file is chosen rather than on submit, because progress is only
- * meaningful while something is happening. The cost is an object in R2 that no item points at if the
- * dialog is then abandoned; that trade is deliberate and recorded with the route.
- *
- * Outcomes are reported through callbacks rather than returned state, because the caller is holding
- * the uploaded file for its own payload and its own submit gate — two copies of that would be one
- * copy too many.
- */
 export function useFileUpload({
     itemType,
     onUploaded,
@@ -74,8 +79,8 @@ export function useFileUpload({
                 if (uploaded) {
                     onUploaded(uploaded);
                 } else {
-                    // A 2xx that is not our JSON did not come from the route — a proxy, a captive
-                    // portal, or a session that expired into a redirect.
+                    // A 2xx that is not this route's JSON did not come from the route — a proxy, a
+                    // captive portal, or a session that expired into a redirect.
                     onError("The upload did not complete. Try again.");
                 }
 
@@ -97,10 +102,10 @@ export function useFileUpload({
         request.send(body);
     };
 
-    // `progress` alone, deliberately — no `isUploading` boolean beside it. The caller renders the
-    // percentage inside its own `progress !== null` branch, and TypeScript narrows `number | null`
-    // to `number` there only if the test is the caller's own. Returning the boolean instead means
-    // `aria-valuenow` is handed a possible null, which is how this was caught.
+    // `progress` alone, with no `isUploading` boolean beside it. The caller renders the percentage
+    // inside its own `progress !== null` branch, and TypeScript narrows `number | null` to `number`
+    // there only if the test is the caller's own — a boolean instead would hand `aria-valuenow` a
+    // possible null.
     return { progress, upload };
 }
 

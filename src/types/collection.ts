@@ -1,15 +1,24 @@
 import type { CreateCollectionField, UpdateCollectionField } from "@/lib/collection-schemas";
 
 /**
- * What `createCollection` hands back. A discriminated union rather than one optional-everything
- * object, so a caller that has checked `success` gets `data` without a second null check.
+ * The result contracts of the collection write path, and the reduced collection shape its controls
+ * act on.
  *
- * Lives here rather than beside the action for the same reason the item results do: a `"use server"`
- * module may only export async functions.
+ * The four unions are what the mutations in `actions/collections.ts` hand back to
+ * `CreateCollectionDialog`, `EditCollectionDialog`, `DeleteCollectionDialog` and the favourite star;
+ * {@link CollectionActionTarget} is what those controls are given to act on. They live here rather
+ * than beside the actions because a `"use server"` module may export only async functions.
  *
- * The success arm carries the new collection's id and nothing else. The dialog's next move is to
- * close and refresh the surfaces behind it — the dashboard grid, `/collections`, and the sidebar —
- * all of which are server components, so a view model assembled here would only be thrown away.
+ * @see {@link CreateCollectionField} and {@link UpdateCollectionField} in
+ * `lib/collection-schemas.ts`, which name the fields a failure may report on.
+ */
+
+/**
+ * What `createCollection` hands back.
+ *
+ * The success arm carries the new collection's id and nothing else. The dialog closes and refreshes
+ * the surfaces behind it — the dashboard grid, `/collections` and the sidebar — all of which are
+ * server components, so a view model assembled here would be discarded.
  */
 export type CreateCollectionResult =
     | { success: true; data: { id: string } }
@@ -23,11 +32,9 @@ export type CreateCollectionResult =
 /**
  * What `updateCollection` hands back.
  *
- * Nothing on success, unlike `updateItem` — which returns the whole item because the drawer holds it
- * in client state and has to re-render from what came back. Every surface showing a collection's
- * name and description here (the page header, the cards, the sidebar) was rendered on the server, so
- * the dialog's move after a save is `router.refresh()`, and a view model assembled here would be
- * thrown away exactly as `createCollection`'s would.
+ * Nothing on success, unlike `updateItem`: every surface showing a collection's name and description
+ * — the page header, the cards, the sidebar — was rendered on the server, so the dialog's move after
+ * a save is `router.refresh()`.
  */
 export type UpdateCollectionResult =
     | { success: true }
@@ -38,28 +45,32 @@ export type UpdateCollectionResult =
       };
 
 /**
- * What `deleteCollection` hands back. Nothing on success: the row is gone, and the caller's next
- * move is either to leave the page or to refresh the list it was in.
+ * What `deleteCollection` hands back. Nothing on success: the row is gone, and the caller either
+ * leaves the page or refreshes the list it was in.
  */
 export type DeleteCollectionResult = { success: true } | { success: false; error: string };
 
 /**
- * What `toggleCollectionFavorite` hands back. The twin of `ToggleItemFavoriteResult`, restated here
- * rather than shared for the same reason the two delete results are: these two write paths are
- * independent, and a shape one of them outgrows should not drag the other with it.
+ * What `toggleCollectionFavorite` hands back — the state the row is now in, read back from the
+ * write, so the star renders what was written rather than what was asked for.
+ *
+ * @remarks
+ * The twin of `ToggleItemFavoriteResult` in `types/item.ts`, restated rather than shared: the two
+ * write paths are independent, and a shape one of them outgrows should not drag the other with it.
  */
 export type ToggleCollectionFavoriteResult =
     { success: true; data: { isFavorite: boolean } } | { success: false; error: string };
 
 /**
- * The collection an edit / delete / favorite control is acting on, reduced to what those three
- * actually need: an id to act on, a name to put in the confirmation and the dialog's fields, a
- * description to edit, and the favourite state the star renders.
+ * The collection an edit, delete or favourite control is acting on, reduced to what those three
+ * need: an id to act on, a name for the confirmation and the dialog's fields, a description to edit,
+ * and the favourite state the star renders.
  *
- * Narrower than `CollectionViewModel` on purpose. The controls are client components rendered from
- * server ones, so whatever this declares is serialized into the payload for every card on a page —
- * and a card's derived item types and counts are of no use to a menu. `CollectionViewModel` is
- * assignable to it, so both call sites pass what they already have.
+ * @remarks
+ * Narrower than `CollectionViewModel` in `types/view-models.ts` because the controls are client
+ * components rendered from server ones, so whatever this declares is serialized into the payload for
+ * every card on the page. `CollectionViewModel` is assignable to it, so both call sites pass what
+ * they already hold.
  */
 export type CollectionActionTarget = {
     id: string;

@@ -2,11 +2,24 @@ import type { CreateItemField, UpdateItemField } from "@/lib/item-schemas";
 import type { ItemDetailViewModel } from "./view-models";
 
 /**
- * What the item mutations hand back. A discriminated union rather than one optional-everything
- * object, so a caller that has checked `success` gets `data` without a second null check.
+ * The result contracts of the item write path: what each mutation in `actions/items.ts` hands back
+ * to the drawer, the create dialog and the card controls that called it.
  *
- * Lives here rather than beside the action for the same reason `AccountActionState` does: a
- * `"use server"` module may only export async functions.
+ * Every one is a discriminated union, so a caller that has checked `success` reads `data` without a
+ * second null check, and the failure arms carry both a sentence for a toast and — where a form
+ * submitted the write — the per-field messages `lib/field-errors.ts` derived from the Zod parse. The
+ * types live here rather than beside the actions because a `"use server"` module may export only
+ * async functions.
+ *
+ * @see {@link CreateItemField} and {@link UpdateItemField} in `lib/item-schemas.ts`, which name the
+ * fields a failure may report on.
+ */
+
+/**
+ * What `updateItem` hands back.
+ *
+ * The success arm carries the whole item because the drawer holds it in client state and re-renders
+ * from what came back rather than re-fetching it.
  */
 export type UpdateItemResult =
     | { success: true; data: ItemDetailViewModel }
@@ -18,9 +31,10 @@ export type UpdateItemResult =
       };
 
 /**
- * What `createItem` hands back. The success arm carries the new item's id and nothing else: the
- * dialog's next move is to close and refresh the list behind it, and the cards it will re-fetch are
- * rendered on the server anyway — so a view model assembled here would only be thrown away.
+ * What `createItem` hands back.
+ *
+ * The success arm carries the new item's id and nothing else: the dialog closes and refreshes the
+ * listing behind it, which is a server component, so a view model assembled here would be discarded.
  */
 export type CreateItemResult =
     | { success: true; data: { id: string } }
@@ -31,24 +45,24 @@ export type CreateItemResult =
       };
 
 /**
- * What `deleteItem` hands back. There is nothing to return on success — the row is gone, and the
- * drawer's next move is to close — so the success arm carries no payload.
+ * What `deleteItem` hands back. The success arm carries no payload — the row is gone and the
+ * drawer's next move is to close.
  */
 export type DeleteItemResult = { success: true } | { success: false; error: string };
 
 /**
  * What `toggleItemFavorite` hands back: the state the row is now in, read back from the write.
  *
- * The caller sent the state it wanted, so this is not news to it in the ordinary case — but the star
- * is rendered from what came back rather than from what was asked for, so a write that lands
- * differently than expected cannot leave a filled star over an unfavourited row.
+ * @remarks
+ * The star renders from what came back rather than from what was asked for, so a write that lands
+ * differently than requested cannot leave a filled star over an unfavourited row.
  */
 export type ToggleItemFavoriteResult =
     { success: true; data: { isFavorite: boolean } } | { success: false; error: string };
 
 /**
- * What `toggleItemPin` hands back, for the same reason its neighbour above does: the pin is drawn
- * from the state that was written, never from the state that was asked for.
+ * What `toggleItemPin` hands back, drawn from the state that was written for the reason its
+ * neighbour above is.
  */
 export type ToggleItemPinResult =
     { success: true; data: { isPinned: boolean } } | { success: false; error: string };

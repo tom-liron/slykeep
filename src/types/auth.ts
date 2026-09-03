@@ -1,29 +1,38 @@
 /**
- * Shape of what an auth Server Action hands back to its form.
+ * The result contract between the sign-in Server Action and the form that calls it.
  *
- * Lives here rather than beside the actions because a `"use server"` module may only export async
- * functions — a plain constant in there is a build error, not a lint nit.
+ * `SignInForm` drives `signInAction` through `useActionState`, so this type is both what the form
+ * renders from and what the action must return on every path. It lives here rather than beside the
+ * action because a `"use server"` module may export only async functions, which leaves
+ * {@link EMPTY_AUTH_STATE} nowhere to sit.
  */
 export type AuthActionState = {
     error: string | null;
     /**
      * Per-field messages, set only for *format* problems — a malformed address, a missing field.
-     * A rejected credential never populates this: which of the two was wrong is exactly what the
-     * sign-in path refuses to reveal.
+     *
+     * @remarks
+     * A rejected credential never populates this: which of the two was wrong is what the sign-in
+     * path refuses to reveal.
      */
     fields?: { email?: string; password?: string };
     /**
-     * Echoed back so the form can repopulate the email field. React resets an uncontrolled form
-     * once its action resolves, so without this a mistyped password costs the user their address
-     * as well as their password.
+     * The submitted address, echoed back so the form can repopulate its email field.
+     *
+     * @remarks
+     * React resets an uncontrolled form once its action resolves, so a mistyped password costs the
+     * user their address as well without this.
      */
     email: string;
     /**
-     * Set when the credentials were correct but the address is unconfirmed. Distinct from `error`
-     * because the form does more than show a message in this case — it offers to resend the link,
-     * which needs a positive signal rather than a string comparison against the copy.
+     * Set when the credentials were correct but the address is unconfirmed.
+     *
+     * Distinct from `error` because the form does more than show a message here — it offers to
+     * resend the verification link, which needs a positive signal rather than a string comparison
+     * against the copy.
      */
     unverified?: boolean;
 };
 
+/** The state the form starts in, before the action has run. */
 export const EMPTY_AUTH_STATE: AuthActionState = { error: null, email: "" };

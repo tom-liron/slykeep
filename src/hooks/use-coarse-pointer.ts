@@ -5,14 +5,20 @@ import { useMediaQuery } from "./use-media-query";
 /**
  * Whether the primary pointer is a finger rather than a mouse.
  *
- * The same test the `pointer-coarse:` Tailwind variant compiles to, asked from JavaScript because
- * which editor to render at all is a decision CSS cannot make — see `useMediaQuery`.
+ * The item content editors choose their surface by this rather than by width: `CodeEditor` mounts
+ * monaco only for a fine pointer, and `ContentTextarea` takes over for a coarse one, because monaco
+ * is not usable for *writing* under a finger. Which component exists is a decision CSS cannot make,
+ * which is why the query is asked through {@link useMediaQuery} rather than expressed as a
+ * `pointer-coarse:` class.
  *
- * Not a width breakpoint: a touch laptop at 1440px has a finger on it and a mouse at 390px does not,
- * and what the editors need to know is whether the input is a finger. That is genuinely a different
- * question from how much room there is, which is why `FilePreview` asks about width instead — an
- * iPad has a coarse pointer and ample room for a page.
+ * @remarks
+ * Pointer type and available room are separate questions, and this hook answers only the first. A
+ * touch laptop at 1440px has a finger on it and a mouse at 390px does not, so a width breakpoint
+ * would get both wrong. `FilePreview` asks about width instead, because the question it has is how
+ * much room a page needs — an iPad has a coarse pointer and ample room.
  */
+
+/** The same test the `pointer-coarse:` Tailwind variant compiles to. */
 const COARSE_POINTER = "(pointer: coarse)";
 
 export function useCoarsePointer(): boolean {

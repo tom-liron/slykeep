@@ -3,6 +3,25 @@ import type { BillingCycle } from "@/config/marketing";
 import type { ContentType, IconName, ItemTypeName } from "./item-type";
 
 /**
+ * The presentation contracts of the whole application: every shape a page or component is allowed
+ * to render from.
+ *
+ * Nothing outside `server/` sees a Prisma record. The query modules read the database and hand their
+ * results to the builders in `server/view-models.ts`, which produce these types — nullable columns
+ * normalized into display-safe values, `DateTime` serialized to ISO strings, and the persisted half
+ * of an item type joined with its configured presentation. Pages and client components depend on
+ * this file instead of on the persistence layer, which is why a schema change does not reach the UI
+ * and why these models can be serialized across the server/client boundary.
+ *
+ * The models are many and narrow rather than few and wide, because each one is also the definition
+ * of what its query reads: list models carry no item bodies, and the search and sidebar models exist
+ * so the queries behind them stay cheap enough to run on every dashboard render. A new surface
+ * usually adds a model here and a builder beside it.
+ *
+ * @see `server/view-models.ts`, which is the only place these are constructed.
+ */
+
+/**
  * A persisted item type joined with its configured presentation. Built at the server boundary by
  * `toItemTypeViewModel`, which is where the untyped persisted `icon` is validated.
  */
@@ -18,13 +37,13 @@ export interface ItemTypeViewModel {
 }
 
 /**
- * Item data prepared for cards and lists, independent of the persistence layer.
+ * Item data prepared for cards and lists.
  *
- * The file pair and `createdAt` live here rather than only on the detail model because the file list
- * describes an item by its object — name, size, and the date it was uploaded — before anything has
- * been opened. They are three small scalars, not a body: the rule that list queries never read
- * `content` / `url` / `fileKey` is unchanged. Every non-FILE item carries the empty values, the same
- * way the detail model has always described an item whose content lives in a different column.
+ * @remarks
+ * The file pair and `createdAt` are here rather than only on the detail model because the file
+ * listing describes an item by its object — name, size and upload date — before anything has been
+ * opened. They are three small scalars, not a body: list queries still never read `content`, `url`
+ * or `fileKey`. Every non-FILE item carries the empty values.
  */
 export interface ItemSummaryViewModel {
     id: string;
@@ -35,8 +54,13 @@ export interface ItemSummaryViewModel {
     isPinned: boolean;
     /**
      * When the item's content last changed — what every listing sorts by and every card renders.
-     * Deliberately not `updatedAt`: that column also moves when the item is favourited or pinned,
-     * neither of which is an edit, so it has no reader outside the database.
+     *
+     * @remarks
+     * `Item` carries a second timestamp, `updatedAt`, which Prisma stamps automatically on every
+     * write to the row — a favourite or a pin toggle included. That makes it an answer to "when was
+     * this row last written" rather than "when did the content change", so nothing user-facing reads
+     * it. `editedAt` is set by hand on the two paths that change content, `createItem` and
+     * `updateItem`, which is what makes it safe to sort a recency listing by.
      */
     editedAt: string;
     createdAt: string;
@@ -50,17 +74,17 @@ export interface ItemSummaryViewModel {
 /**
  * A single item with everything the detail drawer renders on top of what its card already showed.
  *
- * It extends the summary rather than restating it, because the drawer opens over the card it was
- * clicked on and shows the same title, tags, and type alongside the body. The body is the reason
- * this type is separate at all: list queries deliberately never select `content` / `url`, so this is
- * the only item view model that carries one.
+ * It extends the summary because the drawer opens over the card it was clicked on and shows the same
+ * title, tags and type alongside the body. The body is what makes this type separate at all: list
+ * queries never select `content` or `url`, so this is the only item model that carries one.
  *
- * `content` and `url` are both present because which one holds the body is decided by the item's
- * content type — `itemType.contentType` says which to read, and the other is empty. A FILE item's
- * object is already described by the summary's `fileName` / `fileSize`; the R2 key is deliberately
- * absent everywhere: the drawer reads the object from `/api/files/<item id>`, which resolves the key
- * itself from a row it has already authorized, so sending one to the browser would only invite it
- * back as input.
+ * `content` and `url` are both declared because `itemType.contentType` decides which holds the body;
+ * the other is empty.
+ *
+ * @remarks
+ * A FILE item's R2 key is absent from every view model. The drawer reads the object from
+ * `/api/files/<item id>`, which resolves the key itself from a row it has already authorized, so
+ * sending one to the browser would only invite it back as input.
  */
 export interface ItemDetailViewModel extends ItemSummaryViewModel {
     content: string;
@@ -75,9 +99,9 @@ export interface ItemDetailViewModel extends ItemSummaryViewModel {
  * A collection reduced to what it takes to name one and submit it back: the drawer renders the name,
  * and the item forms preselect and post the id.
  *
- * Ids rather than names alone is what the membership editor needs — `ItemDetailViewModel.collections`
- * used to carry names only, which is enough to *show* where an item lives but not to check the boxes
- * for it, since a name is not what `ItemCollection` points at.
+ * @remarks
+ * The id is what the membership editor needs. A name is enough to show where an item lives, but it
+ * is not what `ItemCollection` points at.
  */
 export interface CollectionOptionViewModel {
     id: string;
@@ -99,6 +123,7 @@ export interface CollectionViewModel {
     dominantItemType: ItemTypeViewModel | null;
 }
 
+/** The signed-in account, as the sidebar, the account menu and the profile page render it. */
 export interface UserViewModel {
     id: string;
     name: string;
@@ -108,9 +133,8 @@ export interface UserViewModel {
 }
 
 /**
- * The dashboard's collection and item data are prepared as two independent view models, each by its
- * own server query module. Keeping them apart lets either half evolve without touching the other's
- * wiring on the page.
+ * The dashboard's collection half and item half, prepared as two independent models by two server
+ * query modules, so either can change without touching the other's wiring on the page.
  */
 export interface DashboardCollectionsViewModel {
     totalCollections: number;
@@ -127,10 +151,11 @@ export interface DashboardItemsViewModel {
 
 /**
  * An item type reduced to what a count display needs: its presentation, and how many items carry it.
- * Shared by the sidebar nav, the profile page's type breakdown, and a collection page's breakdown,
- * which ask the same question of different scopes and would otherwise keep identical shapes in step
- * by hand. What the count is *over* is the caller's: the first two count everything the user owns,
- * the collection page counts only what is in that collection.
+ *
+ * Shared by the sidebar nav, the profile page's type breakdown and a collection page's breakdown,
+ * which ask the same question of different scopes. What the count is *over* belongs to the caller:
+ * the first two count everything the user owns, the collection page counts only what is in that
+ * collection.
  */
 export interface ItemTypeCountViewModel {
     id: string;
@@ -145,6 +170,7 @@ export interface ItemTypeCountViewModel {
 
 export type SidebarItemTypeViewModel = ItemTypeCountViewModel;
 
+/** One collection as a sidebar navigation entry. */
 export interface SidebarCollectionViewModel {
     id: string;
     name: string;
@@ -158,11 +184,12 @@ export interface SidebarCollectionViewModel {
  * A collection as one compact row on `/favorites`: named, counted, dated, and coloured by the type
  * it mostly holds.
  *
- * Close to `SidebarCollectionViewModel` but not the same question. That one is a navigation entry —
- * it needs `isFavorite` because the sidebar splits favourites from recents, and it needs no date
- * because nothing there shows one. Here every row is a favourite by definition, so the flag would be
- * a constant, and the row does show a date. Narrower than `CollectionViewModel`, which additionally
- * derives the contained-type strip that only a card renders.
+ * @remarks
+ * Close to {@link SidebarCollectionViewModel} but answering a different question. That one is a
+ * navigation entry: it needs `isFavorite` because the sidebar splits favourites from recents, and it
+ * shows no date. Here every row is a favourite by definition, so the flag would be a constant, and
+ * the row does show a date. Narrower than {@link CollectionViewModel}, which additionally derives
+ * the contained-type strip only a card renders.
  */
 export interface FavoriteCollectionViewModel {
     id: string;
@@ -190,8 +217,8 @@ export type SidebarViewModel = SidebarNavViewModel & SidebarCollectionsViewModel
 /**
  * The profile page: who the account belongs to, when it was opened, and how much is in it.
  *
- * Read-only throughout — the account *actions* moved to the settings page, and `hasPassword` went
- * with them (see `AccountSettingsViewModel`).
+ * Read-only throughout. The account actions and the `hasPassword` flag they need belong to the
+ * settings page — see {@link AccountSettingsViewModel}.
  */
 export interface ProfileViewModel {
     user: UserViewModel;
@@ -203,27 +230,32 @@ export interface ProfileViewModel {
 
 /**
  * The settings page's account section: which of the two password bodies to render, and what the
- * delete confirmation needs to state before it destroys anything.
- *
- * `hasPassword` is deliberately a boolean rather than the hash it derives from. The page needs to
- * know only whether a password exists — a credentials account can change one, a GitHub-only account
- * has none to change — and the hash itself must never leave the server boundary.
+ * delete confirmation has to state before it destroys anything.
  *
  * The two totals are here because the delete dialog names them ("42 items and 3 collections will be
- * deleted"), not because settings reports usage; that stayed on the profile page.
+ * deleted"), not because settings reports usage; that stays on the profile page.
+ *
+ * @remarks
+ * `hasPassword` is a boolean rather than the hash it derives from. The page needs to know only
+ * whether a password exists — a credentials account can change one, a GitHub-only account has none
+ * to change — and the hash must never leave the server boundary.
  */
 export interface AccountSettingsViewModel {
     email: string;
     hasPassword: boolean;
     /**
-     * Whether a subscription stands in the way of deleting this account — the question the delete
-     * dialog actually asks. **Not** "is this account Pro": a subscriber who has cancelled keeps Pro
-     * until the period ends and can delete their account throughout, since no further charge is
-     * coming. Conflating the two locks that user in a loop that tells them to do what they have
-     * already done.
+     * Whether a subscription stands in the way of deleting this account: true only while a further
+     * charge is still coming.
      *
-     * Local state is enough to *draw* the choice; `hasBillableSubscription` asks Stripe and is the
-     * control.
+     * @remarks
+     * A narrower question than "is this account Pro", and the two must not be conflated. Someone who
+     * cancels through the Stripe portal keeps Pro until the period they paid for runs out, so they
+     * are `isPro: true` with nothing left to bill — and their account is perfectly deletable.
+     * Branching on `isPro` instead traps that person in a loop telling them to cancel what they have
+     * already cancelled.
+     *
+     * This flag is derived from local columns and is enough to *draw* the choice.
+     * `hasBillableSubscription` in `server/billing.ts` asks Stripe and is the control.
      */
     subscriptionBlocksDeletion: boolean;
     totalItems: number;
@@ -233,9 +265,11 @@ export interface AccountSettingsViewModel {
 /**
  * A collection as the command palette lists one: its name, and how many items are in it.
  *
- * Deliberately not `CollectionViewModel`. That model derives a dominant type and a contained-type
- * strip, which costs a join over every item in every collection — work the palette renders none of,
- * on a query that runs for every dashboard page view. The count here comes from `_count`.
+ * @remarks
+ * A separate model from {@link CollectionViewModel}, which the collection cards use, because the
+ * palette needs far less: that one derives a dominant type and a contained-type strip, which costs a
+ * join over every item in every collection, and the palette renders neither — on a query that runs
+ * for every dashboard page view. The count here comes from `_count` instead.
  */
 export interface SearchCollectionViewModel {
     id: string;
@@ -247,10 +281,11 @@ export interface SearchCollectionViewModel {
  * Everything the command palette searches, fetched once per dashboard render and matched entirely in
  * the browser.
  *
+ * @remarks
  * Items are full summaries rather than a reduced search shape because selecting one opens
- * `ItemDrawer`, which takes an `ItemSummaryViewModel` — a narrower row would have to be re-fetched
- * before the drawer could open on it. No item bodies: matching is on titles, descriptions, and tags
- * (`project-overview.md` §5).
+ * `ItemDrawer`, which takes an {@link ItemSummaryViewModel}; a narrower row would have to be
+ * re-fetched before the drawer could open on it. No item bodies: matching is on titles, descriptions
+ * and tags.
  */
 export interface SearchDataViewModel {
     items: ItemSummaryViewModel[];
@@ -260,10 +295,10 @@ export interface SearchDataViewModel {
 /**
  * Where a paginated listing currently is, and how far it goes.
  *
- * `totalCount` is the size of the whole result set, not of the page — it is what the header counts
- * ("42 items") and what `pageCount` was derived from, and a paginated query no longer has the full
- * set in hand to count it from. `page` is the *clamped* page: a request for a page past the end is
- * answered with the last one, so this never describes a window the query did not actually read.
+ * `totalCount` is the size of the whole result set rather than of the page — it is what a listing
+ * header counts ("42 items") and what `pageCount` derives from, neither of which a paginated query
+ * still has the rows to compute. `page` is the *clamped* page: a request past the end is answered
+ * with the last one, so this never describes a window the query did not read.
  */
 export interface PaginationViewModel {
     page: number;
@@ -275,12 +310,14 @@ export interface PaginationViewModel {
 /**
  * An item-type page, which has two shapes rather than one.
  *
- * A Pro-gated type opened by an account without Pro is not a missing page and not an empty one — it
- * is a page about a feature, so it carries the type and nothing else. A union rather than an
- * `items: []` with a `locked` flag beside it, because the alternative is a `pagination` describing a
- * query that was never run: the locked arm reads no items and counts none, and saying "0 items"
+ * A Pro-gated type opened by an account without Pro is neither a missing page nor an empty one — it
+ * is a page about a feature, so the locked arm carries the type and nothing else.
+ *
+ * @remarks
+ * A union rather than an `items: []` with a `locked` flag beside it: the locked arm reads no items
+ * and counts none, so a `pagination` there would describe a query that never ran, and "0 items"
  * would be a claim about this account's data rather than about its plan. The compiler enforces the
- * difference at the one place that renders it.
+ * difference at the one page that renders it.
  */
 export type ItemTypePageViewModel =
     | {
@@ -300,6 +337,7 @@ export interface CollectionsPageViewModel {
     pagination: PaginationViewModel;
 }
 
+/** One collection's page: the collection itself, a page of its items, and its type breakdown. */
 export interface CollectionPageViewModel {
     collection: CollectionViewModel;
     items: ItemSummaryViewModel[];
@@ -307,16 +345,18 @@ export interface CollectionPageViewModel {
     /**
      * How the collection's items divide by type, most numerous first. `collection.itemTypes` says
      * only *which* types are in there; this says how many of each, which is what the page's
-     * breakdown renders. Types with no items in the collection are absent rather than zero — unlike
-     * the sidebar and profile lists, which show every accessible type precisely so a zero is
-     * visible.
+     * breakdown renders.
+     *
+     * @remarks
+     * Types with no items in the collection are absent rather than zero — unlike the sidebar and
+     * profile lists, which show every accessible type so that a zero is visible.
      */
     itemTypeCounts: ItemTypeCountViewModel[];
 }
 
 /**
- * The settings page's billing panel, prepared at the server boundary from the columns the webhook
- * keeps in step with Stripe — so rendering it costs no Stripe round trip.
+ * The settings page's billing panel, prepared from the columns the Stripe webhook keeps in step, so
+ * rendering it costs no Stripe round trip.
  */
 export interface BillingViewModel {
     isPro: boolean;
@@ -325,9 +365,12 @@ export interface BillingViewModel {
     /** ISO string, like every other date here, or `null` on a free account. */
     currentPeriodEnd: string | null;
     /**
-     * Whether `currentPeriodEnd` is an expiry rather than a renewal. The portal cancels at period
-     * end by default, so a cancelled subscription stays entitling — and keeps a date — until it runs
-     * out; without this the panel would promise a renewal to someone who has already left.
+     * Whether `currentPeriodEnd` is an expiry rather than a renewal.
+     *
+     * @remarks
+     * The portal cancels at period end by default, so a cancelled subscription stays entitling — and
+     * keeps a date — until it runs out. Without this the panel would promise a renewal to someone
+     * who has already left.
      */
     cancelAtPeriodEnd: boolean;
     /** Whether a Stripe customer exists — the portal button has nothing to open without one. */
