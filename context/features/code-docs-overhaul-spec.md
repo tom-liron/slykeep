@@ -246,8 +246,13 @@ Three comments state things that are no longer true. They are documentation defe
 fixed by the pass that touches their file rather than taken separately:
 
 - `lib/r2.ts` cites `context/current-feature.md` for why the bucket is private. That file is reset
-  after every feature; the rationale is in `project-overview.md` §10, Phase 4.
-- `actions/items.ts` calls `Tag` rows "global and shared across users". Tags have carried `userId`
-  and `@@unique([userId, normalized])` since the tag-scoping migration.
+  after every feature; the rationale is in `project-overview.md` §10, Phase 4. **Part 2.**
+- ~~`actions/items.ts` calls `Tag` rows "global and shared across users".~~ **Done in part 1b.**
 - `lib/rate-limit.ts` describes itself as throttling "the auth endpoints" and refers to "the five
-  budgets". There are 11, covering uploads, checkout and the four AI actions.
+  budgets". There are 11, covering uploads, checkout and the four AI actions. **Part 2.**
+
+Expect more of these. Each pass has turned up defects that no list could have predicted, because
+they are only visible once a file's real consumers are read: part 1a found a header bound to the
+wrong symbol and a comment claiming four stat cards where the page renders two; part 1b found two
+orphaned doc blocks, where one symbol's description sat stranded above a different symbol, leaving
+the documented function with none. Fix them in the pass that finds them and name them in the commit.
