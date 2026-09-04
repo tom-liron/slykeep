@@ -17,9 +17,8 @@ import type { EditorPreferences } from "@/types/editor";
  * a schema beside the action because both directions matter.
  *
  * @remarks
- * A `Json` column has no shape — it holds what an earlier release wrote — so a retired theme, a
- * font size offered once, or a hand-edited row are all values a query can return, and none may
- * reach monaco.
+ * A `Json` column has no shape, so a query can return a value that does not match the current
+ * options — a theme absent from the catalog, a hand-edited row — and none may reach monaco.
  */
 
 /**
@@ -38,8 +37,8 @@ export const editorPreferencesSchema = z.object({
  * One stored field, or the default in its place.
  *
  * Field by field rather than one `safeParse` of the whole object, because those differ in exactly
- * the case this exists for: a row written before an option was retired parses every key except that
- * one, and validating the object as a unit would discard the user's other four settings with it.
+ * the case this exists for: when one stored value no longer matches its option set, the other four
+ * still parse, and validating the object as a unit would discard them along with it.
  */
 function pick<K extends keyof EditorPreferences>(
     key: K,
