@@ -9,14 +9,12 @@ import path from "node:path";
  * runs those automatically, and there is nothing to remember. `public/monaco/` is build output:
  * gitignored, never edited, rewritten whenever the installed version moves.
  *
- * Monaco used to load from jsdelivr, which meant several megabytes of third-party script executing
- * on this origin inside every authenticated session, with no integrity check — a compromise of the
- * CDN, or of the package it serves straight from npm, would have been arbitrary code running as the
- * signed-in user on the page where snippets are read and written.
+ * Serving monaco from this origin, rather than a CDN, keeps a compromise of that CDN or of the
+ * package it serves from ever running as third-party script inside an authenticated session — the
+ * editor sits on the page where snippets are read and written.
  *
- * It also settles the version question `CodeEditor`'s loader comment raises. The runtime and the
- * option types are no longer two pinned strings that have to be bumped together: they are the same
- * `node_modules/monaco-editor`, so they cannot drift at all.
+ * The editor's runtime and its option types come from the same installed `node_modules/monaco-editor`,
+ * so the two cannot drift out of step; see `CodeEditor`'s loader for how it points there.
  */
 
 const require = createRequire(import.meta.url);

@@ -11,24 +11,23 @@ import { PrismaClient } from "../src/generated/prisma-client/client";
  * Deletes every account except the demo user. Run with `npm run db:reset`, which follows it with
  * `prisma db seed` so the demo account comes back with the content `seed-data.ts` describes.
  *
- * What this is for: a development database accumulates half-finished test accounts — one per
- * registration flow tried, one per OAuth path, one left mid-verification — and each carries items
- * and collections that make "what does a new account see?" impossible to answer. Emptying it back to
- * one known account is how that question gets an answer again.
+ * Resets a development database that has accumulated half-finished test accounts — one per
+ * registration flow tried, one per OAuth path, one left mid-verification — each carrying items and
+ * collections that make "what does a new account see?" hard to answer. Emptying it back to one
+ * known account restores that.
  *
- * Deliberately does **not** delete the demo user and re-create it. The seed upserts that row on
- * email, so deleting it first would only churn its id for no gain — and the id is what any session
+ * Keeps the demo user's row rather than deleting and re-creating it: the seed upserts that row on
+ * email, so deleting it first would only churn its id for no gain, and the id is what any session
  * still open is holding.
  *
  * Guarded the way `verify-user.ts` is, and for a stronger reason: that script escalates one account,
  * this one destroys every account it is pointed at. `NODE_ENV` is not the guard — the risk lives in
  * `DATABASE_URL`, and running locally with production credentials in `.env` sails straight past any
- * environment check. So the target host is printed and confirmed interactively; `--yes` skips the
+ * environment check — so the target host is printed and confirmed interactively; `--yes` skips the
  * prompt for repeated local use.
  *
  * Everything owned by a deleted account goes with it through `onDelete: Cascade` — items,
- * collections, join rows, sessions, and OAuth accounts. Tags are global and have no owner, so they
- * are left behind, exactly as `deleteAccount` leaves them.
+ * collections, join rows, tags, sessions, and OAuth accounts.
  */
 
 if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
@@ -58,8 +57,8 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
 
 /**
  * Shows exactly which accounts are about to be destroyed, and on which host, then waits for
- * agreement. The list is read before the prompt rather than after it on purpose: "delete 2 accounts"
- * is not something anyone can meaningfully consent to, and one of them is usually the one the person
+ * agreement. The list is read before the prompt rather than after it: "delete 2 accounts" is not
+ * something anyone can meaningfully consent to, and one of them is usually the one the person
  * running this is signed in as.
  */
 async function confirm(doomed: { email: string; items: number; collections: number }[]) {

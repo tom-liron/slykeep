@@ -5,19 +5,16 @@ import { Resend } from "resend";
 /**
  * Resend transport smoke test. Run with `npm run email:test -- you@example.com`.
  *
- * Exists because `POST /emails` does not tell you whether an email will arrive. It answers `200`
- * with an id, the SDK's `error` comes back null, and the dashboard's API-log page shows a green
- * `200` — then the send can fail asynchronously with nothing in the response having hinted at it.
- * That gap is what made "email verification doesn't work" expensive to diagnose: the application
- * code looked correct because it *was* correct.
+ * Exists because `POST /emails` does not tell you whether an email will arrive: it answers `200`
+ * with an id and a null `error` even for a send that later fails, since the real outcome is
+ * asynchronous and only settles in the email's `last_event`.
  *
  * So this sends one email and then polls `GET /emails/:id` until `last_event` settles, turning an
  * asynchronous outcome into a synchronous verdict. Use it to prove the transport works *before*
  * trusting the registration flow, and again after changing `EMAIL_FROM`.
  *
- * Deliberately does not touch the database or the verification-token code. This tests one thing:
- * whether Resend can deliver mail from this account. Keeping it narrow is the point — a failure
- * here is never ambiguous about which layer broke.
+ * Does not touch the database or the verification-token code: it tests one thing, whether Resend
+ * can deliver mail from this account, so a failure here is never ambiguous about which layer broke.
  */
 
 const FROM = process.env.EMAIL_FROM ?? "DevStash <onboarding@resend.dev>";

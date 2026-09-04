@@ -13,8 +13,7 @@ import { sweepUnverifiedAccounts, UNVERIFIED_ACCOUNT_TTL_DAYS } from "../src/ser
  * than plain `tsx`. `src/server/unverified.ts` opens with `import "server-only"`, and that package
  * exists precisely to throw when it is loaded outside a server context — a script is one. Its
  * `exports` map answers the `react-server` condition with an empty module, which is the same escape
- * `vitest.server-only.ts` provides for the tests. Deleting the directive would have been the other
- * way to make this run, and the wrong one.
+ * `vitest.server-only.ts` provides for the tests.
  *
  * Prints the count and nothing else. It deletes rows that cannot sign in and own nothing, which is
  * why there is no confirmation prompt here where `scripts/clear-users.ts` has one.

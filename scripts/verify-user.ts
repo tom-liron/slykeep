@@ -15,21 +15,19 @@ import { identifierFor } from "../src/server/token-identifiers";
  * refuses those, and `onboarding@resend.dev` refuses every other recipient with a 403 (see
  * `src/lib/email.ts`), so there is otherwise no way to reach the app with a fresh account.
  *
- * Deliberately a *script* rather than anything the application can reach. A fallback inside
- * `sendVerificationEmail` — printing the link, auto-verifying in development — makes the app itself
- * dishonest: the feature reports success while the transport is broken, which is precisely how the
- * first attempt at this feature reached "done" without ever delivering an email. A developer
- * running a script against a dev database cannot cause that; nothing in the product changes.
+ * A *script* rather than anything the application can reach: an in-app fallback inside
+ * `sendVerificationEmail` — printing the link, auto-verifying in development — would make the app
+ * itself dishonest, reporting success while the transport is broken. A developer running a script
+ * against a dev database cannot cause that; nothing in the product changes.
  *
  * Guarding this properly matters more than it looks: the script bypasses email verification
  * entirely, so pointed at the wrong database it *is* a remote-verification vulnerability.
  *
- * `NODE_ENV` alone is not that guard, which was the flaw in the first version. The risk is not the
- * environment variable — it is `DATABASE_URL`. Running locally, where `NODE_ENV` is unset, with
- * production credentials in `.env` sails straight past an env check and verifies a production
- * account. So the target host is printed and confirmed interactively instead; `--yes` skips the
- * prompt for repeated local use, and the environment checks below still short-circuit the obvious
- * cases outright.
+ * `NODE_ENV` alone is not that guard: the risk is `DATABASE_URL`, and running locally — where
+ * `NODE_ENV` is unset — with production credentials in `.env` sails straight past an env check and
+ * verifies a production account. So the target host is printed and confirmed interactively
+ * instead; `--yes` skips the prompt for repeated local use, and the environment checks below still
+ * short-circuit the obvious cases outright.
  */
 
 if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
