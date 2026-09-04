@@ -83,9 +83,9 @@ export const CODE_LANGUAGES: readonly { value: string; label: string }[] = [
  *
  * Resolved through {@link toMonacoLanguage} first, so an item stored as `TS`, `Bash` or `py` finds
  * its option. A `null` return is the case the picker has to render as its own option — a language
- * typed before the list existed and not covered by an alias. An empty or whitespace-only language
- * is undeclared rather than unknown and also returns `null`; the caller tells the two apart by the
- * raw string.
+ * stored as free text that this list does not offer and no alias covers. An empty or whitespace-only
+ * language is undeclared rather than unknown and also returns `null`; the caller tells the two apart
+ * by the raw string.
  */
 export function findCodeLanguage(language: string): { value: string; label: string } | null {
     const id = toMonacoLanguage(language);
