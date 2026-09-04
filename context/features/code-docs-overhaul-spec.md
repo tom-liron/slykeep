@@ -14,9 +14,10 @@ separate feature and is already done.
 > `prototypes/`, the test suites and the trivial/clean root configs stay out. See
 > the **Part 4** section at the end of this spec.
 >
-> **Extended again 2026-09-03, after Part 3.** A senior review of Part 3's drawer components found
-> the passes were preserving *compressed investigation* — rejected layouts, screenshot
-> measurements, dead-`className` notes — where they should have kept only the surviving rule.
+> **Extended again 2026-09-03, after Part 3.** A close read of one Part 3 file
+> (`ItemDrawerToolbar.tsx`) found the passes were preserving *compressed investigation* — rejected
+> layouts, screenshot measurements, dead-`className` notes — where they should have kept only the
+> surviving rule.
 > `coding-standards.md` gained § *Conclusion, not investigation* in response. **Part 5 — the
 > re-sweep** re-reads every file Parts 1a–3 touched against that sharper bar, and runs **before
 > Part 4**. Order is now: Parts 1a–3 (done) → **Part 5** → Part 4.
@@ -286,8 +287,8 @@ the documented function with none. Fix them in the pass that finds them and name
 
 ## Part 5 — the re-sweep (added 2026-09-03, after Part 3)
 
-Part 3's first pass over the `items/` drawer components was reviewed by a senior reader and failed
-the standard: it understood each component correctly, then preserved the *investigation* —
+One Part 3 file, `ItemDrawerToolbar.tsx`, was read closely after the components pass and failed the
+standard: the pass understood each component correctly, then preserved the *investigation* —
 previous flex attempts, screenshot measurements, dead `className` explanations, stale-stylesheet
 diagnoses, "for several revisions", exact historical widths. A compressed lab notebook is still a
 lab notebook. `coding-standards.md` was sharpened in response (§ *Conclusion, not investigation*),
@@ -314,9 +315,11 @@ If no, the sentence goes. The constraint it was wrapped around stays, as one pre
 - **This is a reading pass, not a mechanical one.** The three checkers still gate every commit
   (`docs:comments-only`, `docs:links`, `npm test` / `lint` / `build`), but they cannot see the
   defect being fixed. Every header and every inline comment in the folder is read and tested.
-- **Bias hard toward deletion.** The failure mode is keeping too much, so when a sentence is
-  borderline — "is this a constraint or the story of a constraint?" — it goes. A genuine hazard
-  survives as one sentence; if it needs a paragraph, the paragraph is the tell.
+- **Understand broadly, document selectively.** The target is the minimum documentation that gives
+  a new developer the correct mental model and preserves the constraints they could realistically
+  break — not a record of everything known about the file. When a sentence is borderline — "is this
+  a constraint or the story of a constraint?" — it goes. A genuine hazard survives as one sentence;
+  if it needs a paragraph, the paragraph is the tell. Prefer 5 excellent lines to 40 accurate ones.
 - **Module headers**: strip any account of extraction, of what an old version did, or of what an
   old structure made hard. A header is identity, purpose, connections, and — only where a
   constraint needs it — one `@remarks` rule.
@@ -328,9 +331,9 @@ If no, the sentence goes. The constraint it was wrapped around stays, as one pre
 
 ### Done when
 
-Every file Parts 1a–3 touched has been re-read, and a senior reader picking any file at random
-finds documentation that reads as *the operating manual for the code that exists*, with no trace
-of how it got there.
+Every file Parts 1a–3 touched has been re-read, and a reader picking any file at random finds
+documentation that reads as *the operating manual for the code that exists*, with no trace of how
+it got there.
 
 ## Part 4 — the files outside `src/` (added 2026-09-03, after Part 2)
 
