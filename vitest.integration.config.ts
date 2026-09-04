@@ -8,10 +8,9 @@ import { defineConfig } from "vitest/config";
  * They need credentials, they take seconds rather than milliseconds, they mutate a real Stripe
  * account, a real database and a real R2 bucket, and they fail when the network does — none of
  * which belongs in the suite that runs on every change. `npm test` excludes them by filename, and
- * each is run on purpose by its own script: `npm run billing:test` and `npm run r2:test`. Both name
- * the file they run rather than letting the `include` glob pick up everything, because the two cost
- * very differently — the billing suite drives a whole subscription lifecycle through Stripe, which
- * is not a price worth paying to check that a bucket sweep still works.
+ * each runs via its own script — `npm run billing:test` and `npm run r2:test` — naming its file
+ * directly rather than letting the `include` glob pick up everything: the billing suite drives a
+ * whole subscription lifecycle through Stripe, too costly to pay just to check a bucket sweep.
  *
  * The aliases match the unit config exactly. `server-only` is the one that matters: the modules
  * under test are marked with it, and Node throws on importing that package outside a React Server

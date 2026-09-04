@@ -1,54 +1,50 @@
 import type { NextConfig } from "next";
 
 /**
- * Next sets this itself: `next dev` runs as development, `next build` and `next start` as
- * production. It is read here rather than passed in because the policy below has to be *stricter*
- * in production than the dev server can tolerate, and getting that backwards silently is worse than
- * either setting.
+ * Next.js build and runtime configuration.
+ *
+ * Sets the security headers every response carries — Content-Security-Policy, anti-framing and
+ * MIME-sniffing protection, referrer and permissions policy — plus the build-time flags this
+ * project relies on (React Compiler, disabled dev indicators). Read once by Next itself at build
+ * and dev-server startup; no application code imports it.
+ */
+
+/**
+ * True outside `next build` / `next start`. Read from the environment rather than passed in,
+ * because the policy below must be stricter in production than the dev server can run under.
  */
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 /**
- * What this origin is allowed to load and execute.
+ * Builds this origin's Content-Security-Policy header value.
  *
- * The layer that was missing. Two findings that reached production without it — an uploaded `.xml`
- * served inline, and monaco arriving from jsdelivr — were both "script we did not write, running as
- * the signed-in user on our origin", and both had to be fixed at their own source because nothing
- * bounded them here. Each is fixed; this is what catches the third one.
+ * Every directive reflects a specific thing this application does; nothing here is a general
+ * relaxation.
  *
- * Directive by directive, since every relaxation below is a specific thing this app does:
+ * - `default-src 'self'` is the floor everything unlisted falls back to, including `frame-src` —
+ *   which is what the drawer's PDF iframe needs, since it points at `/api/files/[id]`, same origin.
+ * - `object-src 'none'` and `base-uri 'self'` block plugin content and an injected `<base>` tag that
+ *   could re-point every relative URL on the page.
+ * - `frame-ancestors` is `'none'` everywhere except `/api/files/:path*`, which gets `'self'`. The
+ *   drawer's PDF iframe is same-origin and points at that route, and both halves of the framing
+ *   handshake must agree: the parent page's permission to frame (`default-src`, above) and the
+ *   framed response's own permission to be framed (`frame-ancestors`, here). The exception is
+ *   scoped to that one route because a page carries session state and UI — the entire clickjacking
+ *   surface — while a file response carries neither.
+ * - `form-action` names the two Stripe hosts: checkout and the billing portal redirect off this
+ *   origin, so both permitted destinations are pinned even though the calls are programmatic
+ *   rather than form submissions.
+ * - `img-src` allows GitHub's avatar host, for an OAuth account's profile picture. Every other
+ *   image this app renders is its own `/api/files/[id]`.
+ * - `script-src 'unsafe-inline'` is required by Next's own injected bootstrap and hydration
+ *   scripts. Removing it needs a nonce, which needs the proxy to rewrite every HTML response, and
+ *   costs the static rendering of `/welcome`, `/sign-in` and `/register`. `'unsafe-eval'` is
+ *   development-only, for React Fast Refresh; production carries neither it nor a websocket in
+ *   `connect-src`.
+ * - `worker-src` keeps `blob:` because monaco decides for itself whether to wrap its own worker in
+ *   a blob, independent of being served from this origin.
  *
- * - `default-src 'self'` — the floor. Everything unlisted falls here, including `frame-src`, which
- *   is what the drawer's PDF iframe needs (it points at `/api/files/[id]`, same origin).
- * - `object-src 'none'`, `base-uri 'self'` — no plugins, and no injected `<base>` that could
- *   re-point every relative URL on the page.
- * - `frame-ancestors` — the authenticated app may not be framed, so every page gets `'none'` and
- *   the `X-Frame-Options: DENY` below says the same thing for anything that predates CSP. The one
- *   exception is `/api/files/:path*`, which gets `'self'`, and it is a real bug fix rather than a
- *   relaxation for convenience: `'none'` and `DENY` forbid framing by *anyone*, the origin itself
- *   included, so the drawer's PDF iframe — same-origin, pointing at that very route — was refused
- *   by the browser and rendered as a broken-document box. The `default-src` note above covers the
- *   parent page's permission to frame; this is the other half of the handshake, which is the framed
- *   *response's* own say in who may frame it. Both halves have to agree and only one of them did.
- *
- *   Scoped to that route rather than loosened globally, because the two are not the same risk. A
- *   page carries UI and acts on a session, which is the entire clickjacking surface; that route
- *   carries a byte stream with neither. `'self'` also keeps the permission to our own origin — no
- *   other site gains anything. `SAMEORIGIN` accompanies it for the pre-CSP browsers `DENY` was
- *   there for.
- * - `form-action` names the two Stripe hosts because checkout and the billing portal are redirects
- *   *off* this origin. Belt and braces: the actions are called programmatically rather than by form
- *   submission, so this directive should not apply at all — but a redirect out of a Server Action
- *   POST is close enough to one that pinning the two permitted destinations costs nothing.
- * - `img-src` allows GitHub's avatar host, which is where an OAuth account's picture lives. Every
- *   other image this app shows is its own `/api/files/[id]`.
- * - `script-src 'unsafe-inline'` is the one real compromise, and it is Next's: the framework injects
- *   inline bootstrap and hydration scripts on every page. Removing it means a nonce, which means the
- *   proxy rewriting every HTML response — a bigger change than this batch, and one that costs the
- *   static rendering of `/welcome`, `/sign-in` and `/register`. `'unsafe-eval'` is development-only,
- *   where React Fast Refresh needs it; production gets neither it nor a websocket in `connect-src`.
- * - `worker-src` keeps `blob:` even though monaco is same-origin now: monaco decides for itself
- *   whether to wrap its worker in a blob, and that is not a decision worth pinning from out here.
+ * @param frameAncestors - `'none'` for the default policy, `'self'` for `/api/files/:path*`.
  */
 function contentSecurityPolicy(frameAncestors: "'none'" | "'self'"): string {
     return [
@@ -77,22 +73,22 @@ const nextConfig: NextConfig = {
                     { key: "Content-Security-Policy", value: contentSecurityPolicy("'none'") },
                     { key: "X-Frame-Options", value: "DENY" },
                     { key: "X-Content-Type-Options", value: "nosniff" },
-                    // Stripe and GitHub see that a request came from this app, and nothing else.
-                    // Every URL here that carries meaning carries it in the path — `/collections/
-                    // <id>`, `/items/<slug>` — and none of that belongs in a third party's logs.
+                    // Sends only the origin to a cross-origin request (Stripe, GitHub's avatar
+                    // host), never the full path — `/collections/<id>` and `/items/<slug>` carry
+                    // meaning that does not belong in a third party's logs.
                     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-                    // Nothing in this app asks for any of them, so nothing embedded in it should be
-                    // able to either.
+                    // Nothing in this app uses the camera, microphone, geolocation or payment APIs,
+                    // so nothing embedded in a page can claim them either.
                     {
                         key: "Permissions-Policy",
                         value: "camera=(), microphone=(), geolocation=(), payment=()",
                     },
                 ],
             },
-            // Second, and deliberately after the rule above: where two entries match the same path
-            // and set the same key, Next takes the last one. So this overrides exactly two headers
-            // on exactly this route, and every other header from the blanket rule — `nosniff`,
-            // `Referrer-Policy`, `Permissions-Policy` — still applies here untouched.
+            // Next takes the last matching header when two entries share a path and key, so this
+            // overrides only Content-Security-Policy and X-Frame-Options for this route; every
+            // other header from the blanket rule above (nosniff, Referrer-Policy, Permissions-Policy)
+            // still applies here.
             {
                 source: "/api/files/:path*",
                 headers: [

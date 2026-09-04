@@ -9,6 +9,16 @@ import type { ItemTypeName } from "../src/types/item-type";
 import { PrismaClient } from "../src/generated/prisma-client/client";
 import { DEMO_USER, SEED_COLLECTIONS } from "./seed-data";
 
+/**
+ * Database seed script, run by Prisma's seed hook (`prisma migrate dev`, `prisma db seed`) and by
+ * `npm run db:reset`.
+ *
+ * Writes the seven system `ItemType` rows from `config/item-type-catalog.ts`, then — unless
+ * `--types-only` is passed — the demo user and its collections and items from `seed-data.ts`.
+ * `--types-only` is the one mode safe to run against a real deployment: item types are reference
+ * data every `Item` points at, while the demo user and its content are development fixtures.
+ */
+
 // The seed runs under the CLI, so it uses the same direct connection migrations do.
 const connectionString = process.env.DIRECT_URL;
 
@@ -24,10 +34,10 @@ const PASSWORD_ROUNDS = 12;
  * Seeds the seven system item types. The catalog is the source of truth for their icon and color;
  * this is the only place those flow into the database.
  *
- * Deliberately not an `upsert`: upsert would have to match on `@@unique([name, userId])`, and for
- * system types `userId` is NULL — which Postgres treats as distinct from every other NULL, so the
- * match never hits and every run inserts a fresh duplicate set. Reading first and updating by `id`
- * sidesteps that. The partial unique index in the `init` migration is the backstop.
+ * Reads then writes rather than upserting: an `upsert` matches on `@@unique([name, userId])`, and
+ * system rows have `userId: null` — Postgres treats every NULL as distinct in a unique index, so
+ * the match never hits and each run would insert a fresh duplicate set. See the `ItemType` model in
+ * `prisma/schema.prisma` for the partial index that backstops this.
  */
 async function seedSystemItemTypes(): Promise<Record<ItemTypeName, string>> {
     const ids = {} as Record<ItemTypeName, string>;

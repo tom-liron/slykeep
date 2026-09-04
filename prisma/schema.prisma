@@ -51,10 +51,9 @@ model User {
   // theme. One JSON column rather than five scalar ones — none of it is ever queried, filtered, or
   // joined on, and every future preference would otherwise be another migration.
   //
-  // Null until the user changes something, which is what keeps the defaults in one place: the app's,
-  // in `src/lib/editor-preferences.ts`, rather than half here as column defaults. Nothing trusts the
-  // stored shape — it is validated on the way out, since a JSON column can hold anything an older
-  // release wrote into it.
+  // Null until the user changes something, which keeps the defaults in one place — the app's, in
+  // `src/lib/editor-preferences.ts` — rather than half here as column defaults. Nothing trusts the
+  // stored shape: it is validated on the way out, since a JSON column can hold any shape at all.
   editorPreferences Json?
 
   // Relations
@@ -134,10 +133,9 @@ model Item {
   language    String? // optional, for code highlighting
   isFavorite  Boolean     @default(false)
   isPinned    Boolean     @default(false)
-  // When the item was pinned, so the dashboard's Pinned section can show the newest pin first.
-  // Null exactly when `isPinned` is false — `toggleItemPin` writes both together, which is the same
-  // write-boundary rule `contentType` follows rather than a constraint the schema can state.
-  // Without it that section orders by `editedAt`, and pinning an old item drops it to the bottom.
+  // When the item was pinned; the dashboard's Pinned section orders by this so the newest pin shows
+  // first. Null exactly when `isPinned` is false — `toggleItemPin` writes both together, the same
+  // write-boundary rule `contentType` follows rather than a constraint the schema can enforce.
   pinnedAt    DateTime?
 
   // Relations
@@ -150,11 +148,10 @@ model Item {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  // Moves only when the item's *content* changes: `updateItem` writes it by hand, a create gets it
-  // from the default, and nothing else touches it. Deliberately not `@updatedAt` — that is what
-  // `updatedAt` above is, and being Prisma-managed is exactly why that column also moves on the
-  // favourite and pin toggles. Every recency listing orders by this one instead: starring a
-  // year-old snippet is not editing it.
+  // Moves only when the item's *content* changes: `updateItem` writes it by hand, a create takes
+  // the default, and nothing else touches it. `updatedAt` above is Prisma-managed and moves on
+  // every write to the row, a favourite or pin toggle included, so every recency listing orders by
+  // `editedAt` instead — starring a year-old snippet is not editing it.
   editedAt  DateTime @default(now())
 
   @@index([userId])
@@ -262,14 +259,13 @@ model Tag {
   // one row, which makes "this user's tags" a question the database cannot answer — so tag
   // autocomplete cannot be built without leaking the names other accounts have coined.
   //
-  // `onDelete: Cascade`, so a deleted account takes its tags with it. Under the old global model
-  // they had no owner and were deliberately left behind; now they have one.
+  // `onDelete: Cascade`, so a deleted account takes its tags with it.
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // The identity of a tag: one `react` per account, whatever case it was typed in. Case folding is
-  // deliberately the *only* collapsing done — `react` and `reactjs` are different strings with no
-  // mechanical way to tell they mean the same thing, and guessing is worse than not trying.
+  // the only collapsing done — `react` and `reactjs` remain different strings; nothing here can
+  // tell they mean the same thing.
   @@unique([userId, normalized])
   @@index([userId])
   @@map("tags")

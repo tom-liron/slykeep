@@ -42,9 +42,9 @@ export const DEMO_USER = {
  * so the account would open already in a state its own plan does not allow — and "create a
  * collection" would fail for a reason that looks like a bug rather than the tier working.
  *
- * Sitting exactly *at* the collection cap is deliberate: the usage meter reads 3 / 3 on first load
- * and the next create is refused, which is the behaviour worth seeing without having to build up to
- * it. The item count is well under fifty, so items are the half that still has room.
+ * The count sits exactly *at* the collection cap: the usage meter reads 3 / 3 on first load and the
+ * next create is refused, showing the tier's behaviour without needing to be built up to. The item
+ * count stays well under fifty, so items are the half that still has room.
  */
 export const SEED_COLLECTIONS: SeedCollection[] = [
     {
