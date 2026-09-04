@@ -21,9 +21,9 @@ import type {
  * dominant type, contained types and counts are computed here.
  *
  * A rule that more than one surface has to agree on belongs in this module rather than in the query
- * that happens to need it first — {@link requireItemType} and {@link buildCollectionSummary} exist
- * because the sidebar, the favourites list and the collection cards were each deriving the same
- * values, and disagreeing about the edge cases.
+ * that happens to need it first: {@link requireItemType} and {@link buildCollectionSummary} are the
+ * shared derivations the sidebar, the favourites list and the collection cards all build on, so the
+ * dominant-type and item-type edge cases resolve the same way for each.
  *
  * @remarks
  * Inputs are declared structurally rather than against Prisma's generated types, so these rules stay

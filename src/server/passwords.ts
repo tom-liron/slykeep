@@ -29,8 +29,8 @@ export const PASSWORD_HASH_ROUNDS = 12;
  * that a miss spends the same time hashing as a hit.
  *
  * @remarks
- * Returning early on a missing account leaks which addresses are registered: the miss answers in
- * roughly 70ms and the hit in roughly 550ms, which is a stopwatch away from an account list.
+ * Returning early on a missing account leaks which addresses are registered: the miss skips bcrypt
+ * entirely and answers far sooner than a hit, a gap a stopwatch resolves into an account list.
  * Regenerate this at {@link PASSWORD_HASH_ROUNDS} if that factor changes — a mismatch is invisible
  * to the test suite and reopens the leak.
  */

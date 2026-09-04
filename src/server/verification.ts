@@ -29,9 +29,8 @@ import {
  * *verification* token posted to the reset route would let anyone who can receive that email set a
  * password on the account. Every read and delete below is scoped to one prefix for that reason.
  *
- * Both purposes carry an explicit prefix, including the older one. A purpose that is "the absence of
- * a prefix" has to exclude each new kind of token by name, and forgetting is silent cross-purpose
- * acceptance.
+ * Both purposes carry an explicit prefix. A purpose that is "the absence of a prefix" would have to
+ * exclude each new kind of token by name, and forgetting is silent cross-purpose acceptance.
  *
  * @see {@link IDENTIFIER_PREFIX} in `./token-identifiers`, which the maintenance scripts share.
  */
