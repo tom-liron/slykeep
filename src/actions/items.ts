@@ -88,7 +88,7 @@ async function touchCollections(collectionIds: readonly string[], userId: string
  *
  * @remarks
  * `Tag` is scoped per account, so the compound unique is the whole scoping guarantee at the write
- * boundary — a bare `{ name }` no longer identifies a row, and would connect whichever account's tag
+ * boundary — a bare `{ name }` does not identify a row, and would connect whichever account's tag
  * matched first. Curried over `userId` so neither call site can forget to pass it.
  */
 const tagRef = (userId: string) => (name: string) => ({
