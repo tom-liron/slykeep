@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import { isFileItemTypeName, validateUpload } from "@/lib/file-constraints";
 import { canAccessItemType } from "@/lib/limits";
-import { buildObjectKey, putObject } from "@/lib/r2";
-import { checkRateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { buildObjectKey, putObject } from "@/server/infra/r2";
+import { checkRateLimit, tooManyRequests } from "@/server/infra/rate-limit";
 import { getCurrentUser } from "@/server/current-user";
 
 /**

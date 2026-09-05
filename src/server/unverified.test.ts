@@ -36,7 +36,7 @@ const db = vi.hoisted(() => ({
     lastWhere: null as UserWhere | null,
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/server/infra/prisma", () => ({
     prisma: {
         user: {
             deleteMany: ({ where }: { where: UserWhere }) => {

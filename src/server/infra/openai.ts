@@ -10,8 +10,8 @@ import OpenAI from "openai";
  * `lib/ai-*.ts` modules; this file owns only the connection.
  *
  * @remarks
- * `import "server-only"` because `lib/` is client-reachable — components import `@/lib/format` and
- * `@/lib/utils` — and `OPENAI_API_KEY` must never reach a browser bundle.
+ * `import "server-only"` so `OPENAI_API_KEY` can never reach a browser bundle; every module in
+ * `server/infra/` carries the directive.
  */
 
 /**

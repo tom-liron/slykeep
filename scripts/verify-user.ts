@@ -13,7 +13,7 @@ import { identifierFor } from "../src/server/token-identifiers";
  * A development stand-in for clicking the link, needed for any test account whose address is not
  * the Resend account owner's own: registration creates users with `emailVerified` null, `authorize`
  * refuses those, and `onboarding@resend.dev` refuses every other recipient with a 403 (see
- * `src/lib/email.ts`), so there is otherwise no way to reach the app with a fresh account.
+ * `src/server/infra/email.ts`), so there is otherwise no way to reach the app with a fresh account.
  *
  * A *script* rather than anything the application can reach: an in-app fallback inside
  * `sendVerificationEmail` — printing the link, auto-verifying in development — would make the app

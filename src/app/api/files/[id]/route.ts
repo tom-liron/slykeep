@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isInlineDisposition } from "@/lib/file-preview";
-import { getObject } from "@/lib/r2";
+import { getObject } from "@/server/infra/r2";
 import { getItemFile } from "@/server/items";
 
 /**

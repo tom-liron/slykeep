@@ -8,8 +8,8 @@ import type { NextAuthConfig } from "next-auth";
  *
  * The configuration is split in two because `src/proxy.ts` runs on the edge runtime and imports
  * *this* file rather than `auth.ts`. The Prisma client is generated with `runtime = "nodejs"` and
- * `lib/prisma.ts` is `server-only`, so pulling the adapter into the proxy's module graph breaks the
- * build; keeping the adapter out is what this file is for. `auth.ts` spreads this configuration and
+ * `server/infra/prisma.ts` is `server-only`, so pulling the adapter into the proxy's module graph
+ * breaks the build; keeping the adapter out is what this file is for. `auth.ts` spreads this configuration and
  * adds the adapter, the JWT callbacks and the real credentials check on top.
  *
  */

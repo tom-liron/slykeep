@@ -5,9 +5,9 @@ import { z } from "zod";
 
 import { priceIdFor } from "@/config/billing";
 import type { BillingCycle } from "@/config/marketing";
-import { appOrigin } from "@/lib/app-origin";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { stripe } from "@/lib/stripe";
+import { appOrigin } from "@/server/infra/app-origin";
+import { checkRateLimit } from "@/server/infra/rate-limit";
+import { stripe } from "@/server/infra/stripe";
 import { getOrCreateCustomerId } from "@/server/billing";
 import { getCurrentUserId } from "@/server/current-user";
 import type { BillingActionResult } from "@/types/billing";

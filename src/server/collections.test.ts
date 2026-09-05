@@ -66,7 +66,7 @@ vi.mock("./current-user", () => ({
     getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true }),
 }));
 
-vi.mock("@/lib/prisma", () => {
+vi.mock("@/server/infra/prisma", () => {
     // Filters only on the keys actually present, the way Prisma does. That is what makes the
     // ownership tests load-bearing: drop `userId` from a query and this starts matching on the rest
     // alone, handing back the other user's rows rather than quietly missing.

@@ -4,7 +4,7 @@ import { DASHBOARD_COLLECTIONS_LIMIT, SIDEBAR_RECENT_COLLECTIONS_LIMIT } from "@
 import { COLLECTIONS_PER_PAGE, ITEMS_PER_PAGE } from "@/config/pagination";
 import { Prisma } from "@/generated/prisma-client/client";
 import { buildPagination, paginationSkip } from "@/lib/pagination";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import type {
     CollectionOptionViewModel,
     CollectionPageViewModel,

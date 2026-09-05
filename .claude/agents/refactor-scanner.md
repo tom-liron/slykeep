@@ -234,7 +234,7 @@ Look for:
 - Repeated **session-check → 401** blocks.
 - Repeated **request parsing + Zod validation + 400 shaping**, where the error body is built the same way each time.
 - Repeated **`NextResponse.json` error shapes** — the same `{ error: … }` with the same status, hand-built per route → a small `lib/api-responses.ts` (pure, no secrets, so `lib/` is the right home).
-- Repeated **rate-limit invocation** of `lib/rate-limit.ts` with the same window and the same 429 response.
+- Repeated **rate-limit invocation** of `server/infra/rate-limit.ts` with the same window and the same 429 response.
 - Repeated **ownership lookups** already available from `src/server/`.
 
 Keep the split rule intact: a route exists because the caller needs the HTTP status. Never propose turning a route handler into a Server Action.

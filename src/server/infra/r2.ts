@@ -20,14 +20,14 @@ import {
  * that was chosen over a public bucket with presigned URLs.
  *
  * @remarks
- * `import "server-only"` because `lib/` is client-reachable and the R2 credentials must never reach
- * a browser bundle. The directive turns a mistaken client import into a build error.
+ * `import "server-only"` so the R2 credentials can never reach a browser bundle; every module in
+ * `server/infra/` carries the directive, which turns a mistaken client import into a build error.
  */
 
 /**
  * The S3 client, built on first use so importing this module cannot throw. A build, a unit test and
  * any page reaching the same bundle would otherwise need R2 credentials present just to type-check —
- * the same reason `redisClient()` in `lib/rate-limit.ts` defers its construction.
+ * the same reason `redisClient()` in `rate-limit.ts` defers its construction.
  */
 let client: S3Client | null = null;
 

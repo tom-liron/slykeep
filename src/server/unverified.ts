@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 
 /**
  * The rule for which abandoned registrations may be deleted, and the sweep that deletes them.

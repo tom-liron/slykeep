@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import type { SearchDataViewModel } from "@/types/view-models";
 import { getCurrentUserId } from "./current-user";
 import { ITEM_SUMMARY_SELECT, toItemSummaries } from "./items";

@@ -14,7 +14,7 @@
         "format": "prettier --write .",
         "test": "vitest run",
         "billing:test": "vitest run --config vitest.integration.config.ts src/server/billing.integration.test.ts",
-        "r2:test": "vitest run --config vitest.integration.config.ts src/lib/r2.integration.test.ts",
+        "r2:test": "vitest run --config vitest.integration.config.ts src/server/infra/r2.integration.test.ts",
         "postinstall": "prisma generate",
         "db:migrate": "prisma migrate dev",
         "db:seed": "prisma db seed",

@@ -36,7 +36,7 @@ vi.mock("@/server/billing", () => ({
     },
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/server/infra/prisma", () => ({
     prisma: {
         user: {
             delete: () => {
@@ -52,7 +52,7 @@ vi.mock("@/lib/prisma", () => ({
     },
 }));
 
-vi.mock("@/lib/r2", () => ({
+vi.mock("@/server/infra/r2", () => ({
     deleteUserObjects: (userId: string) => {
         calls.log.push(`r2:${userId}`);
 

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { resetPasswordSchema } from "@/lib/auth-schemas";
-import { prisma } from "@/lib/prisma";
-import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
+import { prisma } from "@/server/infra/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/server/infra/rate-limit";
 import { hashPassword } from "@/server/passwords";
 import { checkPasswordResetToken, consumePasswordResetToken } from "@/server/verification";
 

@@ -34,7 +34,7 @@ const api = vi.hoisted(() => ({
     update: vi.fn(),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/server/infra/prisma", () => ({
     prisma: {
         user: {
             findUnique: db.findUnique,
@@ -44,7 +44,7 @@ vi.mock("@/lib/prisma", () => ({
     },
 }));
 
-vi.mock("@/lib/stripe", () => ({
+vi.mock("@/server/infra/stripe", () => ({
     stripe: () => ({
         subscriptions: { list: api.list, cancel: api.cancel },
         customers: {

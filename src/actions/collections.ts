@@ -10,7 +10,7 @@ import {
 } from "@/lib/collection-schemas";
 import { fieldFailure } from "@/lib/field-errors";
 import { FREE_COLLECTION_LIMIT, canCreateCollection } from "@/lib/limits";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import { isRecordNotFound } from "@/server/prisma-errors";
 import type {

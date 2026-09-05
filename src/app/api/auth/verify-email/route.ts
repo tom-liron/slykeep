@@ -1,9 +1,9 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { sendVerificationEmail } from "@/lib/email";
-import { prisma } from "@/lib/prisma";
-import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
+import { sendVerificationEmail } from "@/server/infra/email";
+import { prisma } from "@/server/infra/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/server/infra/rate-limit";
 import { createVerificationToken, verifyEmailToken } from "@/server/verification";
 
 /**

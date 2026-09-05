@@ -40,7 +40,7 @@ vi.mock("./current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
 }));
 
-vi.mock("@/lib/prisma", () => {
+vi.mock("@/server/infra/prisma", () => {
     // Filters on the keys actually present, the way Prisma does — which is what makes the ownership
     // tests load-bearing rather than decorative.
     const byOwner = <T extends { userId: string }>(rows: T[], where: { userId?: string }) =>

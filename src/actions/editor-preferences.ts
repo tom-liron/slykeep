@@ -1,7 +1,7 @@
 "use server";
 
 import { editorPreferencesSchema } from "@/lib/editor-preferences";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import { getCurrentUserId } from "@/server/current-user";
 import type { EditorPreferencesResult } from "@/types/editor";
 

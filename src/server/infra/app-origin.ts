@@ -12,10 +12,10 @@ import "server-only";
  * Throws rather than falling back to a default: every caller is building a URL that is sent into an
  * email or handed to Stripe, where a wrong origin sends a user to someone else's deployment, so
  * failing the send is the safer outcome. `NEXTAUTH_URL` is read as a fallback because Auth.js
- * accepts both names; `.env.example` documents `AUTH_URL`. It lives in `lib/` under `server-only`
- * alongside `stripe.ts`, `r2.ts`, `openai.ts`, `rate-limit.ts` and `email.ts`, which also read
- * `process.env` there; `server/` is the read-side query layer, and this is neither a query nor a
- * view model.
+ * accepts both names; `.env.example` documents `AUTH_URL`. It sits in `server/infra/` with the
+ * other modules that read `process.env` for a server-side integration — `stripe.ts`, `r2.ts`,
+ * `openai.ts`, `rate-limit.ts` and `email.ts` — rather than in `lib/`, which stays importable from
+ * client components.
  */
 export function appOrigin(): string {
     const url = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;

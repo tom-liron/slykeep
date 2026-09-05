@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { registerSchema } from "@/lib/auth-schemas";
-import { sendVerificationEmail } from "@/lib/email";
-import { prisma } from "@/lib/prisma";
-import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
+import { sendVerificationEmail } from "@/server/infra/email";
+import { prisma } from "@/server/infra/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/server/infra/rate-limit";
 import { hashPassword } from "@/server/passwords";
 import { createVerificationToken } from "@/server/verification";
 
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
         // `emailSent` means "Resend accepted the request", which is weaker than it reads: delivery
         // is settled asynchronously, so a send that fails later still arrives here as `true`. With
         // `EMAIL_FROM` still on `onboarding@resend.dev` that is the *expected* case, not an edge
-        // one — see `src/lib/email.ts`. Closing the gap needs an `email.failed` webhook.
+        // one — see `src/server/infra/email.ts`. Closing the gap needs an `email.failed` webhook.
         let emailSent = true;
 
         try {

@@ -7,7 +7,7 @@ import { defineConfig, env } from "prisma/config";
  *
  * The CLI connects with `DIRECT_URL` (Neon's unpooled endpoint) because migrations open a
  * session-level connection that the PgBouncer pooler cannot serve. Prisma Client uses the pooled
- * `DATABASE_URL` instead — see `src/lib/prisma.ts`.
+ * `DATABASE_URL` instead — see `src/server/infra/prisma.ts`.
  */
 export default defineConfig({
     schema: "prisma/schema.prisma",

@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
 
 import { cycleForPriceId, priceIdFor } from "@/config/billing";
-import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { prisma } from "@/server/infra/prisma";
+import { stripe } from "@/server/infra/stripe";
 import { endBillingRelationship, hasBillableSubscription, syncSubscriptionState } from "./billing";
 
 /**

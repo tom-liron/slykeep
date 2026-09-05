@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import type {
     ItemTypeCountViewModel,
     ItemTypeViewModel,

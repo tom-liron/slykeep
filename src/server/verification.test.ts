@@ -16,7 +16,7 @@ type UserRow = { email: string; emailVerified: Date | null };
 
 const db = vi.hoisted(() => ({ tokens: [] as TokenRow[], users: [] as UserRow[] }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/server/infra/prisma", () => ({
     prisma: {
         // The real one takes lazily-executed PrismaPromises; the fakes below have already run by
         // the time this is called, so awaiting them is all that is left to do.

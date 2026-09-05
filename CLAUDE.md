@@ -62,8 +62,8 @@ Two things now prevent it:
   `.env.production.local` — and nothing else — so this name is inert, and `npm start` falls
   back to `.env` and a local production build runs against the development branch, which is what was
   always intended. Vercel is unaffected — it holds its own environment variables.
-- `src/lib/prisma.ts` refuses to open a connection whose URL names the production endpoint unless
-  `VERCEL` is set. `ALLOW_PRODUCTION_DB=1` is the deliberate override. The Prisma CLI does not import
+- `src/server/infra/prisma.ts` refuses to open a connection whose URL names the production endpoint
+  unless `VERCEL` is set. `ALLOW_PRODUCTION_DB=1` is the deliberate override. The Prisma CLI does not
   that module, so `db:deploy` against production still works.
 
 The rule this enforces is the one in the Neon section above: production is off-limits unless it is
@@ -77,6 +77,7 @@ This project follows a course, but has deliberately diverged from it where our o
 | Course | Here | Why |
 |--------|------|-----|
 | `src/lib/db/*.ts` | `src/server/*.ts` | Server-only query modules live in `server/`, guarded by `import "server-only"`. `lib/` is client-reachable (components import `@/lib/format`, `@/lib/utils`), so database access must not live there. |
+| `src/lib/prisma.ts`, `src/lib/stripe.ts`, `src/lib/r2.ts` | `src/server/infra/*.ts` | The same rule, applied to the integration clients rather than only to queries. `prisma`, `stripe`, `r2`, `openai`, `email`, `rate-limit` and `app-origin` all carry secrets and all import `server-only`, so they belong behind the server boundary. The rule this leaves has no exceptions: **`@/lib/*` is safe to import from anywhere; `@/server/*` is not.** An ESLint override on `src/lib/**` enforces it — that folder may not import `server-only` or `@/server/*`. |
 | Prisma records passed to components | `*ViewModel` types in `src/types/view-models.ts` | Presentation depends on view models, never on persistence shape. Query modules build them at the server boundary. |
 | `SKIP_EMAIL_VERIFICATION` env var | `npm run user:verify -- <email>` (`scripts/verify-user.ts`) | Same development capability — get a test account past the verification gate without an inbox — without a switch that can disable a security control in production. The lesson's flag sets `emailVerified` with no proof and is explicitly enabled on Vercel, which makes the column mean "verified, **or** an env var was set". The account-linking work the course reaches next depends on that column being trustworthy: with the flag reachable in production, an attacker registers `victim@x.com`, never confirms it, waits for the victim to sign in with GitHub, and auto-linking hands over the account. A script a developer runs against a dev database cannot do that. Registration here also does not hard-fail when a send is refused (the lesson's does) — the account is created and the UI says the email could not be sent, so the flag's other purpose does not apply either. |
 

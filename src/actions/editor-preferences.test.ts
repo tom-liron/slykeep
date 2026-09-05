@@ -40,7 +40,7 @@ vi.mock("@/server/current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/server/infra/prisma", () => ({
     prisma: {
         user: {
             update: (args: UpdateArgs) => {

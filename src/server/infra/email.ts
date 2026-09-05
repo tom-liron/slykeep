@@ -13,9 +13,9 @@ import { appOrigin } from "./app-origin";
  * synchronous refusal so the caller can tell the user.
  *
  * @remarks
- * `import "server-only"` because `lib/` is client-reachable and `RESEND_API_KEY` must never reach a
- * browser bundle. The client is built on first use so `next build` can evaluate this module without
- * the key present.
+ * `import "server-only"` so `RESEND_API_KEY` can never reach a browser bundle; every module in
+ * `server/infra/` carries the directive. The client is built on first use so `next build` can
+ * evaluate this module without the key present.
  */
 let client: Resend | null = null;
 

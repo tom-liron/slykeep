@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import {
     emailFrom,
     identifierFor,

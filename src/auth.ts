@@ -6,8 +6,8 @@ import bcrypt from "bcryptjs";
 
 import { EMAIL_UNVERIFIED_CODE, RATE_LIMITED_CODE } from "@/lib/auth-errors";
 import { signInSchema } from "@/lib/auth-schemas";
-import { prisma } from "@/lib/prisma";
-import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+import { prisma } from "@/server/infra/prisma";
+import { checkRateLimit, clientIp } from "@/server/infra/rate-limit";
 import { ABSENT_USER_HASH } from "@/server/passwords";
 import authConfig from "./auth.config";
 

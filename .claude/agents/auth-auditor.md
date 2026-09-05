@@ -56,7 +56,7 @@ Read every file in this list that exists; use Glob/Grep to catch anything new th
 | Account mutations | `src/actions/account.ts`, `src/actions/auth.ts` |
 | Profile | `src/app/(dashboard)/profile/**`, `src/server/profile.ts`, `src/server/current-user.ts` |
 | Validation | `src/lib/auth-schemas.ts`, `src/lib/auth-errors.ts` |
-| Email | `src/lib/email.ts` |
+| Email | `src/server/infra/email.ts` |
 | UI | `src/components/auth/**`, `src/app/(auth)/**` |
 | Schema | `prisma/schema.prisma` (User, Account, Session, VerificationToken) |
 

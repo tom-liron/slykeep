@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import type { UserViewModel } from "@/types/view-models";
 import { buildUserViewModel } from "./view-models";
 

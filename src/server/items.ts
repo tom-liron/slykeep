@@ -6,7 +6,7 @@ import { ITEMS_PER_PAGE } from "@/config/pagination";
 import { Prisma } from "@/generated/prisma-client/client";
 import { canAccessItemType } from "@/lib/limits";
 import { buildPagination, paginationSkip } from "@/lib/pagination";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import type {
     DashboardItemsViewModel,
     ItemDetailViewModel,

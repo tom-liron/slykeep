@@ -17,7 +17,7 @@ const db = vi.hoisted(() => ({
 
 const session = vi.hoisted(() => ({ user: { id: "user_1", email: "a@b.c", isPro: true } }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/server/infra/prisma", () => ({
     prisma: {
         user: { findUnique: db.findUnique },
         item: { count: db.itemCount },

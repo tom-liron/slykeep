@@ -3,8 +3,8 @@ import "server-only";
 import type Stripe from "stripe";
 
 import { ENTITLING_STATUSES, cycleForPriceId } from "@/config/billing";
-import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { prisma } from "@/server/infra/prisma";
+import { stripe } from "@/server/infra/stripe";
 import type { BillingViewModel } from "@/types/view-models";
 import { getCurrentUser } from "./current-user";
 
@@ -102,8 +102,8 @@ export async function syncSubscriptionState(customerId: string): Promise<void> {
         ENTITLING_STATUSES.has(subscription.status),
     );
 
-    // With the Stripe API version pinned in `lib/stripe.ts`, read `current_period_end` from the first
-    // subscription item; the Subscription root omits it.
+    // With the Stripe API version pinned in `server/infra/stripe.ts`, read `current_period_end` from
+    // the first subscription item; the Subscription root omits it.
     const periodEnd = active?.items.data[0]?.current_period_end;
     const priceId = active?.items.data[0]?.price.id ?? null;
 

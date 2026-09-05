@@ -61,7 +61,7 @@ vi.mock("@/server/items", () => ({
     getItemDetail: (id: string) => Promise.resolve({ id, title: "Renamed" }),
 }));
 
-vi.mock("@/lib/prisma", async () => {
+vi.mock("@/server/infra/prisma", async () => {
     const { Prisma } = await import("@/generated/prisma-client/client");
 
     type ItemWhere = { id?: string; userId?: string };

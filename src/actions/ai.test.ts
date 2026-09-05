@@ -30,12 +30,12 @@ vi.mock("@/server/current-user", () => ({
     getCurrentUser: () => Promise.resolve({ id: "user-1", isPro: state.isPro }),
 }));
 
-vi.mock("@/lib/rate-limit", () => ({
+vi.mock("@/server/infra/rate-limit", () => ({
     checkRateLimit: vi.fn(() => Promise.resolve(state.rateLimit)),
     minutesUntilReset: (reset: number) => Math.max(1, Math.ceil((reset - Date.now()) / 60_000)),
 }));
 
-vi.mock("@/lib/openai", () => ({
+vi.mock("@/server/infra/openai", () => ({
     AI_MODEL: "gpt-5-nano",
     openai: () => ({
         responses: {
@@ -52,7 +52,7 @@ vi.mock("@/lib/openai", () => ({
 
 const { generateAutoTags, generateDescription, explainCode, optimizePrompt } = await import("./ai");
 const { AI_OPTIMIZE_CONTENT_LIMIT } = await import("@/lib/ai-optimize");
-const { checkRateLimit } = await import("@/lib/rate-limit");
+const { checkRateLimit } = await import("@/server/infra/rate-limit");
 
 beforeEach(() => {
     state.isPro = true;

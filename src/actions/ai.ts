@@ -31,8 +31,8 @@ import {
 import { TAG_INSTRUCTIONS, buildTagInput, parseSuggestedTags } from "@/lib/ai-tags";
 import { AI_PAYLOAD_LIMIT } from "@/lib/ai-text";
 import { canUseAi } from "@/lib/limits";
-import { AI_MODEL, openai } from "@/lib/openai";
-import { type RateLimitName, checkRateLimit, minutesUntilReset } from "@/lib/rate-limit";
+import { AI_MODEL, openai } from "@/server/infra/openai";
+import { type RateLimitName, checkRateLimit, minutesUntilReset } from "@/server/infra/rate-limit";
 import { getCurrentUser } from "@/server/current-user";
 import type {
     ExplainCodeResult,
@@ -49,8 +49,8 @@ import type {
  * The boundary between the item UI and OpenAI. Buttons on the item forms and in the detail drawer
  * pass whatever is currently typed as an {@link ItemDraft}; each action authenticates the caller,
  * validates the draft, runs {@link guardAiRequest} (Pro gate, then rate limit), builds a prompt
- * through the matching `lib/ai-*.ts` module, calls the model through `lib/openai.ts`, and parses
- * the answer back with that module's parser.
+ * through the matching `lib/ai-*.ts` module, calls the model through `server/infra/openai.ts`, and
+ * parses the answer back with that module's parser.
  *
  * Server Actions rather than routes because no caller needs an HTTP status: it needs the answer, or
  * a sentence explaining its absence. Each prompt and its parsing lives in `lib/` so those rules are

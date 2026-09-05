@@ -78,7 +78,7 @@ vi.mock("next/cache", () => ({
     },
 }));
 
-vi.mock("@/lib/prisma", async () => {
+vi.mock("@/server/infra/prisma", async () => {
     const { Prisma } = await import("@/generated/prisma-client/client");
 
     // Filters only on the keys actually present, the way Prisma does. That is what makes the

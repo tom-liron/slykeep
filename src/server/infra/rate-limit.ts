@@ -22,8 +22,8 @@ import { NextResponse } from "next/server";
  * exists to stop. Upstash is the connectionless HTTP client that works from that runtime.
  *
  * @remarks
- * `import "server-only"` because `lib/` is client-reachable and the Upstash REST token must never
- * reach a browser bundle.
+ * `import "server-only"` so the Upstash REST token can never reach a browser bundle; every module
+ * in `server/infra/` carries the directive.
  */
 
 /**

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { parseEditorPreferences } from "@/lib/editor-preferences";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 import type { EditorPreferences } from "@/types/editor";
 import type { AccountSettingsViewModel, ProfileViewModel } from "@/types/view-models";
 import { getCurrentUser, getCurrentUserId } from "./current-user";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth, signOut } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/server/infra/prisma";
 
 /**
  * Clears a session whose user row no longer exists, then returns the visitor to the sign-in form.

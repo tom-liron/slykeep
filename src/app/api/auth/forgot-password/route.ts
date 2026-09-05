@@ -1,9 +1,9 @@
 import { after, NextResponse } from "next/server";
 
 import { forgotPasswordSchema } from "@/lib/auth-schemas";
-import { sendPasswordResetEmail, sendPasswordResetGitHubEmail } from "@/lib/email";
-import { prisma } from "@/lib/prisma";
-import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/rate-limit";
+import { sendPasswordResetEmail, sendPasswordResetGitHubEmail } from "@/server/infra/email";
+import { prisma } from "@/server/infra/prisma";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/server/infra/rate-limit";
 import { createPasswordResetToken } from "@/server/verification";
 
 /**

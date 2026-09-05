@@ -13,9 +13,9 @@ import { PrismaClient } from "@/generated/prisma-client/client";
  * `prisma.config.ts`). Next.js loads `.env` itself, so there is no dotenv call here.
  *
  * @remarks
- * `import "server-only"` because `lib/` is client-reachable and a database connection string must
- * never reach a browser bundle. Importing this module requires `DATABASE_URL`; unlike the lazy
- * integration clients, it validates that configuration during module evaluation.
+ * `import "server-only"` so a database connection string can never reach a browser bundle; every
+ * module in `server/infra/` carries the directive. Importing this module requires `DATABASE_URL`;
+ * unlike the lazy integration clients, it validates that configuration during module evaluation.
  */
 
 /** Neon's pooled connection URL, from `.env`. The adapter opens no connection without it. */

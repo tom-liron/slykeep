@@ -9,8 +9,8 @@ import Stripe from "stripe";
  * API — checkout sessions, the customer portal, subscription lookups.
  *
  * @remarks
- * `import "server-only"` because `lib/` is client-reachable — components import `@/lib/format` and
- * `@/lib/utils` — and the secret key must never reach a browser bundle.
+ * `import "server-only"` so the secret key can never reach a browser bundle; every module in
+ * `server/infra/` carries the directive.
  */
 
 /**

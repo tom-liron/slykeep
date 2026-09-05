@@ -12,8 +12,8 @@ import {
     type UpdateItemInput,
 } from "@/lib/item-schemas";
 import { FREE_ITEM_LIMIT, canAccessItemType, canCreateItem } from "@/lib/limits";
-import { prisma } from "@/lib/prisma";
-import { deleteObject, isOwnedKey } from "@/lib/r2";
+import { prisma } from "@/server/infra/prisma";
+import { deleteObject, isOwnedKey } from "@/server/infra/r2";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
 import { getItemDetail } from "@/server/items";
 import { isRecordNotFound } from "@/server/prisma-errors";

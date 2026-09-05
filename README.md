@@ -104,7 +104,7 @@ auto-linking hands over the account.
 **Local production runs cannot reach the production database.** `npm start` sets
 `NODE_ENV=production`, and Next then prefers `.env.production` — which once meant a local build was
 silently talking to the live database. That file is now named `.env.production.example` (inert to
-Next's loader), and `src/lib/prisma.ts` refuses a connection URL naming the production endpoint
+Next's loader), and `src/server/infra/prisma.ts` refuses a connection URL naming the production endpoint
 unless `VERCEL` is set.
 
 **"Recent" means last activity, not newest.** Collection membership is written as a nested write on
