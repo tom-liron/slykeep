@@ -7,13 +7,11 @@ import { renderedFontSize } from "@/lib/editor-metrics";
 import { cn } from "@/lib/utils";
 
 /**
- * The plain `<textarea>` writing surface that `MarkdownEditor` and `CodeEditor` both fall back to
- * on a coarse pointer.
+ * The plain `<textarea>` writing surface for `MarkdownEditor` and touch editing.
  *
- * One surface shared by both editors, bounded by the same two heights as monaco, set in the same
- * mono font at the same size, and wrapping according to the same editor preference — so an item
- * does not change shape depending on the pointer editing it. Reads the editor preferences from
- * `EditorPreferencesContext` and the pointer type from `useCoarsePointer`.
+ * `MarkdownEditor` uses it for its Write tab at every pointer type; editable `CodeEditor` uses it
+ * as the coarse-pointer fallback. Both editors share its height, font, wrapping, and preference
+ * behavior.
  */
 
 /** The scroll-panel classes both editors share, so a note and a snippet sit in the drawer with

@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The centered eyebrow / heading / sub block that opens the features and pricing sections.
- * `children` is for anything that hangs off the bottom of it — the billing toggle, so far.
+ * Centered heading block for the `/welcome` page's features and pricing sections.
+ *
+ * `FeatureGrid` and `PricingPlans` supply their section copy; `children` holds the billing-cycle
+ * toggle. `Hero` and `AiSection` use their own heading treatments.
  */
 export function SectionHeading({
     eyebrow,

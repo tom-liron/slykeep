@@ -13,8 +13,9 @@ import { NextResponse } from "next/server";
  * rows on `register`, Resend messages on the two that mail a link. The rest — `POST /api/upload`,
  * the Stripe checkout action, and the four AI actions — are behind the session, so what they bound
  * is spend rather than anonymity: paid storage, Stripe records, OpenAI calls. `checkRateLimit`
- * spends one token per call and reports what is left; the JSON routes turn a refusal into
- * {@link tooManyRequests}.
+ * spends one token per call and reports what is left. The Auth.js credentials provider turns a
+ * refusal into its error code; AI and billing Server Actions return their own failure values; JSON
+ * routes turn a refusal into {@link tooManyRequests}.
  *
  * Redis rather than process memory because this deploys serverless: instances are discarded per
  * request and never see each other's counters, so an in-process `Map` would reset under the load it

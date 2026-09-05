@@ -67,7 +67,8 @@ export function DeleteItemDialog({
             <AlertDialogTrigger asChild>
                 {/* The fifth control in the drawer's action row, built like the other four: same
                     `size`, same `title`/`aria-label` pair, same `ActionLabel`, so it shows "Delete"
-                    on a wide screen and drops to the icon alone below `sm` in step with them.
+                    on a wide screen and drops to the icon alone below 680px (`min-[42.5rem]`) in
+                    step with them.
 
                     Only the colour differs: `text-destructive` on the glyph and word, held through
                     hover. `hover:text-destructive` is required because the ghost variant's

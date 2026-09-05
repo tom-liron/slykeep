@@ -39,8 +39,8 @@ export function SidebarNav({
             {/* Scrollable nav */}
             <nav className="flex-1 overflow-y-auto p-2">
                 {/* Favorites, above both collapsible sections and outside them — a view across
-                    every type and collection, so it belongs under neither heading. It is the only
-                    way to /favorites on a phone, where the top bar's star is hidden. */}
+                    every type and collection, so it belongs under neither heading. The top-bar
+                    star is a second route to the same page at every width. */}
                 <Link
                     href="/favorites"
                     onClick={onNavigate}

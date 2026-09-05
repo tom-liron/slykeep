@@ -47,10 +47,10 @@ import type {
  * and prompt optimization.
  *
  * The boundary between the item UI and OpenAI. Buttons on the item forms and in the detail drawer
- * pass whatever is currently typed as an {@link ItemDraft}; each action validates it, runs
- * {@link guardAiRequest} (Pro gate, then rate limit), builds a prompt through the matching
- * `lib/ai-*.ts` module, calls the model through `lib/openai.ts`, and parses the answer back with
- * that module's parser.
+ * pass whatever is currently typed as an {@link ItemDraft}; each action authenticates the caller,
+ * validates the draft, runs {@link guardAiRequest} (Pro gate, then rate limit), builds a prompt
+ * through the matching `lib/ai-*.ts` module, calls the model through `lib/openai.ts`, and parses
+ * the answer back with that module's parser.
  *
  * Server Actions rather than routes because no caller needs an HTTP status: it needs the answer, or
  * a sentence explaining its absence. Each prompt and its parsing lives in `lib/` so those rules are
@@ -96,16 +96,14 @@ const itemDraftSchema = z.object({
 });
 
 /**
- * Everything that has to be true before a paid call is made, in the order it has to be true in.
+ * Shared entitlement and rate-limit gate for paid AI calls.
  *
  * @param feature - Names the thing in both messages, so it is a plural noun phrase: "AI *tag
  * suggestions* require a Pro subscription", "you have used all your *explanations*".
  *
  * @remarks
- * The order is the point. Authentication comes first and belongs to the caller, since all four
- * actions need the user for more than the guard. Validation next, so the entitlement check reads a
- * shape rather than a guess. **The Pro gate before the rate limit**, so a free account is refused
- * without spending a token out of a budget it was never entitled to use.
+ * Callers authenticate and validate before reaching this helper. It checks Pro entitlement before
+ * spending a rate-limit token, so a free account cannot exhaust a paid feature's budget.
  *
  * Shared by all four rather than written out each time: the order is invisible in the return value,
  * so a copy that reordered two lines would keep every test asserting only `success` green while
@@ -175,9 +173,7 @@ export async function generateAutoTags(input: ItemDraft): Promise<SuggestTagsRes
     if (!guard.ok) return { success: false, error: guard.error };
 
     try {
-        // The Responses API, not Chat Completions: `gpt-5-nano` returns empty content from
-        // `chat.completions.create()`, so the older call compiles, runs, costs money and yields
-        // nothing. `output_text` is where the body is.
+        // Use the Responses API; `output_text` carries the generated body.
         //
         // `json_object` rather than a Zod-backed structured schema — strict-schema mode spends a
         // great many tokens on this model and hits the length limit before finishing the answer, so

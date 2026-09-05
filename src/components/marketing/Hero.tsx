@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 export function Hero() {
     return (
         <header
-            // `-mt-16` pulls the box up under the fixed nav and the extra `4rem` of top padding
-            // puts the content back, so the hero starts at the top of the document. This lets the
+            // `-mt-16` pulls the box up under the sticky marketing bar and the extra `4rem` of top
+            // padding puts the content back, so the hero starts at the top of the document. This lets the
             // background glow sit behind the nav, which is what makes the nav read as glass —
             // `overflow-hidden` here clips the glow, so a hero starting at the nav's bottom edge
             // would leave nothing behind it to see through.

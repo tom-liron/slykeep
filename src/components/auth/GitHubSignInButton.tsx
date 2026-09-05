@@ -2,10 +2,9 @@ import { signInWithGitHub } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 
 /**
- * The GitHub logo, inline SVG.
+ * GitHub's brand mark as an inline SVG.
  *
- * Inline because lucide-react dropped its brand icons in v1, so there is no `Github` export — and
- * users look for the real logo on an OAuth button, not a generic glyph.
+ * Lucide has no GitHub brand icon; the OAuth control needs the provider's recognizable mark.
  */
 function GitHubMark() {
     return (
@@ -16,11 +15,10 @@ function GitHubMark() {
 }
 
 /**
- * A form rather than an onClick handler: the OAuth handshake starts with a redirect issued by the
- * server action, so there is nothing for the client to do and no reason to make this interactive.
+ * Shared GitHub OAuth control for the sign-in and registration pages.
  *
- * The form is also what carries `callbackUrl` to the action — a Server Action cannot see the URL of
- * the page that invoked it, so the value has to be submitted rather than read.
+ * Its form invokes the redirecting Server Action and carries an optional `callbackUrl`, which the
+ * action cannot infer from the invoking page.
  */
 export function GitHubSignInButton({ callbackUrl }: { callbackUrl?: string }) {
     return (

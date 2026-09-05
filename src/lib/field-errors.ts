@@ -3,10 +3,11 @@ import type { z } from "zod";
 /**
  * Turns a Zod parse failure into what a Server Action returns to a form.
  *
- * The item, collection, auth and account actions validate with the schemas in `lib/*-schemas.ts`;
- * on failure they call {@link fieldFailure} to get the `{ success: false, error, fields }` shape the
- * form contracts in `types/item.ts` and `types/collection.ts` expect. The form renders
- * `fields[name]` under each input and `error` in a toast.
+ * Item and collection actions call {@link fieldFailure} to build the
+ * `{ success: false, error, fields }` shape their form contracts expect. Auth and account actions
+ * call {@link fieldErrorsOf} directly, then wrap the result in their own action contracts. Item and
+ * collection forms show top-level errors in toasts; auth and account forms use their own inline
+ * failure states.
  *
  * @remarks
  * It lives in `lib/` rather than beside the actions because a `"use server"` module may only export

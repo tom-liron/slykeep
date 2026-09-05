@@ -18,6 +18,7 @@
 /** The font sizes the settings dropdown offers, in points. */
 export type EditorFontSize = 12 | 13 | 14 | 16 | 18;
 
+/** The tab widths the settings dropdown offers, in spaces. */
 export type EditorTabSize = 2 | 4 | 8;
 
 /**

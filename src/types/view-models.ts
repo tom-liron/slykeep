@@ -168,6 +168,7 @@ export interface ItemTypeCountViewModel {
     isPro: boolean;
 }
 
+/** Item-type count shaped specifically for a sidebar navigation entry. */
 export type SidebarItemTypeViewModel = ItemTypeCountViewModel;
 
 /** One collection as a sidebar navigation entry. */
@@ -212,6 +213,11 @@ export interface SidebarNavViewModel {
     user: UserViewModel;
 }
 
+/**
+ * Complete sidebar payload: navigation types and user plus favorite and recent collections.
+ *
+ * The dashboard layout builds it once and passes it to both sidebar renderings.
+ */
 export type SidebarViewModel = SidebarNavViewModel & SidebarCollectionsViewModel;
 
 /**

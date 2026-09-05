@@ -7,8 +7,7 @@ import { prisma } from "@/lib/prisma";
  * Clears a session whose user row no longer exists, then returns the visitor to the sign-in form.
  *
  * A JWT outlives the account it names — deleted from another device, or a dev database re-seeded —
- * and the token itself does not go stale (see the session-revocation entry in
- * `context/project-overview.md` §11). `getCurrentUser` in `src/server/current-user.ts` sends the
+ * and the token itself does not go stale. `getCurrentUser` in `src/server/current-user.ts` sends the
  * request here rather than throwing, because a server component cannot write a cookie and the
  * cleared cookie is the only thing that ends the redirect loop. This route can, and does the
  * sign-out.

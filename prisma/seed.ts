@@ -10,13 +10,14 @@ import { PrismaClient } from "../src/generated/prisma-client/client";
 import { DEMO_USER, SEED_COLLECTIONS } from "./seed-data";
 
 /**
- * Database seed script, run by Prisma's seed hook (`prisma migrate dev`, `prisma db seed`) and by
- * `npm run db:reset`.
+ * Prisma seed entry point for system item types and development demo content.
  *
- * Writes the seven system `ItemType` rows from `config/item-type-catalog.ts`, then — unless
- * `--types-only` is passed — the demo user and its collections and items from `seed-data.ts`.
- * `--types-only` is the one mode safe to run against a real deployment: item types are reference
- * data every `Item` points at, while the demo user and its content are development fixtures.
+ * Prisma's seed hook and `npm run db:reset` run this script. It synchronizes the catalog-backed
+ * system types, then creates the fixtures in `seed-data.ts` unless `--types-only` is supplied.
+ *
+ * @remarks
+ * `--types-only` omits demo content but still writes reference data; it is not a production-access
+ * override.
  */
 
 // The seed runs under the CLI, so it uses the same direct connection migrations do.
@@ -31,13 +32,11 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
 const PASSWORD_ROUNDS = 12;
 
 /**
- * Seeds the seven system item types. The catalog is the source of truth for their icon and color;
- * this is the only place those flow into the database.
+ * Synchronizes system item types from the catalog and returns their database IDs.
  *
- * Reads then writes rather than upserting: an `upsert` matches on `@@unique([name, userId])`, and
- * system rows have `userId: null` — Postgres treats every NULL as distinct in a unique index, so
- * the match never hits and each run would insert a fresh duplicate set. See the `ItemType` model in
- * `prisma/schema.prisma` for the partial index that backstops this.
+ * System rows use `userId: null`, so this reads each row before updating or creating it. An upsert
+ * cannot reliably target the nullable system-type key; the schema's partial index prevents duplicate
+ * catalog names.
  */
 async function seedSystemItemTypes(): Promise<Record<ItemTypeName, string>> {
     const ids = {} as Record<ItemTypeName, string>;
@@ -77,12 +76,10 @@ async function seedDemoUser() {
 }
 
 /**
- * Collections and items have no natural key — their ids are cuids — so there is nothing to match a
- * re-run against, and creating them unconditionally would duplicate every item on every seed.
- * Clearing the demo user's content first makes the seed authoritative: whatever `seed-data.ts` says
- * is what ends up in the database. Cascades take the join rows with them.
+ * Removes the demo user's existing fixtures before they are recreated from `seed-data.ts`.
  *
- * Scoped to the demo user, so a real user's data is never touched.
+ * Collections and items have no natural key for an upsert, so replacement keeps repeatable seeds
+ * aligned with the fixture definitions. The delete is scoped to the demo user.
  */
 async function clearDemoContent(userId: string) {
     const { count: items } = await prisma.item.deleteMany({ where: { userId } });
@@ -121,10 +118,8 @@ async function seedCollections(userId: string, itemTypeIds: Record<ItemTypeName,
                     isPinned: item.isPinned ?? false,
                     userId,
                     itemTypeId: itemTypeIds[item.type],
-                    // Tags are per-account, so the uniqueness this connects on is
-                    // `(userId, normalized)` — the seed user's own `react`, never another
-                    // account's. `normalized` is what the constraint is on; `name` is the spelling
-                    // that gets rendered.
+                    // Tags are unique per account by `(userId, normalized)`; `name` keeps display
+                    // spelling.
                     tags: {
                         connectOrCreate: item.tags.map((name) => ({
                             where: {
@@ -146,13 +141,7 @@ async function seedCollections(userId: string, itemTypeIds: Record<ItemTypeName,
     return { collections: SEED_COLLECTIONS.length, items: itemCount };
 }
 
-/**
- * `--types-only` seeds the system item types and stops. That is the only part of this script that
- * is safe to run against production: item types are reference data (every `Item` carries an
- * `itemTypeId` FK into them), whereas the demo user and its content are development fixtures.
- * `DEMO_USER.password` lives in a committed file, so the demo account must never reach a
- * public deployment.
- */
+/** Enables catalog-only seeding and leaves development fixtures untouched. */
 const typesOnly = process.argv.includes("--types-only");
 
 async function main() {

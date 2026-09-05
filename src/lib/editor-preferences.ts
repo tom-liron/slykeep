@@ -12,9 +12,10 @@ import type { EditorPreferences } from "@/types/editor";
  * The editor-preferences contract, in both directions: validating what a client submits, and making
  * the stored `User.editorPreferences` JSON safe to render with.
  *
- * `actions/editor-preferences.ts` parses a write against {@link editorPreferencesSchema}; the code
- * editors read the stored value through {@link parseEditorPreferences}. A `lib` module rather than
- * a schema beside the action because both directions matter.
+ * `actions/editor-preferences.ts` parses writes against {@link editorPreferencesSchema};
+ * `server/profile.ts` reads persisted values through {@link parseEditorPreferences}, and the
+ * dashboard layout passes them to `EditorPreferencesProvider` for every content-editor surface. A
+ * `lib` module rather than a schema beside the action because both directions matter.
  *
  * @remarks
  * A `Json` column has no shape, so a query can return a value that does not match the current

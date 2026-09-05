@@ -3,10 +3,10 @@ import "server-only";
 /**
  * This deployment's own origin, for building absolute URLs that get sent elsewhere.
  *
- * `email.ts` uses it for verification and reset links; `stripe.ts` uses it for checkout and portal
- * return URLs. One function so those two cannot disagree about where the app lives — a deployment
- * where the reset link and the Stripe return URL pointed at different origins would be broken in a
- * way neither module could detect alone.
+ * `email.ts` uses it for verification and reset links; `actions/billing.ts` uses it for checkout
+ * and portal return URLs. One function so those two cannot disagree about where the app lives — a
+ * deployment where the reset link and the Stripe return URL pointed at different origins would be
+ * broken in a way neither module could detect alone.
  *
  * @remarks
  * Throws rather than falling back to a default: every caller is building a URL that is sent into an

@@ -21,11 +21,10 @@ function pageHref(basePath: string, page: number): string {
 }
 
 /**
- * Numbered page links with prev/next either side, for the listings that read `?page=`.
+ * Renders numbered page links and unavailable prev/next controls.
  *
- * Prev and next render as `<span>` rather than a `<Link>` when there is nowhere to go, because a
- * link that only *looks* disabled is still clickable, focusable, and announced as a link. A greyed
- * anchor is the appearance of the state; not being a link is the state.
+ * Prev and next use `<span>` instead of `<Link>` when unavailable, so disabled controls are neither
+ * clickable nor announced as links.
  */
 export function Pagination({
     pagination,

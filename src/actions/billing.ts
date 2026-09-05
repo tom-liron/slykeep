@@ -110,7 +110,8 @@ export async function startCheckout(input: BillingCycle): Promise<BillingActionR
  * All of those are Stripe's UI rather than this application's, because each has edge cases —
  * proration, dunning, tax — that are not this product's to solve. It is also where the cancellation
  * that unblocks account deletion happens, which is why `DeleteAccountDialog` calls this action
- * rather than duplicating the flow.
+ * rather than duplicating the flow. Session-creation failures return the failure arm of
+ * {@link BillingActionResult}; keep `redirect()` outside the `try` because it throws to navigate.
  */
 export async function openBillingPortal(): Promise<BillingActionResult> {
     // Called for the session check alone — the id is discarded. This action must be unreachable

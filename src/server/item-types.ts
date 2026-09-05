@@ -40,10 +40,8 @@ export const ITEM_TYPE_SELECT = { id: true, name: true, icon: true, color: true 
  * The **system** item type with this name, or null.
  *
  * @remarks
- * Never `findUnique` an item type by name. A Prisma bug leaks `name` into
- * `ItemTypeWhereUniqueInput` because of the partial index, so it type-checks — but `name` is unique
- * only among system rows, and a user's custom type may share it. This function is where that rule is
- * obeyed, rather than remembered at each call site.
+ * Never query by `name` alone: system names are unique only for `userId: null`, and custom rows may
+ * share them. This function keeps the required `findFirst` scope in one place.
  */
 export function findSystemItemType(name: string) {
     return prisma.itemType.findFirst({

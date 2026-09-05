@@ -14,7 +14,8 @@ import { PrismaClient } from "@/generated/prisma-client/client";
  *
  * @remarks
  * `import "server-only"` because `lib/` is client-reachable and a database connection string must
- * never reach a browser bundle.
+ * never reach a browser bundle. Importing this module requires `DATABASE_URL`; unlike the lazy
+ * integration clients, it validates that configuration during module evaluation.
  */
 
 /** Neon's pooled connection URL, from `.env`. The adapter opens no connection without it. */

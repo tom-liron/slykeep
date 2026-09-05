@@ -13,7 +13,8 @@ import { cn, withAlpha } from "@/lib/utils";
  *
  * @remarks
  * The breakpoints are container queries on `@container/app`, so they follow this region's width.
- * `Sidebar` defaults to collapsed below `xl`, so that width no longer falls as the window grows.
+ * In its default state, the sidebar is closed below `lg` and consumes 16rem from `lg` up; the
+ * container query follows the content-width drop at that transition.
  *
  * `520` and `860` come from the longest label: a card needs ~199px (label 127px + gap + 32px icon
  * + 32px padding), so four with three 16px gutters need `860`; `520` is the same sum for two band

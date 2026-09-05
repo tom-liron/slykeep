@@ -23,8 +23,6 @@ Read the following to get the full context of the project:
 - `npm run docs:links` — check that every `{@link}` in `src/` resolves to something the reader can
   actually click. `tsc`, ESLint and the build all ignore an unfollowable link, so this is the only
   thing that catches one. Run it after any documentation pass
-- `npm run docs:comments-only` — prove a documentation pass changed comments only: strips comments
-  and whitespace and compares the rest against `HEAD`. Run it with `docs:links` after any pass
 - `npm test` — run unit tests (offline; the integration suite is excluded)
 - `npm run billing:test` — drive a real test-mode Stripe subscription through its whole life and
   assert what our own code writes at each step. Needs `STRIPE_SECRET_KEY` to be an `sk_test_` key

@@ -18,6 +18,7 @@ import { checkPasswordResetToken, consumePasswordResetToken } from "@/server/ver
  * can never succeed.
  */
 
+/** User-facing responses for reset tokens that cannot be used. */
 const TOKEN_ERRORS = {
     expired: "That reset link has expired. Request a new one to try again.",
     invalid: "That reset link is not valid or has already been used. Request a new one.",

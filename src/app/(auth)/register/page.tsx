@@ -8,8 +8,9 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
  * The `/register` page: GitHub sign-up above the credentials form, in the same order `/sign-in`
  * uses so the two screens do not feel mismatched.
  *
- * The card only — no `searchParams`, and no `callbackUrl`, since a registration that resolves to an
- * existing account lands on the dashboard, the sign-in action's own default.
+ * The page takes no `searchParams` or `callbackUrl`: it is not reached from a protected-page bounce.
+ * GitHub sign-in uses the default dashboard destination; credentials registration redirects to
+ * `/sign-in` from {@link RegisterForm}.
  */
 export const metadata: Metadata = {
     title: "Create an account · DevStash",

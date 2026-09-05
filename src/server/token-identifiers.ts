@@ -19,6 +19,7 @@
 /** The two kinds of token the `VerificationToken` table holds. */
 export type TokenPurpose = "email-verification" | "password-reset";
 
+/** Authoritative identifier prefix for each token purpose, shared by token and maintenance flows. */
 export const IDENTIFIER_PREFIX: Record<TokenPurpose, string> = {
     "email-verification": "email-verification:",
     "password-reset": "password-reset:",

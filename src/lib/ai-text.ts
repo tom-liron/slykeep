@@ -4,8 +4,8 @@
  *
  * `ai-tags.ts`, `ai-description.ts`, `ai-explain.ts` and `ai-optimize.ts` all import
  * {@link truncateForModel} to cut an item's body to a per-feature limit before it goes into a
- * prompt. {@link AI_PAYLOAD_LIMIT} bounds what any of the four actions will hold in memory before
- * that truncation runs. Neither belongs to one feature, so both live here.
+ * prompt. {@link AI_PAYLOAD_LIMIT} is the Zod-enforced per-field ceiling at the Server Action
+ * boundary, before that truncation runs. Neither belongs to one feature, so both live here.
  */
 
 /**
@@ -13,9 +13,8 @@
  *
  * @remarks
  * A bound on the request, not a product limit: an item's content is uncapped and legitimately runs
- * past every per-feature content limit, which is why the prompt builders truncate rather than
- * refuse. This is what a hand-made request cannot make the server hold before truncation gets to
- * run.
+ * past every per-feature content limit, which is why prompt builders truncate rather than refuse.
+ * The Server Action enforces this ceiling before a feature-specific builder handles the payload.
  */
 export const AI_PAYLOAD_LIMIT = 100_000;
 

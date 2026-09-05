@@ -16,11 +16,11 @@ const MESSAGES = {
 /**
  * Raises the post-sign-in toast, then strips the flag that triggered it.
  *
- * It has to live on the destination rather than in the form: sign-in redirects from the server, so
- * the form is unmounted before any success handler could run.
+ * Mounted only on the dashboard home, this turns `welcome=back` into the post-sign-in toast. It
+ * must live at the redirect destination because the sign-in form unmounts before a server redirect
+ * completes.
  *
- * Clearing the param with `replace` matters — otherwise the toast fires again on every refresh,
- * and the URL stays littered with a flag that means nothing after the first render.
+ * Clearing the param with `replace` prevents the toast from firing again on refresh.
  */
 export function WelcomeToast({ name }: { name: string }) {
     const router = useRouter();

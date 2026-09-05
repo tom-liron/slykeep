@@ -3,20 +3,16 @@ import "dotenv/config";
 import { sweepUnverifiedAccounts, UNVERIFIED_ACCOUNT_TTL_DAYS } from "../src/server/unverified";
 
 /**
- * Runs the unverified-account sweep by hand. `npm run users:sweep`.
+ * Manual runner for the unverified-account cleanup operation.
  *
- * The same function the nightly cron route calls, so this is not a second implementation of the
- * rule — it is the rule, without the HTTP hop. Useful for clearing a development database, and for
- * confirming what the job will do before trusting it to a schedule.
+ * `npm run users:sweep` invokes the same {@link sweepUnverifiedAccounts} operation as the nightly
+ * cron route and prints its result for development or supervised maintenance. It loads
+ * `DATABASE_URL` from `.env`; `CRON_SECRET` authenticates only the HTTP route and is unused here.
  *
- * Run with `--conditions=react-server`, which is why `package.json` spells the command out rather
- * than plain `tsx`. `src/server/unverified.ts` opens with `import "server-only"`, and that package
- * exists precisely to throw when it is loaded outside a server context — a script is one. Its
- * `exports` map answers the `react-server` condition with an empty module, which is the same escape
- * `vitest.server-only.ts` provides for the tests.
- *
- * Prints the count and nothing else. It deletes rows that cannot sign in and own nothing, which is
- * why there is no confirmation prompt here where `scripts/clear-users.ts` has one.
+ * @remarks
+ * The package script supplies the React server condition required to import the server-only module.
+ * Deletion safeguards belong to {@link sweepUnverifiedAccounts}; this runner adds no confirmation
+ * prompt or deletion rule of its own.
  */
 async function main() {
     const deleted = await sweepUnverifiedAccounts();

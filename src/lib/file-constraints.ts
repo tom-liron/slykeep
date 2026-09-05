@@ -4,9 +4,10 @@ import { formatFileSize } from "./format";
  * The upload rules for the two FILE item types, and the check that enforces them.
  *
  * Shared because both sides need the same numbers: `POST /api/upload` validates against them with
- * {@link validateUpload}, and `FileUpload` reads them to build its `accept` attribute and its "up
- * to 5 MB" hint. `r2.ts` is `server-only`, so a component cannot get them from there. The route is
- * the authority; the component's copy only spares an obviously doomed round trip.
+ * {@link validateUpload}; `FileUpload` builds the accept attribute and type-specific size hint; and
+ * `use-file-upload.ts` repeats validation for client-side feedback. `r2.ts` is `server-only`, so a
+ * component cannot get the rules there. The route is the authority; client checks only spare an
+ * obviously doomed round trip.
  */
 
 /** The item types whose content is an uploaded object rather than a column. */

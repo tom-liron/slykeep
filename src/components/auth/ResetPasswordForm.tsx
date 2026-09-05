@@ -14,11 +14,13 @@ import { newPasswordSchema } from "@/lib/auth-schemas";
 type FieldErrors = Partial<Record<"password" | "confirmPassword", string[]>>;
 
 /**
- * Chooses the new password.
+ * Password-reset form for the `/reset-password` page.
  *
- * The token is a prop rather than a field the user can see: it came from the link, and there is
- * nothing they could do about it if it were wrong. It is still submitted in the body — the server
- * has no other way to know which account this is.
+ * The page validates the inbox token before rendering this form. It posts the new password and token
+ * to `POST /api/auth/reset-password`, then redirects to sign-in without creating a session.
+ *
+ * The token remains a prop rather than editable input because the server needs it to identify the
+ * reset account.
  */
 export function ResetPasswordForm({ token }: { token: string }) {
     const router = useRouter();

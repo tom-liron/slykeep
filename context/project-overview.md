@@ -262,7 +262,6 @@ devstash/
 ├── prisma.config.ts             # Prisma 7 CLI config: schema path, migrations, seed, datasource
 ├── scripts/
 │   ├── check-doc-links.ts       # verifies every `{@link}` in `src/` resolves (`npm run docs:links`)
-│   ├── verify-comments-only.py  # proves a docs pass moved no code (`npm run docs:comments-only`)
 │   ├── test-db.ts               # database smoke test (`npm run db:test`)
 │   ├── test-email.ts            # sends through Resend and polls the real outcome (`npm run email:test`)
 │   ├── verify-user.ts           # marks a dev account verified by hand (`npm run user:verify`)

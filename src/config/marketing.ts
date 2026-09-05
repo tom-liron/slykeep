@@ -97,11 +97,13 @@ export const AI_HIGHLIGHTS: readonly AiHighlight[] = [
 
 export type BillingCycle = "monthly" | "yearly";
 
+/** Billing-cycle options shown by `BillingCycleToggle` on landing and upgrade plan cards. */
 export const BILLING_CYCLES: readonly { value: BillingCycle; label: string; badge?: string }[] = [
     { value: "monthly", label: "Monthly" },
     { value: "yearly", label: "Yearly", badge: "Save 25%" },
 ];
 
+/** Displayed price text for one billing cycle on a plan card. */
 export type PlanPrice = {
     amount: string;
     period: string;

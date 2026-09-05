@@ -32,6 +32,10 @@ import { TypeIcon } from "./TypeIcon";
  * date are the parts that have to be waited for; the title, type, tags, and description are on
  * screen before the request is even sent. That is what makes the open feel immediate rather than a
  * spinner over an empty panel.
+ *
+ * `ItemList` and `CommandPalette` render this drawer from selected item summaries. Read mode owns
+ * {@link ItemDrawerToolbar} and the drawer-only AI controls; edit mode swaps in
+ * {@link ItemEditForm}. Creation remains in `components/items/CreateItemDialog.tsx`.
  */
 export function ItemDrawer({
     item,

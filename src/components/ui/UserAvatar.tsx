@@ -10,10 +10,9 @@ import { cn } from "@/lib/utils";
  * words, blank), so this only chooses which of the two to render.
  *
  * @remarks
- * The picture is decorative, so `alt=""`. Every current caller renders the user's name as visible
- * text beside the avatar — and in `UserMenu` both sit inside one button — so a name `alt` would
- * announce the name twice. A caller that shows the avatar without an adjacent name needs a real
- * `alt`, taken as a prop here rather than set globally.
+ * The image is decorative because every current caller renders the user's name beside it — in
+ * `UserMenu`, both sit inside one button — so `alt=""` prevents duplicate announcements. This
+ * component has no `alt` prop; add an accessible-name contract before using it without visible text.
  */
 export function UserAvatar({
     name,

@@ -1,18 +1,17 @@
 import type { ItemTypeName } from "../src/types/item-type";
 
 /**
- * Demo content for `prisma/seed.ts`. Kept separate so the seed reads as logic, not as a wall of
- * strings.
+ * Development demo fixtures consumed by `prisma/seed.ts`.
  *
- * `body` is written into whichever column the item type's content type calls for — `content` for
- * TEXT, `url` for URL — so an item can never end up with its text in the wrong column.
+ * The seed script resets this account's content from these records. Each item's `body` is mapped to
+ * the storage column required by its item type.
  */
 export interface SeedItem {
     title: string;
     type: ItemTypeName;
     description: string;
     body: string;
-    /** Only meaningful for code; drives syntax highlighting. */
+    /** Language hint used for syntax highlighting. */
     language?: string;
     tags: string[];
     isFavorite?: boolean;
@@ -22,7 +21,7 @@ export interface SeedItem {
 export interface SeedCollection {
     name: string;
     description: string;
-    /** Used only when a collection is empty; set anyway so the column is exercised. */
+    /** Fallback item type displayed when the collection has no items. */
     defaultType: ItemTypeName;
     isFavorite?: boolean;
     items: SeedItem[];
@@ -36,15 +35,10 @@ export const DEMO_USER = {
 } as const;
 
 /**
- * **Three collections, and that is a limit rather than a coincidence.** The demo account is a free
- * account (`isPro: false` above), and the free tier holds three collections and fifty items
- * (`src/lib/limits.ts`). Seeding a fourth would put the demo user over a cap the app now enforces,
- * so the account would open already in a state its own plan does not allow — and "create a
- * collection" would fail for a reason that looks like a bug rather than the tier working.
+ * The free-plan demo account's collections.
  *
- * The count sits exactly *at* the collection cap: the usage meter reads 3 / 3 on first load and the
- * next create is refused, showing the tier's behaviour without needing to be built up to. The item
- * count stays well under fifty, so items are the half that still has room.
+ * The account is not Pro, so this list stays at the three-collection entitlement limit while its
+ * seeded items remain below the 50-item limit.
  */
 export const SEED_COLLECTIONS: SeedCollection[] = [
     {

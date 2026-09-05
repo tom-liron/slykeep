@@ -102,8 +102,8 @@ export async function syncSubscriptionState(customerId: string): Promise<void> {
         ENTITLING_STATUSES.has(subscription.status),
     );
 
-    // `current_period_end` lives on the subscription's *items* as of the `2025-03-31.basil` API
-    // version. Reading it off the subscription itself yields undefined silently.
+    // With the Stripe API version pinned in `lib/stripe.ts`, read `current_period_end` from the first
+    // subscription item; the Subscription root omits it.
     const periodEnd = active?.items.data[0]?.current_period_end;
     const priceId = active?.items.data[0]?.price.id ?? null;
 

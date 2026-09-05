@@ -17,8 +17,11 @@ import { registerSchema } from "@/lib/auth-schemas";
  * so the client can tell a 400 from a 409).
  *
  * The credentials half of `/register`, beside `GitHubSignInButton`. On success it redirects to
- * `/sign-in` with a flag saying whether the verification email was sent — the new account is not
- * signed in here (see below).
+ * `/sign-in` with a flag saying whether the verification email was sent.
+ *
+ * @remarks
+ * Registration creates an account with `emailVerified: null`; credentials sign-in remains unavailable
+ * until the owner proves control of the inbox through a verification or password-reset link.
  */
 
 type FieldErrors = Partial<Record<"name" | "email" | "password" | "confirmPassword", string[]>>;

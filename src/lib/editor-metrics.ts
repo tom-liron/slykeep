@@ -10,8 +10,8 @@ import type { EditorFontSize } from "@/types/editor";
  * The two editor numbers that are computed at render time rather than taken straight from the
  * account's stored preference.
  *
- * `CodeEditor` calls {@link renderedFontSize} with the pointer type and {@link editorMaxHeight}
- * with the viewport height.
+ * `CodeEditor` and `ContentTextarea` call {@link renderedFontSize} with the pointer type;
+ * `CodeEditor` also calls {@link editorMaxHeight} with the viewport height.
  *
  * @remarks
  * Both are rendering rules only — nothing here is written back, so a phone cannot rewrite a

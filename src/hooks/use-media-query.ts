@@ -24,8 +24,8 @@ import { useCallback, useSyncExternalStore } from "react";
  * The server snapshot is `false`, so SSR and first paint agree on the non-matching case and the
  * client corrects itself on hydration. Write queries so that `false` is the safe answer.
  *
- * `useSyncExternalStore` rather than `useState` in an effect: the React Compiler rejects that shape
- * (`set-state-in-effect`), and a subscription is what this is.
+ * `useSyncExternalStore` models the browser media query as an external subscription with explicit
+ * server and client snapshots.
  */
 export function useMediaQuery(query: string): boolean {
     const subscribe = useCallback(

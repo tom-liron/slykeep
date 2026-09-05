@@ -3,10 +3,9 @@ import type { PaginationViewModel } from "@/types/view-models";
 /**
  * Page-number parsing and pagination-model construction for the listing pages.
  *
- * The item-type, collections and single-collection pages read `?page=` from the URL, call
- * {@link parsePageParam} then {@link buildPagination} to get a {@link PaginationViewModel}, and hand
- * {@link paginationSkip} to Prisma's `skip`. `components/ui/Pagination.tsx` renders the control from
- * the same model, taking {@link getPageWindow} for the run of page links to show.
+ * Listing pages parse `?page=` with {@link parsePageParam}. Server query modules build the
+ * {@link PaginationViewModel} and calculate Prisma's {@link paginationSkip}; `components/ui/Pagination.tsx`
+ * renders that model with {@link getPageWindow}.
  */
 
 /**

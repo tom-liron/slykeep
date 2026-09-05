@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 /**
  * "Send me another link" — the way out of an expired, spent, or never-delivered verification email.
  *
- * Rendered by `SignInForm` when a correct password belongs to an unverified account, which
- * the UI otherwise cannot rescue. `POST /api/auth/verify-email` answers 200 for every input so this
- * cannot test which addresses are registered, so the confirmation is phrased as what *would*
- * happen.
+ * Rendered inside `SignInForm` after an unverified credentials sign-in and directly by the sign-in
+ * page's registration, verification-link-failure, and email-failure banners. Apart from the 429
+ * rate-limit response, `POST /api/auth/verify-email` answers 200 for every input, so the
+ * confirmation is phrased as what *would* happen.
  *
  * @remarks
  * A plain container with a `type="button"`, not a `<form>`: it renders inside `SignInForm`'s
