@@ -21,8 +21,8 @@ import {
 } from "@/config/editor";
 
 /**
- * The five rows of the settings page's Editor panel — font size, tab size, word wrap, minimap,
- * theme — wired through `useEditorPreferencesControls`.
+ * The five rows of the settings page's Item editor panel — font size, tab size, word wrap,
+ * minimap, theme — wired through `useEditorPreferencesControls`.
  *
  * Just the rows, not the `Panel`, so the page keeps rendering `Panel` as a server component and
  * only the controls cross to the client. No form and no save button: each control writes through

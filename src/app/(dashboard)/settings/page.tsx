@@ -104,8 +104,8 @@ export default async function SettingsPage({
                 is made. */}
             <Panel
                 id="editor"
-                title="Editor"
-                description="How snippets, commands, notes, and prompts are shown while you read and write them. Changes save as you make them."
+                title="Item editor"
+                description="Font, spacing and syntax colours for the editor you write item content in — in the drawer, and on the create and edit forms. Changes save as you make them."
             >
                 <EditorPreferencesRows />
             </Panel>
