@@ -31,7 +31,7 @@ export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-pass
 export const OPEN_ROUTES = new Set(["/reset-password"]);
 
 /** Where sign-in lands when there is nowhere in particular to return to. */
-export const DEFAULT_SIGN_IN_DESTINATION = "/?welcome=back";
+export const DEFAULT_SIGN_IN_DESTINATION = "/?welcome=signed-in";
 
 /**
  * Validates a `callbackUrl` before anything redirects to it.

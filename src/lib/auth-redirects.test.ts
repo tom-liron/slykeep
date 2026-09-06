@@ -69,7 +69,7 @@ describe("signInDestination", () => {
     // The flag is only meaningful on the dashboard home, where `WelcomeToast` is rendered.
     it("falls back to the dashboard, with the welcome flag", () => {
         expect(signInDestination(null)).toBe(DEFAULT_SIGN_IN_DESTINATION);
-        expect(DEFAULT_SIGN_IN_DESTINATION).toContain("welcome=back");
+        expect(DEFAULT_SIGN_IN_DESTINATION).toContain("welcome=signed-in");
     });
 
     it("does not attach the welcome flag to a callback", () => {
