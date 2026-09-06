@@ -13,19 +13,28 @@ one piece of work, and none of it starts before these three land.
 `context/portfolio-direction.md` §1 carries the reasoning: a domain name *is* a branding decision,
 so buying before naming means buying twice and verifying the Resend domain twice.
 
-1. **The missing route files** — `error.tsx`, `not-found.tsx`, `loading.tsx`, `global-error.tsx`.
-   `find src/app` returns none of them, so a mistyped URL renders Next's default 404 and a thrown
-   server component renders the default error screen. Both become visible to strangers the moment a
-   domain makes the site reachable, and both read as unfinished.
-2. **Demo content for a new account** — a fresh sign-up lands on an empty dashboard, which hides the
-   item drawer, monaco, the four AI actions, the collection accents and ⌘K. `prisma/seed-data.ts`
-   already holds usable content, and only the seed reads it.
-3. **Cut the `devstash` snapshot branch on GitHub** — `git push origin main:devstash`, preserving the
-   current identity and the completed course work before the rebrand renames it away. Only `main`
-   exists on origin today.
+1. ~~**The missing route files**~~ — **done 2026-09-06**, `feature/first-run-polish`
+   (`feature-history.md` entry 126). `not-found.tsx`, `error.tsx`, `global-error.tsx` and a
+   `loading.tsx` on the `(dashboard)` group, plus `not-found.tsx` and `error.tsx` **inside** that
+   group, so an in-app 404 or a failed query keeps the sidebar and top bar.
+2. ~~**Demo content for a new account**~~ — **done 2026-09-06**, same feature. Two collections and
+   twelve items are written into every account as it is created, from both sign-up paths. The
+   fixtures moved to `src/config/starter-content.ts`, which `prisma/seed-data.ts` now composes the
+   demo account from.
+3. ~~**Cut the `devstash` snapshot branch on GitHub**~~ — **done 2026-09-06**. `origin/devstash` is
+   parked at `82b1625`, preserving the current identity and the completed course work before the
+   rebrand renames it away. **Leave it there**: pushing to it again fast-forwards the snapshot to
+   wherever `main` has moved, which is the opposite of what it is for. It reads as identical to
+   `main` until the first rebrand commit lands, which is expected — the two diverge then.
 
-1 and 2 are **one feature** and are independent of the name, so they can be built now. 3 is a single
-command, and it must happen before the rebrand branch is cut.
+All three are closed, so nothing blocks the rebrand but the naming decision itself.
+
+**A constraint the rebrand inherits:** new UI copy must not use "stash" as a *noun* ("your stash",
+"in the stash") — the verb ("start stashing", "what you have stashed") is ordinary English and
+survives the rename. The route files added in 1 use "dashboard" for every route back into the app
+for this reason. Two pre-existing noun uses were left for the rebrand pass rather than fixed
+piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
+`components/pricing/PricingPlans.tsx`.
 
 ## Queued work
 
