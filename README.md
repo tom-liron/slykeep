@@ -203,5 +203,9 @@ src/
   project, not for a first read.
 - [`context/feature-history.md`](context/feature-history.md) — every feature shipped, in order.
 - [`context/coding-standards.md`](context/coding-standards.md) — the conventions this code follows.
+- [`context/decisions.md`](context/decisions.md) — design questions that were open and are now
+  closed, with the reasoning that closed them.
+- [`.claude/skills/docs-style/SKILL.md`](.claude/skills/docs-style/SKILL.md) — the standard every
+  comment in `src/` is written to.
 - [`docs/`](docs/) — plan documents written before each subsystem was built. Dated records of the
   reasoning, not maintained descriptions of the current code.

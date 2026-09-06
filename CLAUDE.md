@@ -4,11 +4,37 @@ A developer knowledge hub for snippets, commands, prompts, notes, files, images,
 
 ## Context Files
 
-Read the following to get the full context of the project:
-- @context/project-overview.md
+Loaded automatically, every session:
 - @context/coding-standards.md
 - @context/ai-interaction.md
 - @context/current-feature.md
+
+Read on demand:
+- `context/project-overview.md` — the product and architecture record. Not auto-loaded, because
+  most work does not need it and it costs more context than everything else here combined. The
+  index below says when to open it.
+- `context/decisions.md` — design questions already settled and closed. Read before proposing a
+  change to anything §11 covers.
+- `context/feature-history.md` — one entry per shipped feature, chronological. Read when the
+  question is *why* something is the way it is, or append to it when completing a feature.
+- `.claude/skills/docs-style/SKILL.md` — the source-documentation standard. Invoke the
+  `docs-style` skill before writing or revising any comment.
+
+### What is in `context/project-overview.md`
+
+Open it when a task touches one of these. Do not answer from memory on any of them.
+
+| § | Subject | Open it when |
+|---|---|---|
+| 1–4 | Problem, users, core concepts, feature list | Adding or changing a user-facing feature |
+| 5 | Data model reasoning | Touching Prisma, migrations, item types, or tags. Carries two traps: the system-type partial unique index, and why `findUnique` by `name` alone is wrong |
+| 6 | Tech stack | Adding or upgrading a dependency |
+| 7 | Freemium tiers | Touching limits, gating, or pricing copy. Must stay in step with `config/marketing.ts` |
+| 8 | UI/UX direction, layout, type colors | Design and rebranding work — but `config/item-type-catalog.ts` and `globals.css` are the source of truth for the palette, not this table |
+| 9 | Repository structure and the rules deciding where a file goes | Adding a file and unsure which directory owns it |
+| 10 | Roadmap by phase, and what is actually shipped | Asked whether something exists, or what is next |
+| 11 | Open questions | Proposing anything architectural. Several obvious-looking improvements are deliberately declined there |
+| 12 | Reference links | — |
 
 ## Commands
 

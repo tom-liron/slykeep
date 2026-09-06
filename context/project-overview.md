@@ -250,213 +250,45 @@ Icons are [lucide-react](https://lucide.dev) names.
 
 ## 9. Project Structure
 
-The current application implements the authentication routes and flows, the dashboard routes, feature components, runtime configuration, and the server-only, Prisma-backed query layer shown below. Entries marked **(planned)** are target additions for later product phases, not files that already exist.
+The layout below is the shape of the repository, one line per directory. It deliberately does not
+list files: `src/` holds roughly 250 of them, a hand-maintained inventory drifts within a feature or
+two of being written, and every file carries a header explaining its own role. Read the directory
+and the headers in it. What follows the tree is the part a listing cannot show — the rules that
+decide which directory a new file belongs in.
 
 ```
 devstash/
-├── prisma/
-│   ├── schema.prisma            # persisted model; datasource url lives in prisma.config.ts
-│   ├── seed.ts                  # seeds the seven system item types, and demo content unless --types-only
-│   ├── seed-data.ts             # the demo account, and the third collection it adds to the
-│   │                            # starter content in src/config/starter-content.ts
-│   └── migrations/              # migration history (never edit applied ones)
-├── prisma.config.ts             # Prisma 7 CLI config: schema path, migrations, seed, datasource
-├── scripts/
-│   ├── check-doc-links.ts       # verifies every `{@link}` in `src/` resolves (`npm run docs:links`)
-│   ├── test-db.ts               # database smoke test (`npm run db:test`)
-│   ├── test-email.ts            # sends through Resend and polls the real outcome (`npm run email:test`)
-│   ├── verify-user.ts           # marks a dev account verified by hand (`npm run user:verify`)
-│   ├── sync-monaco.ts           # copies the pinned monaco build into `public/` (`predev`,
-│   │                            # `prebuild`), so the editor is served from this origin
-│   ├── sweep-unverified.ts      # deletes unverified accounts past their TTL by hand
-│   │                            # (`npm run users:sweep`); the cron route calls the same function
-│   └── clear-users.ts           # deletes every account but the demo user; `npm run db:reset`
-│                                # runs it and reseeds. Host-confirmed, never production
-├── public/                      # the monaco build, copied out of node_modules by
-│                                # `npm run monaco:sync`; gitignored, never edited
-├── docs/                        # plan and architecture records, each written before its subsystem was
-│                                # built and not revised after; every committed file carries a "not
-│                                # maintained" banner, and where one disagrees with `src/`, code wins
-│   └── audit-results/           # point-in-time output from the review agents in `.claude/agents/`
-├── prototypes/
-│   └── homepage/                # marketing homepage mockup: plain HTML/CSS/JS, no build step,
-│                                # opened directly in a browser. Outside the Next.js app entirely.
+├── prisma/                  # schema.prisma (authoritative persisted shape), migrations, seed
+├── prisma.config.ts         # Prisma 7 CLI config: schema path, migrations, seed, datasource
+├── scripts/                 # one-off and maintenance scripts, each behind an npm script
+├── public/                  # the monaco build, copied from node_modules; gitignored, never edited
+├── docs/                    # plan and architecture records, written once and not maintained;
+│                            # every file carries a "not maintained" banner. Where one disagrees
+│                            # with `src/`, code wins
+├── prototypes/homepage/     # marketing mockup: plain HTML/CSS/JS, no build step, outside the app
 ├── src/
-│   ├── app/
-│   │   ├── (marketing)/         # signed-out shell: no app chrome, its own scroll container,
-│   │   │                        # and the item-type palette handed down as CSS variables
-│   │   │   └── welcome/         # /welcome — the landing page, served without a session
-│   │   ├── (auth)/              # signed-out routes, no sidebar
-│   │   │   ├── layout.tsx       # centered card shell
-│   │   │   ├── sign-in/         # /sign-in — credentials form + GitHub
-│   │   │   ├── register/        # /register — account creation
-│   │   │   ├── forgot-password/ # /forgot-password — request a reset link
-│   │   │   └── reset-password/  # /reset-password — set a new password from a link
-│   │   ├── (dashboard)/        # authed app, sidebar layout
-│   │   │   ├── layout.tsx       # sidebar + main shell
-│   │   │   ├── loading.tsx      # the skeleton every signed-in route suspends to
-│   │   │   ├── error.tsx        # in-app 500, keeping the sidebar and top bar
-│   │   │   ├── not-found.tsx    # the same, for a 404 thrown by a route that exists
-│   │   │   ├── page.tsx         # dashboard overview (home)
-│   │   │   ├── items/
-│   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
-│   │   │   ├── collections/
-│   │   │   │   └── [id]/
-│   │   │   ├── favorites/       # /favorites — starred items and collections, one dense list
-│   │   │   ├── profile/         # account page, read-only: identity and usage
-│   │   │   ├── upgrade/         # the plan comparison for a signed-in free account; Pro is
-│   │   │   │                    # redirected to /settings#billing
-│   │   │   ├── search/          # (planned)
-│   │   │   └── settings/        # billing panel, then account actions: change password,
-│   │   │                        # delete account (export lands here later)
-│   │   ├── api/
-│   │   │   ├── auth/[...nextauth]/  # Auth.js handler
-│   │   │   ├── auth/register/       # account creation (needs 400 vs 409)
-│   │   │   ├── auth/verify-email/   # confirm a link, or resend one
-│   │   │   ├── auth/forgot-password/# request a reset link
-│   │   │   ├── auth/reset-password/ # spend a reset token
-│   │   │   ├── auth/stale-session/  # clear a cookie whose account no longer exists
-│   │   │   ├── items/[id]/      # item detail the drawer fetches (404 vs retryable)
-│   │   │   ├── collections/     # collection creation from the forms' picker
-│   │   │   ├── upload/          # stores one file/image object in R2, returns its key
-│   │   │   ├── files/[id]/      # streams an item's object back, authorized per request
-│   │   │   │                    # (no `ai/` route: the four AI features are Server Actions in
-│   │   │   │                    # `actions/ai.ts`, since no caller needs an HTTP status)
-│   │   │   ├── export/          # (planned) JSON / ZIP
-│   │   │   ├── cron/sweep-unverified/ # nightly Vercel Cron: deletes abandoned registrations.
-│   │   │   │                    # Refuses with 503 unless `CRON_SECRET` is set
-│   │   │   └── webhook/stripe/  # Stripe's subscription events; the one path excluded from
-│   │   │                        # the proxy, authenticated by its stripe-signature header
-│   │   ├── layout.tsx           # root shell and default dark theme
-│   │   ├── error.tsx            # boundary for anything below the root layout, with a retry
-│   │   ├── global-error.tsx     # last resort: replaces the root layout when it is what threw
-│   │   ├── not-found.tsx        # 404 for a URL matching no route at all
-│   │   └── globals.css
-│   ├── components/
-│   │   ├── ui/                  # shared UI primitives and presentational components (incl. the account Panel)
-│   │   ├── auth/                # sign-in, register, reset, and verification forms
-│   │   ├── billing/             # the /upgrade plan cards and their cycle switch
-│   │   ├── items/               # item card, row, list, detail drawer, edit form, create dialog, upload
-│   │   ├── collections/         # collection card, row, actions, and page composition
-│   │   ├── dashboard/           # stat card
-│   │   ├── favorites/           # the starred lists and their client-side sort control
-│   │   ├── marketing/           # the landing page's sections: hero, features, AI, pricing, CTA
-│   │   ├── pricing/             # the plan card and cycle switch, shared by the landing page
-│   │   │                        # and /upgrade so the two cannot drift apart
-│   │   ├── settings/            # billing rows, change-password dialog, delete-account dialog
-│   │   └── layout/              # sidebar, topbar, command palette, mobile drawer, account menu
-│   ├── generated/prisma-client/ # Prisma Client, compiled from prisma/schema.prisma.
-│   │                            # Build output: gitignored, never edited, rewritten by
-│   │                            # `prisma generate` (runs on every `npm install`).
-│   │                            # Named `prisma-client` so it is not mistaken for /prisma.
-│   ├── auth.config.ts           # edge-safe half: providers + pages, no adapter
-│   ├── auth.ts                  # node half: adapter, JWT callbacks, real authorize
-│   ├── proxy.ts                 # deny-by-default route protection (edge)
-│   ├── lib/                     # client-safe shared modules: importable from anywhere, server or client
-│   │   ├── auth-schemas.ts      # Zod contracts for sign-in and registration
-│   │   ├── auth-errors.ts       # client-safe messages for Auth.js `error` codes
-│   │   ├── auth-redirects.ts    # signed-out route sets + callback-URL validation
-│   │   ├── item-schemas.ts      # Zod contracts for item writes, and what each type owns
-│   │   ├── collection-schemas.ts# the same, for collection writes
-│   │   ├── field-errors.ts      # one Zod parse → the toast's sentence and the inputs' messages
-│   │   ├── limits.ts            # entitlement policy: item types, and the free item/collection caps
-│   │   ├── format.ts            # dates and file sizes, formatted for display
-│   │   ├── clipboard.ts         # the clipboard write and its two toasts, for every copy control
-│   │   ├── code-language.ts     # free-text `Item.language` → a Monaco language id
-│   │   ├── favorites-sort.ts    # how `/favorites` orders its two lists, client-side
-│   │   ├── fuzzy-search.ts      # the command palette's match and ranking rule
-│   │   ├── pagination.ts        # `?page=` parsing, page clamping, skip, and the page-number window
-│   │   ├── editor-metrics.ts    # the two editor numbers that are not simply the stored preference
-│   │   ├── type-color-vars.ts   # the item-type palette as CSS variables, for the surfaces
-│   │   │                        # designed out of it (the landing page and /upgrade)
-│   │   ├── utils.ts             # `cn` class merging
-│   │   ├── file-constraints.ts  # upload size/extension/MIME rules, shared with the client
-│   │   ├── file-preview.ts      # which viewer a file opens in, and what may be served inline
-│   │   ├── ai-text.ts           # what an item draft contributes to a prompt, and its bounds
-│   │   ├── ai-tags.ts           # the auto-tag prompt and the parsing of what comes back
-│   │   ├── ai-description.ts    # the same, for a generated description
-│   │   ├── ai-explain.ts        # the same, for "explain this code"
-│   │   ├── ai-optimize.ts       # the same, for the prompt optimizer
-│   │   ├── markdown-plugins.ts  # the remark/rehype set every markdown surface renders with
-│   │   └── editor-preferences.ts# the editor settings' defaults and their bounds
-│   ├── actions/                 # Server Actions for mutations
-│   │   ├── ai.ts                # the four Pro AI actions: tag, describe, explain, optimize
-│   │   ├── auth.ts              # sign-in / sign-out
-│   │   ├── account.ts           # change password, delete account (refused while billing)
-│   │   ├── billing.ts           # open Stripe checkout, open the customer portal
-│   │   ├── collections.ts       # create, rename, delete, favorite a collection
-│   │   ├── editor-preferences.ts# persist the editor settings
-│   │   └── items.ts             # create, update, and delete an item
-│   ├── server/                  # everything server-only: queries, repositories, view-model
-│   │                            # preparation, and the integration clients in `infra/`
-│   │   ├── billing.ts           # Stripe customer, the webhook's entitlement sync, the panel's
-│   │   │                        # summary, and the two helpers account deletion needs. Deletion
-│   │   │                        # cancels and detaches the card; it never deletes the customer
-│   │   ├── items.ts             # item reads + item-type pages
-│   │   ├── collections.ts       # collection reads
-│   │   ├── item-types.ts        # item types, per-type counts, sidebar nav
-│   │   ├── current-user.ts      # signed-in user resolution from the session
-│   │   ├── onboarding.ts        # writes the starter content into a newly created account;
-│   │   │                        # called by both sign-up paths, best-effort
-│   │   ├── profile.ts           # profile read: identity + usage; settings read: hasPassword + totals
-│   │   ├── passwords.ts         # the one bcrypt cost factor and the decoy hash pinned to it
-│   │   ├── prisma-errors.ts     # the Prisma error codes the write paths translate into messages
-│   │   ├── verification.ts      # issue, look up, and spend verification/reset tokens
-│   │   ├── token-identifiers.ts # the identifier prefix that namespaces a token by purpose
-│   │   ├── unverified.ts        # the rule for which abandoned registrations the sweep deletes
-│   │   ├── view-models.ts       # persistence-independent view-model builders
-│   │   ├── search.ts            # the command palette's prefetch: items + collections
-│   │   └── infra/               # the integration clients, all `server-only`: the half of
-│   │                            # `server/` that talks to something outside the process
-│   │       ├── prisma.ts        # singleton Prisma client (PrismaPg adapter), and the
-│   │       │                    # guard keeping a local run off the production database
-│   │       ├── stripe.ts        # lazy Stripe client, pinned API version, return origin
-│   │       ├── r2.ts            # Cloudflare R2 client, object keys, put/get/delete
-│   │       ├── openai.ts        # lazy OpenAI client, model id, shared call wrapper
-│   │       ├── email.ts         # Resend client, link building, transactional templates
-│   │       ├── rate-limit.ts    # sliding windows on the auth, upload, billing and AI
-│   │       │                    # entry points
-│   │       └── app-origin.ts    # this deployment's own origin, for email links and
-│   │                            # Stripe return URLs; throws rather than defaulting
-│   ├── hooks/
-│   │   ├── use-file-upload.ts   # the XHR upload behind the file field, and its progress
-│   │   ├── use-file-text.ts     # a stored file's own bytes, for the formats rendered inline
-│   │   ├── use-item-detail.ts   # the parts of an item a list summary cannot carry
-│   │   ├── use-media-query.ts   # a media query as state, where the choice is which element exists
-│   │   ├── use-coarse-pointer.ts# whether this is a touch pointer, for the editor fallback
-│   │   └── use-collection-options.ts # the collections a form's picker offers
-│   ├── types/
-│   │   ├── item-type.ts         # item-type contracts
-│   │   ├── item.ts              # item Server Action result shapes
-│   │   ├── collection.ts        # collection Server Action result shapes
-│   │   ├── editor.ts            # editor preference contracts
-│   │   ├── ai.ts                # the AI actions' draft input and their result shapes
-│   │   ├── view-models.ts       # persistence-independent UI models
-│   │   ├── auth.ts              # auth Server Action result shape
-│   │   ├── account.ts           # account Server Action result shape
-│   │   ├── billing.ts           # billing Server Action result shape (failure arm only)
-│   │   └── next-auth.d.ts       # session/JWT augmentation carrying `user.id`
-│   └── config/
-│       ├── access.ts            # temporary feature-entitlement configuration
-│       ├── billing.ts           # Stripe price ids by cycle, and which statuses entitle Pro
-│       ├── dashboard.ts         # dashboard presentation values
-│       ├── editor.ts            # the surface and height bounds both content editors share
-│       ├── item-placeholders.ts  # the title placeholder each item type's form shows
-│       ├── item-type-catalog.ts # built-in item types: colors, icons, routes
-│       ├── starter-content.ts   # the collections and items every new account is given, and
-│       │                        # the demo seed is built from
-│       ├── marketing.ts         # the landing page's copy, and the two pricing plans
-│       └── pagination.ts        # how many rows one page of a listing renders
-├── .env                         # secrets (gitignored)
-├── .env.example                 # documented placeholders, committed
-├── vercel.json                  # the nightly cron schedule for `/api/cron/sweep-unverified`
-├── vitest.config.ts             # unit tests; tests sit beside the module as `*.test.ts`.
-│                                # Excludes `*.integration.test.ts`, so `npm test` stays offline
-├── vitest.integration.config.ts # tests that talk to real services (`npm run billing:test`,
-│                                # `npm run r2:test`): credentials, seconds not milliseconds, a
-│                                # real Stripe account and a real bucket. Each script names its
-│                                # own file, so one does not drag in the other's cost
-├── vitest.server-only.ts        # stubs the `server-only` import so server modules are testable
+│   ├── app/                 # routes. Route groups: (marketing) signed-out landing, (auth)
+│   │   │                    # signed-out card shell, (dashboard) the authed app
+│   │   └── api/             # route handlers — auth, upload, files, cron, the Stripe webhook
+│   ├── components/          # by feature: ui, auth, items, collections, layout, billing,
+│   │                        # pricing, marketing, settings, favorites, dashboard
+│   ├── generated/prisma-client/  # build output: gitignored, never edited
+│   ├── lib/                 # client-safe shared modules — importable from anywhere
+│   ├── actions/             # Server Actions: the write side
+│   ├── server/              # server-only reads, view models, and infra/ (the integration
+│   │                        # clients: prisma, stripe, r2, openai, email, rate-limit, app-origin)
+│   ├── hooks/               # custom React hooks
+│   ├── types/               # compile-time contracts
+│   ├── config/              # runtime values satisfying those contracts
+│   ├── auth.ts              # node half of NextAuth: adapter, JWT callbacks, real authorize
+│   ├── auth.config.ts       # edge-safe half: providers + pages, no adapter
+│   └── proxy.ts             # deny-by-default route protection (edge)
+├── vercel.json              # the nightly cron schedule for /api/cron/sweep-unverified
+├── vitest.config.ts         # unit tests, beside the module as *.test.ts; excludes
+│                            # *.integration.test.ts so `npm test` stays offline
+├── vitest.integration.config.ts  # tests that talk to real services (billing:test, r2:test)
+├── vitest.server-only.ts    # stubs the `server-only` import so server modules are testable
+├── .env                     # secrets (gitignored); .env.example documents the names
 └── package.json
 ```
 
@@ -545,16 +377,13 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 
 ## 11. Open Questions & Things to Decide
 
-Worth nailing down before or early in the build, so they don't force a rewrite later:
+Worth nailing down before or early in the build, so they don't force a rewrite later. Questions
+that have since been settled are recorded in `context/decisions.md` — read it before proposing a
+change to any of these areas, since several plausible-looking courses were considered and ruled
+out there.
 
-- ~~**Search depth, free vs Pro.**~~ **Decided 2026-09-02: the distinction is dropped.** §7 listed `Basic | Basic`, which compared nothing, while the shipped pricing card had already settled it — Free reads "Instant ⌘K search" and Pro reads "Everything in Free, plus". One search for everyone. §7 now says so. What remains is a *depth* question with no tier in it: the palette matches client-side over prefetched summaries and deliberately never reads item bodies, because list queries do not select content (§5). Full-content search therefore needs a server-side query, not a wider prefetch — and if it is ever built, it is built for both tiers.
-- ~~**Tag scoping.**~~ **Resolved 2026-09-02.** Tags were global rows keyed by `name @unique`, so two users who both wrote `react` shared one row — which made "this user's tags" a question the database could not answer, and therefore made tag autocomplete unbuildable without leaking the names other accounts had coined. `Tag` now carries `userId` and `normalized`, with `@@unique([userId, normalized])`; see §5. The migration does a full per-user split and a case collapse, both proven against manufactured data since no environment actually held either case. **What this unblocks, and what is still open:** autocomplete (suggest from the user's own vocabulary, which is the real defence against `react`/`reactjs` drift — and it should also feed the AI tagger, which currently invents fresh spellings because the prompt never sees the tags the account already uses) and tag filtering (the badges on `ItemCard` are inert; nothing turns a tag into a query). Neither is on the roadmap yet. A **merge/rename** control is the third piece, and is cheap now that tags have an owner.
-- ~~**Free-tier limit enforcement.**~~ **Decided 2026-08-17.** Limits are checked at the *write boundary* — the Server Action, not the data layer — which is the same division `contentType` follows: the UI may show the cap, the action is the authority. Hitting the cap is a **hard block** with an upgrade-flavoured error toast, because the pricing page already promises "Up to 50 items" and a 51st that succeeds turns the number into decoration. The rules themselves are pure functions in `src/lib/limits.ts` beside `canAccessItemType`, taking the count rather than querying, so they stay unit-testable without a database. See `context/features/stripe-phase-1-spec.md` (the rules) and `stripe-phase-2-spec.md` (the call sites). `ENFORCE_PRO_LIMITS` is now `true`, so all of this refuses for real. One thing stays open and is noted there: the accepted race where two concurrent creates both read 49.
 - **File handling.** Max file size, allowed MIME types, and whether deleting an item also deletes the R2 object (orphan cleanup).
-- ~~**R2 objects outlive a deleted account.**~~ **Resolved 2026-09-01.** `deleteAccount()` deleted the `User` row and Postgres cascaded every item with it, but `deleteObject` was only ever called by `deleteItem` — so the bytes stayed in the bucket with nothing left in the database pointing at them, and "delete my account" did not delete the account's files. `deleteUserObjects(userId)` in `src/server/infra/r2.ts` now lists and deletes the `users/<id>/` prefix a page at a time, and `deleteAccount` calls it. The prefix rather than `Item.fileKey` is the point: the cascade destroys every row that could hold a key, while `buildObjectKey` is the only thing that mints one and `isOwnedKey` already treats the prefix as proof of ownership — so the prefix is the authority on what belongs to the account, and it also catches the orphans `deleteItem` leaves behind when its own object delete fails. **Ordering:** the sweep runs *after* the row delete, unlike the Stripe cleanup which must run before it, because sweeping first would mean a failed `user.delete` had already destroyed a live account's files — the same trade `deleteItem` makes at item scale. Best-effort and logged either way. **Still open, and deliberately:** the crash window between the two is now bounded rather than unbounded, and closing it needs a `/api/cron/sweep-orphaned-objects` route in the pattern `/api/cron/sweep-unverified` established — the mechanism it would call already exists.
 - **OAuth emails are not normalized, credentials emails are.** `auth-schemas.ts` lowercases and trims every address that arrives through registration or sign-in; the GitHub profile's email goes to the adapter untouched, so `Tom@example.com` from GitHub and `tom@example.com` from registration are two `User` rows for one person. Nothing is broken today — each account works on its own — but this lands squarely in the account-linking work: linking asks "is this the same person?", and a case-sensitive comparison answers no. Deciding it means picking where normalization belongs (a `signIn` callback, the adapter, or a citext/lowercase column plus a backfill), and it should be settled *with* linking rather than before it, since the two answers have to agree.
-- ~~**An unverified account holds its email address forever.**~~ **Resolved 2026-09-01.** Registration created the `User` row before the verification email was sent and nothing ever removed it, so a typo at signup — `tomm@` for `tom@` — locked that address out of the product for good, and the person it belonged to hit the 409 in `api/auth/register` with no route forward. A nightly Vercel Cron now calls `/api/cron/sweep-unverified`, which deletes `emailVerified: null` rows older than `UNVERIFIED_ACCOUNT_TTL_DAYS` (seven) — the number GitLab's own issue proposes as a default for exactly this case. The rule lives in `src/server/unverified.ts`; `npm run users:sweep` runs the same function by hand. Three of its six `where` clauses are guards rather than the rule, and the load-bearing one is `accounts: { none: {} }`: a GitHub sign-up is stamped verified by the `linkAccount` event in `src/auth.ts`, which is a *second* write after the `User` and `Account` rows exist, so a transient failure there would leave a real GitHub account looking exactly like an abandoned registration. **Re-registration takeover** — letting a fresh signup replace an unverified row — is the half deliberately *not* built: it answers the person who spotted the typo immediately, which a sweep cannot, but it widens an existence disclosure and costs nothing to defer while there are no real users. **Deployment dependency:** the route refuses to run unless `CRON_SECRET` is set in Vercel, which it is (confirmed 2026-09-05).
-- ~~**Collection recency is creation order in practice.**~~ **Resolved 2026-09-02.** §8 said recency was `updatedAt` and both the dashboard's recent collections and the sidebar's recent list did order by it — but nothing ever moved the column. Membership is written as a nested write on the **Item**, so `item_collections` changed while the `collections` row was never in the statement; `updatedAt` therefore equalled `createdAt` for every collection nobody had renamed, "recent" meant "newest", and the one thing that did move it was a rename, which is metadata rather than activity. `touchCollections()` in `src/actions/items.ts` now moves it from all three item write paths. The two halves worth knowing: an **edit takes the union of old and new membership**, because a collection the item left changed as much as the one it joined — and when a payload carries no `collectionIds` at all, the collections already holding the item are still touched, since editing an item is activity for wherever it is filed (that is the common case, and the one a naive implementation misses). **Delete reads membership before the row**, since the join rows cascade. The read-time alternative — the greatest of the collection's own `updatedAt`, its items' and `ItemCollection.addedAt` — was rejected: it puts a joined aggregate no index can serve into the `ORDER BY` of two queries on every dashboard page view, to save one `UPDATE` on a path already writing. Last *visited* was rejected too; it needs a new column and a write on every page view, and the products this imitates sort by last message, not by opening a conversation. The touch is best-effort and logged: the item write has already succeeded and been reported, so a failure costs a sidebar ordering rather than the user's work.
 - **A collection read transfers one row per item in it.** **Decided 2026-09-01: left as it is, deliberately.** `COLLECTION_SELECT` and `SIDEBAR_COLLECTION_SELECT` join every item of every collection they read — two scalars each, no bodies — and `itemCount`, `dominantItemType` and the type breakdown are all derived from those rows in JavaScript. `getSidebarCollections()` runs on **every** dashboard page view, and `getCollections`, `getDashboardCollections`, `getFavoriteCollections` and `getCollectionPageData` do the same on theirs, so an account with five thousand items across its collections moves five thousand rows to render a count and a coloured dot. The clean fix is one grouped aggregate — `COUNT(*)` and `MAX(editedAt)` per `(collection, itemType)`, from which all three values fall out — and Prisma's typed API cannot express it across the many-to-many for a *list* of collections: `groupBy` on `Item` cannot carry `collectionId`, because items have no such column, and `groupBy` on `ItemCollection` cannot reach `item.itemTypeId`. So it needs `$queryRaw`, which would be the first raw SQL in `src/` (`scripts/test-db.ts` has the only existing use). That is the whole trade, and it was declined for now on one ground: the free tier caps an account at fifty items, so every free account is bounded by construction and the unbounded case exists only for Pro. Worth revisiting the moment a real Pro profile is large enough to measure — the single-collection page is separable and *can* be done Prisma-natively with `prisma.item.groupBy`, since one fixed `collectionId` makes `itemTypeId` a valid group key on its own.
 
 - **Read-only monaco has never been touched by a finger.** Small, and listed only so it is not forgotten. Writing on a coarse pointer falls back to a plain textarea, but *reading* keeps monaco, and monaco handles its own touch scrolling — so on a snippet long enough to scroll inside the editor, a drag that starts over the code may scroll the editor and never hand the drawer back. Emulation cannot answer it: the fallback was verified by stubbing `matchMedia`, and real touch chaining is a device behaviour. The editor's viewport-aware ceiling makes it rarer (the editor only scrolls itself on genuinely long content), and the fix if it does bite is one line — let reading fall back too, losing highlighting on phones. **Check it on a real phone against the deployed app**, not before.

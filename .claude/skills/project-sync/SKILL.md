@@ -21,7 +21,8 @@ In scope — files that describe how the project *is*:
 
 - `CLAUDE.md`, `README.md`
 - `context/project-overview.md`, `context/coding-standards.md`, `context/ai-interaction.md`
-- `context/current-feature.md`
+- `context/current-feature.md`, `context/decisions.md`
+- `.claude/skills/*/SKILL.md`
 - `docs/**/*.md`
 - `context/features/*.md` that are **not yet implemented** (a spec for work still to come is a plan
   we will follow, so its paths must be ours, not the instructor's)
@@ -49,8 +50,10 @@ Verify each claim against the codebase; never flag from memory. `ls`, `grep`, an
    still exist under that name.
 4. **Commands.** Every `npm run …` in a doc exists in `package.json`, and vice versa for documented
    scripts.
-5. **The structure tree** in `context/project-overview.md` §9 — new files missing from it, deleted
-   files still listed.
+5. **The structure tree** in `context/project-overview.md` §9 lists *directories*, not files, and
+   must stay that way — a per-file inventory is what it was cut from. Drift here is a new or removed
+   top-level directory, or a directory whose one-line description no longer matches what it holds.
+   Never re-expand it into a file listing.
 6. **Status claims.** Something marked `(planned)` or roadmap-pending that has actually shipped, and
    anything claimed done that isn't. Check the code, not the roadmap's own wording.
 7. **Stack versions** in `CLAUDE.md` and `context/project-overview.md` §6 against `package.json`.

@@ -7,7 +7,7 @@ import ts from "typescript";
  * Checks that every `{@link}` in the source documentation is a link the reader can actually follow.
  * `npm run docs:links`.
  *
- * `coding-standards.md` § Cross-references allows `{@link Symbol}` only where the editor resolves
+ * The `docs-style` skill's § Cross-references allows `{@link Symbol}` only where the editor resolves
  * it — the symbol is imported into the file, or declared in it. Anywhere else the syntax silently
  * degrades to plain text, which is worse than prose: it promises navigation that is not there.
  * Nothing in `tsc`, ESLint or the build reports that, which is why this exists.
