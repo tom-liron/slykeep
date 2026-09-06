@@ -77,7 +77,7 @@ export function DeleteAccountDialog({
                     without it the flex row steals width from the label before the sentence. */}
                 <Button variant="destructive" size="lg" className="shrink-0">
                     <Trash2 className="size-4" aria-hidden="true" />
-                    Delete account
+                    Delete Account
                 </Button>
             </AlertDialogTrigger>
 
@@ -86,7 +86,7 @@ export function DeleteAccountDialog({
                     <AlertDialogTitle>
                         {subscriptionBlocksDeletion
                             ? "Cancel your subscription first"
-                            : "Delete account"}
+                            : "Delete Account"}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         {subscriptionBlocksDeletion ? (

@@ -84,7 +84,7 @@ export default async function SettingsPage({
                 {/* Last in the panel, which is where a destructive action belongs: nothing below it
                     to reach past on the way to something harmless. */}
                 <PanelRow
-                    title="Delete account"
+                    title="Delete Account"
                     description="Once your account is deleted, it can't be recovered. Please be certain."
                     tone="destructive"
                 >
@@ -104,8 +104,8 @@ export default async function SettingsPage({
                 is made. */}
             <Panel
                 id="editor"
-                title="Item editor"
-                description="Font, spacing and syntax colours for the editor you write item content in — in the drawer, and on the create and edit forms. Changes save as you make them."
+                title="Item Editor"
+                description="Font, spacing and syntax colours for the editor you write item content in — in the drawer, and on the create and edit forms. Changes are saved automatically."
             >
                 <EditorPreferencesRows />
             </Panel>

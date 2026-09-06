@@ -90,7 +90,7 @@ export function BillingPanelRows({
             <PanelRow
                 title={
                     <span className="flex items-center gap-2">
-                        Current plan
+                        Current Plan
                         <Badge variant={billing.isPro ? "default" : "secondary"}>
                             {billing.isPro ? planLabel(billing.cycle) : "Free"}
                         </Badge>
@@ -105,7 +105,7 @@ export function BillingPanelRows({
                         disabled={pending}
                         className="shrink-0"
                     >
-                        Manage subscription
+                        Manage Subscription
                     </Button>
                 ) : (
                     <div className="flex shrink-0 gap-2">
@@ -114,10 +114,10 @@ export function BillingPanelRows({
                             onClick={() => upgrade("monthly")}
                             disabled={pending}
                         >
-                            $8 / month
+                            $8 / Month
                         </Button>
                         <Button onClick={() => upgrade("yearly")} disabled={pending}>
-                            $72 / year
+                            $72 / Year
                         </Button>
                     </div>
                 )}

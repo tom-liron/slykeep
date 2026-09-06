@@ -33,9 +33,9 @@ export function EditorPreferencesRows() {
 
     return (
         <>
-            <PanelRow title="Font size" description="How large code and prose are in the editor.">
+            <PanelRow title="Font Size" description="How large code and prose are in the editor.">
                 <PreferenceSelect
-                    label="Font size"
+                    label="Font Size"
                     value={preferences.fontSize}
                     options={EDITOR_FONT_SIZES.map((size) => ({
                         value: size,
@@ -45,9 +45,9 @@ export function EditorPreferencesRows() {
                 />
             </PanelRow>
 
-            <PanelRow title="Tab size" description="How many spaces one indent level is worth.">
+            <PanelRow title="Tab Size" description="How many spaces one indent level is worth.">
                 <PreferenceSelect
-                    label="Tab size"
+                    label="Tab Size"
                     value={preferences.tabSize}
                     options={EDITOR_TAB_SIZES.map((size) => ({
                         value: size,
@@ -58,13 +58,13 @@ export function EditorPreferencesRows() {
             </PanelRow>
 
             <PanelRow
-                title="Word wrap"
+                title="Word Wrap"
                 description="Wrap long lines instead of scrolling sideways to read them."
             >
                 <Switch
                     checked={preferences.wordWrap}
                     onCheckedChange={(wordWrap) => update({ wordWrap })}
-                    aria-label="Word wrap"
+                    aria-label="Word Wrap"
                 />
             </PanelRow>
 

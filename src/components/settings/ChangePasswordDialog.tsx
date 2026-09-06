@@ -42,13 +42,13 @@ export function ChangePasswordDialog() {
                     without it the flex row steals width from the label before the sentence. */}
                 <Button size="lg" className="shrink-0">
                     <KeyRound className="size-4" aria-hidden="true" />
-                    Change password
+                    Change Password
                 </Button>
             </DialogTrigger>
 
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Change password</DialogTitle>
+                    <DialogTitle>Change Password</DialogTitle>
                     <DialogDescription>
                         Update the password you use to sign in to DevStash.
                     </DialogDescription>
