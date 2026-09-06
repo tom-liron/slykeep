@@ -16,5 +16,4 @@
 Specs are no longer synced against the codebase on load. That step existed because specs were
 written against the course's structure and its paths would otherwise be copied into
 current-feature.md and then into the implementation. The course is finished, so new specs are
-written against this codebase directly. Run `/project-sync <path>` by hand if a spec is old enough
-to predate a refactor.
+written against this codebase directly.
