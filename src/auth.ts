@@ -8,6 +8,7 @@ import { EMAIL_UNVERIFIED_CODE, RATE_LIMITED_CODE } from "@/lib/auth-errors";
 import { signInSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/server/infra/prisma";
 import { checkRateLimit, clientIp } from "@/server/infra/rate-limit";
+import { seedStarterContent } from "@/server/onboarding";
 import { ABSENT_USER_HASH } from "@/server/passwords";
 import authConfig from "./auth.config";
 
@@ -151,7 +152,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
     events: {
         /**
-         * Marks a GitHub sign-up verified.
+         * Marks a GitHub sign-up verified, and gives the new account its starter content.
          *
          * @remarks
          * The provider's profile mapping does not populate `emailVerified`, so every OAuth account
@@ -165,10 +166,28 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
          * cannot get a real GitHub account swept.
          */
         async linkAccount({ user }) {
+            const userId = user.id;
+
             await prisma.user.update({
-                where: { id: user.id },
+                where: { id: userId },
                 data: { emailVerified: new Date() },
             });
+
+            // The GitHub half of what `api/auth/register` does for a credentials sign-up. It runs
+            // after the verification write rather than beside it, so a seeding failure cannot cost
+            // the account the column the sweep reads. `seedStarterContent` no-ops on an account
+            // that already holds content, which is what makes this safe on a link to an existing
+            // user rather than a fresh sign-up.
+
+            // `id` is optional on the Auth.js adapter user; the row it names was just written, so
+            // this narrows the type rather than guarding a reachable case.
+            if (!userId) return;
+
+            try {
+                await seedStarterContent(userId);
+            } catch (error) {
+                console.error("Starter content failed to seed:", error);
+            }
         },
     },
     callbacks: {

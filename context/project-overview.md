@@ -257,7 +257,8 @@ devstash/
 ├── prisma/
 │   ├── schema.prisma            # persisted model; datasource url lives in prisma.config.ts
 │   ├── seed.ts                  # seeds the seven system item types, and demo content unless --types-only
-│   ├── seed-data.ts             # the demo collections and items, kept out of the seed's logic
+│   ├── seed-data.ts             # the demo account, and the third collection it adds to the
+│   │                            # starter content in src/config/starter-content.ts
 │   └── migrations/              # migration history (never edit applied ones)
 ├── prisma.config.ts             # Prisma 7 CLI config: schema path, migrations, seed, datasource
 ├── scripts/
@@ -293,6 +294,9 @@ devstash/
 │   │   │   └── reset-password/  # /reset-password — set a new password from a link
 │   │   ├── (dashboard)/        # authed app, sidebar layout
 │   │   │   ├── layout.tsx       # sidebar + main shell
+│   │   │   ├── loading.tsx      # the skeleton every signed-in route suspends to
+│   │   │   ├── error.tsx        # in-app 500, keeping the sidebar and top bar
+│   │   │   ├── not-found.tsx    # the same, for a 404 thrown by a route that exists
 │   │   │   ├── page.tsx         # dashboard overview (home)
 │   │   │   ├── items/
 │   │   │   │   └── [slug]/      # /items/snippets, /items/links, ...
@@ -324,6 +328,9 @@ devstash/
 │   │   │   └── webhook/stripe/  # Stripe's subscription events; the one path excluded from
 │   │   │                        # the proxy, authenticated by its stripe-signature header
 │   │   ├── layout.tsx           # root shell and default dark theme
+│   │   ├── error.tsx            # boundary for anything below the root layout, with a retry
+│   │   ├── global-error.tsx     # last resort: replaces the root layout when it is what threw
+│   │   ├── not-found.tsx        # 404 for a URL matching no route at all
 │   │   └── globals.css
 │   ├── components/
 │   │   ├── ui/                  # shared UI primitives and presentational components (incl. the account Panel)
@@ -389,6 +396,8 @@ devstash/
 │   │   ├── collections.ts       # collection reads
 │   │   ├── item-types.ts        # item types, per-type counts, sidebar nav
 │   │   ├── current-user.ts      # signed-in user resolution from the session
+│   │   ├── onboarding.ts        # writes the starter content into a newly created account;
+│   │   │                        # called by both sign-up paths, best-effort
 │   │   ├── profile.ts           # profile read: identity + usage; settings read: hasPassword + totals
 │   │   ├── passwords.ts         # the one bcrypt cost factor and the decoy hash pinned to it
 │   │   ├── prisma-errors.ts     # the Prisma error codes the write paths translate into messages
@@ -434,6 +443,8 @@ devstash/
 │       ├── editor.ts            # the surface and height bounds both content editors share
 │       ├── item-placeholders.ts  # the title placeholder each item type's form shows
 │       ├── item-type-catalog.ts # built-in item types: colors, icons, routes
+│       ├── starter-content.ts   # the collections and items every new account is given, and
+│       │                        # the demo seed is built from
 │       ├── marketing.ts         # the landing page's copy, and the two pricing plans
 │       └── pagination.ts        # how many rows one page of a listing renders
 ├── .env                         # secrets (gitignored)
@@ -485,9 +496,9 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 - ~~Search across tags, titles, types~~ — the ⌘K command palette, matching client-side over
   prefetched summaries. Item **content** is deliberately not searched: list queries never read the
   body (§5), so full-content search needs a server-side query rather than a wider prefetch
-- ~~Toasts, hover states, transitions~~ — sonner with `richColors`, and the micro-interactions in §8.
-  Loading *skeletons* are the exception: there are no route-level `loading.tsx` files, so navigation
-  waits on the server component rather than showing a placeholder
+- ~~Toasts, hover states, transitions~~ — sonner with `richColors`, the micro-interactions in §8, and
+  a route-level `loading.tsx` on the `(dashboard)` group, so a navigation paints a skeleton in the
+  main pane while the shell around it holds still
 - ~~Mobile responsiveness (sidebar → drawer)~~ — plus the phone-width passes on the item drawer, the
   dialogs, and the file rows, and the 44px touch-target policy in `ui/button.tsx`
 

@@ -5,6 +5,7 @@ import { registerSchema } from "@/lib/auth-schemas";
 import { sendVerificationEmail } from "@/server/infra/email";
 import { prisma } from "@/server/infra/prisma";
 import { checkRateLimit, clientIp, tooManyRequests } from "@/server/infra/rate-limit";
+import { seedStarterContent } from "@/server/onboarding";
 import { hashPassword } from "@/server/passwords";
 import { createVerificationToken } from "@/server/verification";
 
@@ -82,6 +83,15 @@ export async function POST(request: Request) {
             data: { name, email, password: await hashPassword(password) },
             select: { id: true, name: true, email: true },
         });
+
+        // Demo content, so the first dashboard is not five empty sections. Best-effort for the
+        // same reason the send below is: the account is what was asked for, and an unpopulated one
+        // still works.
+        try {
+            await seedStarterContent(user.id);
+        } catch (error) {
+            console.error("Starter content failed to seed:", error);
+        }
 
         // Sending is attempted after the account exists, and its failure does not undo it. Rolling
         // back would be worse than it sounds: the user retries, and a deleted-then-recreated account

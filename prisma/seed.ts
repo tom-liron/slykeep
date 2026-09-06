@@ -116,6 +116,10 @@ async function seedCollections(userId: string, itemTypeIds: Record<ItemTypeName,
                     language: item.language ?? null,
                     isFavorite: item.isFavorite ?? false,
                     isPinned: item.isPinned ?? false,
+                    // Null exactly when the item is not pinned: the dashboard's Pinned section
+                    // filters on `isPinned` and orders by this, so a pinned row without it sorts
+                    // by nothing.
+                    pinnedAt: item.isPinned ? new Date() : null,
                     userId,
                     itemTypeId: itemTypeIds[item.type],
                     // Tags are unique per account by `(userId, normalized)`; `name` keeps display
