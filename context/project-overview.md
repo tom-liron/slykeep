@@ -364,14 +364,14 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 **Phase 7 — Launch prep**
 - Custom item types
 - Priority support path, error monitoring, analytics
-- **A domain, and `EMAIL_FROM` on it.** Decided, not open: everything email-shaped waits for a real
-  domain and is fixed together at that point. Until then `EMAIL_FROM` is unset, so `server/infra/email.ts`
-  falls back to `onboarding@resend.dev`, which Resend delivers **only to the account owner's own
-  address** — every other recipient is refused with a 403. In development that is what
-  `npm run user:verify` exists to work around. In production it means registration completes and
-  then tells the user their confirmation email could not be sent, for everyone except the owner, so
-  nobody else can sign in. One variable on a verified domain is the whole fix and nothing in the
-  code changes with it. Deploying to real users before this is done is the thing to avoid.
+- ~~A domain, and `EMAIL_FROM` on it.~~ — the domain is `slykeep.com` and `EMAIL_FROM` is
+  `SlyKeep <noreply@slykeep.com>`, which `server/infra/email.ts` also carries as its default.
+  Delivery still depends on that domain reading **verified** at https://resend.com/domains: Resend
+  refuses every recipient of an unverified sender with a 403, which surfaces as registration
+  completing and then reporting that the confirmation email could not be sent.
+  `npm run email:test -- <address>` settles it either way.
+- **The rest of the DevStash → SlyKeep rename.** The transactional email is done; page titles,
+  marketing copy and the in-app strings are not.
 
 ---
 

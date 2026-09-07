@@ -27,7 +27,10 @@ so buying before naming means buying twice and verifying the Resend domain twice
    wherever `main` has moved, which is the opposite of what it is for. It reads as identical to
    `main` until the first rebrand commit lands, which is expected — the two diverge then.
 
-All three are closed, so nothing blocks the rebrand but the naming decision itself.
+All three are closed, and the naming decision is made: the name is **SlyKeep** and the domain
+is **slykeep.com**. Transactional email has already moved onto it — `EMAIL_FROM` is
+`SlyKeep <noreply@slykeep.com>` and the mail copy is renamed. Everything else the rebrand
+touches — page titles, marketing copy, in-app strings, `AUTH_URL` — is still to do.
 
 **A constraint the rebrand inherits:** new UI copy must not use "stash" as a *noun* ("your stash",
 "in the stash") — the verb ("start stashing", "what you have stashed") is ordinary English and

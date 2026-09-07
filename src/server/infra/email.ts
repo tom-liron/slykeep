@@ -30,16 +30,14 @@ function resend(): Resend {
 }
 
 /**
- * Sender address.
+ * Sender address, and the one value that decides whether any of this mail arrives.
  *
  * @remarks
- * The `onboarding@resend.dev` default sends without a verified domain but reaches only the Resend
- * account owner's own address — every other recipient is refused with a `403`. It makes the feature
- * testable in development, not shippable. Pointing `EMAIL_FROM` at an address on a verified domain
- * is the whole fix, and no code here changes with it (`project-overview.md` §10, Phase 7).
- * `npm run email:test` is the check when sends fail.
+ * The address must sit on a domain verified at https://resend.com/domains — Resend refuses every
+ * recipient of an unverified sender with a `403`, so a send either reaches everyone or no one.
+ * `npm run email:test -- <address>` is the check when sends fail.
  */
-const FROM = process.env.EMAIL_FROM ?? "DevStash <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM ?? "SlyKeep <noreply@slykeep.com>";
 
 /**
  * Escapes interpolation into the HTML body. `name` is user-supplied at registration and goes into
@@ -132,20 +130,20 @@ export async function sendVerificationEmail({
     await send("verification", {
         from: FROM,
         to,
-        subject: "Confirm your DevStash email",
+        subject: "Confirm your SlyKeep email",
         // Plain text alongside the HTML: some clients render it instead, and its presence measurably
         // lowers the odds of the whole message being scored as spam.
-        text: `${name ? `Hi ${name},` : "Hi,"}\n\nYou're almost done setting up your DevStash account. Confirm your email address using the link below:\n\n${link}\n\nThis link expires in 24 hours and can only be used once.\n\nIf you did not sign up for DevStash, you can ignore this email.`,
+        text: `${name ? `Hi ${name},` : "Hi,"}\n\nYou're almost done setting up your SlyKeep account. Confirm your email address using the link below:\n\n${link}\n\nThis link expires in 24 hours and can only be used once.\n\nIf you did not sign up for SlyKeep, you can ignore this email.`,
         html: renderHtml({
             heading: "Confirm your email",
             greeting: name ? `Hi ${escapeHtml(name)},` : "Hi,",
             body: [
-                "You're almost done setting up your DevStash account. Use the button below to confirm your email address.",
+                "You're almost done setting up your SlyKeep account. Use the button below to confirm your email address.",
             ],
             action: { label: "Confirm email", href: link },
             footnotes: [
                 "This link expires in 24 hours and can only be used once.",
-                "If you did not sign up for DevStash, you can ignore this email.",
+                "If you did not sign up for SlyKeep, you can ignore this email.",
             ],
         }),
     });
@@ -171,15 +169,15 @@ export async function sendPasswordResetEmail({
     await send("password reset", {
         from: FROM,
         to,
-        subject: "Reset your DevStash password",
-        text: `${name ? `Hi ${name},` : "Hi,"}\n\nWe received a request to reset the password for your DevStash account. Use the link below to choose a new one:\n\n${link}\n\nThis link expires in 1 hour and can only be used once.\n\nIf you did not ask to reset your password, you can ignore this email — your current password still works and nothing has changed.`,
+        subject: "Reset your SlyKeep password",
+        text: `${name ? `Hi ${name},` : "Hi,"}\n\nWe received a request to reset the password for your SlyKeep account. Use the link below to choose a new one:\n\n${link}\n\nThis link expires in 1 hour and can only be used once.\n\nIf you did not ask to reset your password, you can ignore this email — your current password still works and nothing has changed.`,
         html: renderHtml({
             heading: "Reset your password",
             greeting: name ? `Hi ${escapeHtml(name)},` : "Hi,",
             // The body says why the mail arrived and points at the button; the button carries the
             // verb, so the body must not repeat it.
             body: [
-                "We received a request to reset the password for your DevStash account. Use the button below to choose a new one.",
+                "We received a request to reset the password for your SlyKeep account. Use the button below to choose a new one.",
             ],
             action: { label: "Reset password", href: link },
             footnotes: [
@@ -209,13 +207,13 @@ export async function sendPasswordResetGitHubEmail({
     await send("GitHub reset", {
         from: FROM,
         to,
-        subject: "Reset your DevStash password",
-        text: `${name ? `Hi ${name},` : "Hi,"}\n\nSomeone asked to reset the password for the DevStash account with this email address.\n\nThat account signs in with GitHub and has no password to reset. Use "Sign in with GitHub" instead:\n\n${link}\n\nIf you did not ask for this, you can ignore this email — nothing has changed.`,
+        subject: "Reset your SlyKeep password",
+        text: `${name ? `Hi ${name},` : "Hi,"}\n\nSomeone asked to reset the password for the SlyKeep account with this email address.\n\nThat account signs in with GitHub and has no password to reset. Use "Sign in with GitHub" instead:\n\n${link}\n\nIf you did not ask for this, you can ignore this email — nothing has changed.`,
         html: renderHtml({
             heading: "Your account uses GitHub",
             greeting: name ? `Hi ${escapeHtml(name)},` : "Hi,",
             body: [
-                "Someone asked to reset the password for the DevStash account with this email address.",
+                "Someone asked to reset the password for the SlyKeep account with this email address.",
                 "That account signs in with GitHub, so there is no password to reset.",
             ],
             action: { label: "Sign in with GitHub", href: link },

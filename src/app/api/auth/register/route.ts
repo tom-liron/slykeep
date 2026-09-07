@@ -99,9 +99,8 @@ export async function POST(request: Request) {
         // failure lets them resend, which is the one action that can actually fix it.
         //
         // `emailSent` means "Resend accepted the request", which is weaker than it reads: delivery
-        // is settled asynchronously, so a send that fails later still arrives here as `true`. With
-        // `EMAIL_FROM` still on `onboarding@resend.dev` that is the *expected* case, not an edge
-        // one — see `src/server/infra/email.ts`. Closing the gap needs an `email.failed` webhook.
+        // is settled asynchronously, so a send that fails later still arrives here as `true`.
+        // Closing the gap needs an `email.failed` webhook.
         let emailSent = true;
 
         try {

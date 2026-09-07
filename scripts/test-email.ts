@@ -17,7 +17,7 @@ import { Resend } from "resend";
  * can deliver mail from this account, so a failure here is never ambiguous about which layer broke.
  */
 
-const FROM = process.env.EMAIL_FROM ?? "DevStash <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM ?? "SlyKeep <noreply@slykeep.com>";
 const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS = 60_000;
 
@@ -65,18 +65,17 @@ async function main() {
 
     if (verified.length === 0) {
         console.log(
-            "\n⚠ No verified domain. `onboarding@resend.dev` can only reach the Resend\n" +
-                "  account owner's own address and the delivered@resend.dev simulator —\n" +
-                "  fine for development, useless for real users, who will be refused with\n" +
-                "  a 403. Add a domain at https://resend.com/domains and point EMAIL_FROM\n" +
-                "  at an address on it before anyone else can receive mail.\n",
+            "\n⚠ No verified domain. Resend refuses every recipient of a sender whose\n" +
+                "  domain it has not verified, so nothing below will deliver. Add the\n" +
+                "  domain at https://resend.com/domains, publish the DNS records it asks\n" +
+                "  for, and wait for it to read `verified`.\n",
         );
     }
 
     const { data, error } = await resend.emails.send({
         from: FROM,
         to,
-        subject: "DevStash transport test",
+        subject: "SlyKeep transport test",
         text: "If this arrived, Resend can deliver mail from this account.",
     });
 
