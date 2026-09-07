@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Editor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
 import { Crown, Loader2, MessageSquareText } from "lucide-react";
 import { Tabs as TabsPrimitive } from "radix-ui";
@@ -231,7 +231,33 @@ export function CodeEditor({
     // phone is a fight. Writing falls back to the plain textarea; reading keeps Monaco, since the
     // highlighting is what the read-only surface is for and there is no caret to place.
     const coarsePointer = useCoarsePointer();
-    const plainText = coarsePointer && !readOnly;
+
+    /**
+     * Whether the monaco build failed to load. `loader.init()` rejects when the script under
+     * `/monaco/vs` cannot be fetched — a deployment that shipped without the copy `monaco:sync`
+     * makes, most obviously.
+     *
+     * Tracked because the alternative is silent: `Editor` renders its `loading` placeholder
+     * forever, which is indistinguishable from a slow network, so an absent 24 MB asset looks
+     * exactly like one still arriving.
+     */
+    const [monacoUnavailable, setMonacoUnavailable] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+
+        loader.init().catch(() => {
+            if (active) setMonacoUnavailable(true);
+        });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    // Writing under a finger falls back because monaco cannot be driven by touch; everything falls
+    // back when monaco is not there to drive at all.
+    const plainText = (coarsePointer && !readOnly) || monacoUnavailable;
 
     const monacoLanguage = toMonacoLanguage(language);
 
@@ -356,9 +382,10 @@ export function CodeEditor({
                 explanation would lose all three and flash a re-measuring editor on return. */}
             <TabsPrimitive.Content value="code" forceMount className="data-[state=inactive]:hidden">
                 {/* The fallback keeps the frame, header and language label — only the highlighting
-                    is lost, and the item reads back highlighted once saved and viewed. Rendered
-                    *instead of* `<Editor>`, not hidden alongside it, so Monaco never mounts on a
-                    phone and never loads its several megabytes. */}
+                    is lost. Rendered *instead of* `<Editor>`, not hidden alongside it, so Monaco
+                    never mounts on a phone and never loads its several megabytes. It also carries
+                    the read-only surface when the monaco build is missing, which is the difference
+                    between unhighlighted code and an empty box. */}
                 {plainText ? (
                     <ContentTextarea
                         id={id}
@@ -367,6 +394,7 @@ export function CodeEditor({
                         placeholder={placeholder}
                         label={label}
                         code
+                        readOnly={readOnly}
                     />
                 ) : (
                     // `relative`, only so the fade below has something to be absolute against. It

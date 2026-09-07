@@ -1,4 +1,5 @@
 {
+    "buildCommand": "npm run monaco:sync && next build",
     "crons": [
         {
             "path": "/api/cron/sweep-unverified",

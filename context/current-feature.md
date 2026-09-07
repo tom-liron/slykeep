@@ -2,25 +2,24 @@
 
 ## Status
 
-Step 1 of 3 — in progress, `fix/monaco-production-assets`.
+Step 1 of 3 complete. **Step 2 not started** — `fix/verification-link-session`.
 Plan and progress: `context/features/verification-hardening-plan.md`.
 
 ## Goals
 
-Get monaco served on production. Every `/monaco/vs/*` asset 404s on the live site while
-`/favicon.ico` returns 200, so the editor never mounts and read-only code renders as an empty
-box — on every device, and on every deploy since the first.
+Stop the verification link being swallowed by an existing session. `GET /api/auth/verify-email`
+redirects to `/sign-in?verified=1`; the proxy sees a live session, redirects to `/`, and the query
+string goes with it — so verifying one account while signed in as another lands silently in the
+wrong account with no message.
 
-- Move `monaco-editor` from `devDependencies` to `dependencies`.
-- Name `monaco:sync` in an explicit `buildCommand` in `vercel.json`, rather than relying on npm's
-  `prebuild` hook, which never fired on Vercel.
-- Fall back to plain unhighlighted text when monaco cannot load, so a missing asset can never again
-  be indistinguishable from a slow one.
+- Give verification its own result route, in `OPEN_ROUTES`, reachable with or without a session —
+  the treatment `/reset-password` already has for the same documented reason.
+- When the token's account differs from the session's, say so and offer the choice.
 
 ## Notes
 
-`public/monaco` is gitignored build output, 24 MB, produced by `npm run monaco:sync`. Verify after
-deploy by requesting `/monaco/vs/loader.js` from the live site.
+`lib/auth-redirects.ts` already carries the reasoning for `/reset-password`; it was never carried
+across because verification borrows `/sign-in` rather than owning a page.
 
 ## History
 

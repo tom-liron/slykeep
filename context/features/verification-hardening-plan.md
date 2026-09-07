@@ -8,7 +8,7 @@ is live. Delete the pointer and archive this file when step 3 merges.
 
 ## Progress
 
-- [ ] **Step 1** — monaco 404s on production (`fix/monaco-production-assets`)
+- [x] **Step 1** — monaco 404s on production (`fix/monaco-production-assets`) — done 2026-09-07
 - [ ] **Step 2** — the verification link gets swallowed (`fix/verification-link-session`)
 - [ ] **Step 3** — the soft gate (`feature/soft-verification-gate`)
 

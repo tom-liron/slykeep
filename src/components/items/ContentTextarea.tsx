@@ -35,6 +35,7 @@ export function ContentTextarea({
     placeholder,
     label,
     code = false,
+    readOnly = false,
 }: {
     /** The textarea's, so the `Field` label above it points at something real. */
     id?: string;
@@ -50,6 +51,11 @@ export function ContentTextarea({
      * "correct" a variable name into a dictionary word.
      */
     code?: boolean;
+    /**
+     * Renders the text without allowing edits. Set when this stands in for a read-only
+     * `CodeEditor` whose monaco build could not be loaded.
+     */
+    readOnly?: boolean;
 }) {
     const preferences = useEditorPreferences();
     const coarsePointer = useCoarsePointer();
@@ -59,6 +65,7 @@ export function ContentTextarea({
             id={id}
             value={value}
             onChange={(event) => onChange?.(event.target.value)}
+            readOnly={readOnly}
             placeholder={placeholder}
             aria-label={label}
             spellCheck={false}
