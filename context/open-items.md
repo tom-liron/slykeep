@@ -41,6 +41,11 @@ piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
 
 ## Queued work
 
+- **Verification hardening, three steps** — monaco 404ing on production, the verification link
+  swallowed by an existing session, and the move to a soft verification gate. Each on its own
+  branch; the plan and its progress checklist are in
+  `context/features/verification-hardening-plan.md`.
+
 - **Leftover from #117** — 17 `file.ts#L42` anchors across two tracked `docs/` files are checked by
   nothing; a link checker in CI would close it. And `docs/item-crud-architecture.md` links to
   `src/components/profile/ChangePasswordForm.tsx`, which no longer exists (its banner already names

@@ -9,6 +9,10 @@ Loaded automatically, every session:
 - @context/ai-interaction.md
 - @context/current-feature.md
 
+**Active plan:** `context/features/verification-hardening-plan.md` — a three-step plan in
+progress (monaco on production, the swallowed verification link, the soft gate). Read it first;
+it carries the step we are on. Remove this line when step 3 merges.
+
 Read on demand:
 - `context/project-overview.md` — the product and architecture record. Not auto-loaded, because
   most work does not need it and it costs more context than everything else here combined. The
