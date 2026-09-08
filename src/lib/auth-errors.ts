@@ -47,13 +47,6 @@ const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
     OAuthCallbackError: "GitHub sign-in did not complete. Try again.",
     AccessDenied: "GitHub sign-in was cancelled or declined.",
     Verification: "That sign-in link has expired or was already used. Request a new one.",
-    // Set by the redirect out of `GET /api/auth/verify-email` when the token could not be consumed.
-    // Both messages point at the resend control rather than dead-ending, since the account exists in
-    // every case and only the link is spent.
-    VerificationExpired:
-        "That verification link has expired. Request a new one below and we will send a fresh link.",
-    VerificationInvalid:
-        "That verification link is not valid or has already been used. Request a new one below.",
     MissingCSRF: "Your session expired before sign-in finished. Try again.",
     // Set by `GET /api/auth/stale-session` after clearing a session whose account no longer exists.
     // Vague about why the account is gone: this fires for a deletion from another device and for a

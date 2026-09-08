@@ -129,3 +129,14 @@ export async function signInWithGitHub(formData: FormData) {
 export async function signOutAction() {
     await signOut({ redirectTo: "/" });
 }
+
+/**
+ * Clears the session and lands on the sign-in form.
+ *
+ * The way out of `/verify-email` when the link confirmed an address other than the one this browser
+ * is signed in as. The session has to go before the confirmed account can be signed in to, and
+ * `signOutAction`'s landing at `/` would leave the person exactly where they started.
+ */
+export async function signOutToSignIn() {
+    await signOut({ redirectTo: "/sign-in" });
+}

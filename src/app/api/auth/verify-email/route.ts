@@ -1,6 +1,8 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { auth } from "@/auth";
+import type { VerificationOutcome } from "@/lib/verification-outcomes";
 import { sendVerificationEmail } from "@/server/infra/email";
 import { prisma } from "@/server/infra/prisma";
 import { checkRateLimit, clientIp, tooManyRequests } from "@/server/infra/rate-limit";
@@ -10,28 +12,43 @@ import { createVerificationToken, verifyEmailToken } from "@/server/verification
  * Email verification: `GET` consumes a link, `POST` reissues one.
  *
  * Under `api/auth` so it wins over the `[...nextauth]` catch-all and sits outside `src/proxy.ts`'s
- * matcher. That exclusion is load-bearing: someone clicking a verification link is signed out, and
- * a protected path would bounce them to `/sign-in` and drop the token.
+ * matcher. That exclusion is load-bearing: the token travels in the URL, and a protected path would
+ * bounce a visitor with no session to `/sign-in` and drop it.
  */
 
 /**
- * Where each `GET` outcome lands. Every branch returns to the sign-in form — signing in is what the
- * user was doing — and the form renders `?error=` through `lib/auth-errors.ts`.
+ * Consumes the token in the link and hands the outcome to `/verify-email` to explain.
+ *
+ * @remarks
+ * The result page rather than the sign-in form, because this click can arrive in a browser that
+ * already has a session. `/sign-in` is a signed-out route, so a signed-in visitor would be bounced
+ * to `/` and the outcome would vanish with the query string; `/verify-email` is in `OPEN_ROUTES`
+ * for exactly that reason.
  */
-const OUTCOME_PARAMS: Record<string, string> = {
-    verified: "verified=1",
-    "already-verified": "verified=already",
-    expired: "error=VerificationExpired",
-    invalid: "error=VerificationInvalid",
-};
-
 export async function GET(request: Request) {
     const token = new URL(request.url).searchParams.get("token") ?? "";
     const result = await verifyEmailToken(token);
 
+    // Typed through the shared union so a status added to `VerificationResult` cannot reach the page
+    // as a name it has no message for.
+    const status: VerificationOutcome = result.status;
+
     // Built from `request.url` rather than `AUTH_URL`: this request *is* the click, so its origin is
     // the one the user is actually on, and a mismatch would bounce them to another host mid-flow.
-    const target = new URL(`/sign-in?${OUTCOME_PARAMS[result.status]}`, request.url);
+    const target = new URL(`/verify-email?status=${status}`, request.url);
+
+    // A link opened on a shared machine, or on a second account, confirms one address while the
+    // browser is signed in as another. The page can read its own session but not the address the
+    // token was issued for, so the comparison happens here and only its answer travels — which keeps
+    // the confirmed address out of the URL, the browser history and the referrer.
+    if ("email" in result) {
+        const session = await auth();
+        const signedInAs = session?.user?.email?.toLowerCase();
+
+        if (signedInAs && signedInAs !== result.email.toLowerCase()) {
+            target.searchParams.set("mismatch", "1");
+        }
+    }
 
     return NextResponse.redirect(target);
 }

@@ -28,19 +28,6 @@ describe("getSignInErrorMessage", () => {
         expect(getSignInErrorMessage(["AccessDenied", "Verification"])).not.toBeNull();
     });
 
-    // Both codes are ours, redirected to to by `GET /api/auth/verify-email`. If either fell through
-    // to the generic fallback the user would be told to "try again" with a link that can never
-    // work, instead of being pointed at the resend control that actually resolves it.
-    it.each(["VerificationExpired", "VerificationInvalid"])(
-        "tells a user with a dead %s link to request a new one",
-        (code) => {
-            const message = getSignInErrorMessage(code);
-
-            expect(message).toContain("new one");
-            expect(message).not.toBe("Something went wrong signing you in. Try again.");
-        },
-    );
-
     // Ours too, set by `GET /api/auth/stale-session`. The generic fallback invites the user to "try
     // again", which is precisely the one thing that cannot work here — the account they were signed
     // in as does not exist any more, so the same credentials will not bring it back.

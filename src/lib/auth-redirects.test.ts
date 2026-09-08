@@ -40,9 +40,12 @@ describe("resolveCallbackUrl", () => {
     });
 
     describe("refuses the auth pages, which would loop", () => {
-        it.each(["/sign-in", "/register", "/forgot-password", "/reset-password"])("%s", (route) => {
-            expect(resolveCallbackUrl(route)).toBeNull();
-        });
+        it.each(["/sign-in", "/register", "/forgot-password", "/reset-password", "/verify-email"])(
+            "%s",
+            (route) => {
+                expect(resolveCallbackUrl(route)).toBeNull();
+            },
+        );
 
         // The path is what decides, not the whole string — a query would otherwise slip one past.
         it("including with a query string attached", () => {

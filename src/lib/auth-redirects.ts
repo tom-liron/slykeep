@@ -13,22 +13,22 @@
  * forms would only sign them in as who they already are, or reset a password they evidently
  * remember.
  *
- * `/verify-email` is absent: the token is consumed by the route handler at
- * `/api/auth/verify-email`, and `api/auth` is outside the proxy's matcher, so a page path here
- * would protect nothing. `/welcome` is the marketing homepage — reachable without a session, sent
- * past by a signed-in visitor, and refused as a post-sign-in destination.
+ * `/welcome` is the marketing homepage — reachable without a session, sent past by a signed-in
+ * visitor, and refused as a post-sign-in destination.
  */
 export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-password", "/welcome"]);
 
 /**
  * Reachable with or without a session.
  *
- * `/reset-password` is opened from an inbox, in whatever browser the mail client hands it to —
- * possibly one signed in as the person resetting, or as someone else on a shared machine.
- * Redirecting a signed-in visitor to `/` would swallow the link; the page is safe for them anyway,
- * granting nothing the token in the URL does not.
+ * Both are reached from an inbox, in whatever browser the mail client hands the link to — possibly
+ * one signed in as the person who followed it, or as someone else on a shared machine. Redirecting
+ * a signed-in visitor to `/` would swallow the link along with its query string, which on
+ * `/verify-email` is the entire message. Neither page is unsafe for them: `/reset-password` grants
+ * nothing the token in the URL does not, and `/verify-email` only reports an outcome that
+ * `GET /api/auth/verify-email` has already applied.
  */
-export const OPEN_ROUTES = new Set(["/reset-password"]);
+export const OPEN_ROUTES = new Set(["/reset-password", "/verify-email"]);
 
 /** Where sign-in lands when there is nowhere in particular to return to. */
 export const DEFAULT_SIGN_IN_DESTINATION = "/?welcome=signed-in";

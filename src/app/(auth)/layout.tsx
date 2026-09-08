@@ -4,9 +4,9 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
  * The signed-out shell: the marketing bar above a centered card, no sidebar.
  *
  * `(auth)` is a route group, so it adds nothing to the URL — the pages beneath it are `/sign-in`,
- * `/register`, `/forgot-password` and `/reset-password`. All four get the `MarketingNav` bar in its
- * `auth` variant, so every one keeps the brand and a way back to `/`. The bar sits outside the
- * `justify-center` wrapper, which centers only the card.
+ * `/register`, `/forgot-password`, `/reset-password` and `/verify-email`. All five get the
+ * `MarketingNav` bar in its `auth` variant, so every one keeps the brand and a way back to `/`. The
+ * bar sits outside the `justify-center` wrapper, which centers only the card.
  *
  * @remarks
  * `min-h-dvh` with `md:h-dvh md:overflow-y-auto` follows the two scroll models the root layout

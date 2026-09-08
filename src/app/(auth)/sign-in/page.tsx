@@ -26,7 +26,6 @@ export default async function SignInPage({
 }: {
     searchParams: Promise<{
         registered?: string;
-        verified?: string;
         reset?: string;
         deleted?: string;
         callbackUrl?: string | string[];
@@ -53,20 +52,10 @@ export default async function SignInPage({
     const justRegistered = params.registered === "sent";
     const emailFailed = params.registered === "unsent";
 
-    // Set by the redirect out of `GET /api/auth/verify-email`. `already` covers a link clicked
-    // twice, which is a success from the user's point of view even though nothing changed.
-    const justVerified = params.verified === "1";
-    const alreadyVerified = params.verified === "already";
-
     // Auth.js redirects a failed sign-in here with the reason in `?error=` (see `auth-errors.ts`).
     // Reading it is what stops a blocked GitHub sign-in from bouncing the user back to a clean form
     // with no explanation, leaving the cause visible only in the server logs.
     const errorMessage = getSignInErrorMessage(params.error);
-
-    // Both verification-link failures leave the account intact and only the link spent, so the
-    // remedy is always a fresh one rather than support.
-    const needsNewLink =
-        params.error === "VerificationExpired" || params.error === "VerificationInvalid";
 
     return (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -84,12 +73,12 @@ export default async function SignInPage({
             {/* Above the GitHub button, because that is the control that just failed — and the
                 OAuthAccountNotLinked message sends the user to the credentials form below it. */}
             {errorMessage && (
-                <div className="mb-5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    <p role="alert">{errorMessage}</p>
-                    {/* A dead verification link is the one error the user can fix from here, so the
-                        message comes with the control that fixes it rather than just an apology. */}
-                    {needsNewLink && <ResendVerification />}
-                </div>
+                <p
+                    role="alert"
+                    className="mb-5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                    {errorMessage}
+                </p>
             )}
 
             {justReset && (
@@ -101,18 +90,6 @@ export default async function SignInPage({
             {justDeleted && (
                 <p className="mb-5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
                     Your account has been deleted.
-                </p>
-            )}
-
-            {justVerified && (
-                <p className="mb-5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
-                    Email confirmed. Sign in to get started.
-                </p>
-            )}
-
-            {alreadyVerified && (
-                <p className="mb-5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
-                    That email was already confirmed. Sign in to continue.
                 </p>
             )}
 
