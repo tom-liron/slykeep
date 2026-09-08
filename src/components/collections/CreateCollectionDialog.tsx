@@ -6,6 +6,7 @@ import { FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { createCollection } from "@/actions/collections";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -41,6 +42,10 @@ export function CreateCollectionDialog({
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
 } = {}) {
+    // The trigger is disabled for an unconfirmed account rather than hidden, so the way in
+    // stays where it is expected and says on hover what would open it.
+    const blocked = useWriteBlockedReason();
+
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const isControlled = controlledOpen !== undefined;
     const open = isControlled ? controlledOpen : uncontrolledOpen;
@@ -52,7 +57,12 @@ export function CreateCollectionDialog({
                 <DialogTrigger asChild>
                     {/* Label at `lg`, in step with `CreateItemDialog`'s — the two share a track
                         and appear together. */}
-                    <Button variant="outline" aria-label="New Collection">
+                    <Button
+                        variant="outline"
+                        aria-label="New Collection"
+                        disabled={blocked !== null}
+                        title={blocked ?? undefined}
+                    >
                         <FolderPlus className="size-4" aria-hidden="true" />
                         <span className="hidden lg:inline">New Collection</span>
                     </Button>

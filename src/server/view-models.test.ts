@@ -261,6 +261,7 @@ describe("collection view models", () => {
                 email: "john@example.com",
                 image: null,
                 isPro: false,
+                emailVerified: new Date("2026-01-01"),
             }).name,
         ).toBe("john@example.com");
     });

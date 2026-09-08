@@ -56,7 +56,17 @@ export const getCurrentUser = cache(async (): Promise<UserViewModel> => {
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, name: true, email: true, image: true, isPro: true },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            isPro: true,
+            // Read from the row and never from the session token: the JWT is reissued on
+            // `updateAge` (24h), so a token-borne flag would leave someone who confirmed on their
+            // phone read-only on their laptop for a day.
+            emailVerified: true,
+        },
     });
 
     // The session carries an id for a row that no longer exists — a deleted account with a live

@@ -31,6 +31,16 @@ type ItemRow = {
 
 type ItemTypeRow = { id: string; name: string; userId: string | null };
 
+/**
+ * The signed-in account's verification standing, as `getCurrentUser` reports it.
+ *
+ * Confirmed by default so every other test measures its own subject; the guard tests at the bottom
+ * flip it, since an unconfirmed account is read-only from the moment it exists.
+ */
+const state = vi.hoisted(() => ({
+    verification: { emailVerified: true },
+}));
+
 const db = vi.hoisted(() => ({
     items: [] as ItemRow[],
     itemTypes: [] as ItemTypeRow[],
@@ -52,7 +62,9 @@ const db = vi.hoisted(() => ({
 vi.mock("@/server/current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
     // Pro, so the file-item tests below are about the upload check rather than the entitlement one.
-    getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true }),
+    // Confirmed and inside its write window, so the verification guard is never what these measure —
+    // it has its own tests at the bottom of this file.
+    getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true, ...state.verification }),
 }));
 
 // The action re-reads through this after a successful write. What it returns does not matter here —
@@ -227,6 +239,7 @@ const { createItem, deleteItem, toggleItemFavorite, toggleItemPin, updateItem } 
 
 describe("createItem", () => {
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
         db.lastCreateCollections = null;
         db.collections = [
@@ -365,6 +378,7 @@ describe("createItem", () => {
 
 describe("updateItem", () => {
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
         db.lastUpdateData = null;
         db.collections = [
@@ -553,6 +567,7 @@ describe("tag scoping", () => {
      * about for `ItemType`.
      */
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
         db.collections = [];
         db.lastTagCreateMany = null;
@@ -607,6 +622,7 @@ describe("tag scoping", () => {
 
 describe("deleteItem", () => {
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
     });
 
@@ -649,6 +665,7 @@ describe("collection recency", () => {
      * implementation misses it entirely.
      */
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
         db.touched = [];
         db.itemTypes = [{ id: "type-snippet", name: "snippet", userId: null }];
@@ -738,6 +755,7 @@ describe("collection recency", () => {
 
 describe("toggleItemFavorite", () => {
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
         db.lastUpdateData = null;
     });
@@ -803,6 +821,7 @@ describe("toggleItemFavorite", () => {
  */
 describe("toggleItemPin", () => {
     beforeEach(() => {
+        state.verification = { emailVerified: true };
         db.items = [];
         db.lastUpdateData = null;
     });
@@ -886,5 +905,57 @@ describe("toggleItemPin", () => {
         // reappearing at the top of the dashboard's recent list the moment it is unpinned.
         expect(db.lastUpdateData).toEqual({ isPinned: true, pinnedAt: expect.any(Date) });
         expect(db.items[0]?.isFavorite).toBe(true);
+    });
+});
+
+/**
+ * The read-only state an unconfirmed account falls into after its grace period.
+ *
+ * Every write path has to refuse, not just the obvious one: `createItem` is the path anybody would
+ * remember to guard, and a favourite toggle is the one that would quietly keep working. The refusal
+ * has to happen before the database is touched at all, which is what the second assertion in each
+ * case is for.
+ */
+describe("a read-only account", () => {
+    beforeEach(() => {
+        state.verification = { emailVerified: false };
+        db.items = [];
+        // This describe sits outside the suite whose `beforeEach` clears the write spies, and a
+        // guard test asserting "nothing was written" is worthless against a stale one.
+        db.lastUpdateData = null;
+    });
+
+    it("cannot create", async () => {
+        const result = await createItem({ type: "snippet", title: "My snippet" });
+
+        expect(result.success).toBe(false);
+        expect(db.items).toHaveLength(0);
+    });
+
+    it("cannot update", async () => {
+        const result = await updateItem("item-1", { title: "New title" });
+
+        expect(result.success).toBe(false);
+        expect(db.lastUpdateData).toBeNull();
+    });
+
+    it("cannot delete", async () => {
+        const result = await deleteItem("item-1");
+
+        expect(result.success).toBe(false);
+    });
+
+    // The one that would go unnoticed: it writes a single boolean and reads like a view preference.
+    it("cannot favourite or pin", async () => {
+        expect((await toggleItemFavorite("item-1", true)).success).toBe(false);
+        expect((await toggleItemPin("item-1", true)).success).toBe(false);
+        expect(db.lastUpdateData).toBeNull();
+    });
+
+    it("says what would restore writing", async () => {
+        const result = await createItem({ type: "snippet", title: "My snippet" });
+
+        expect(result.success).toBe(false);
+        expect("error" in result && result.error).toContain("Confirm your email");
     });
 });

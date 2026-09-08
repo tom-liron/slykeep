@@ -3,6 +3,7 @@
 import { Copy, Download, Pencil, Pin, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { ActionLabel } from "./ActionLabel";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 
@@ -71,6 +72,9 @@ export function ItemDrawerToolbar({
     title: string;
     onDeleted: () => void;
 }) {
+    // Copy and Download stay live for an unconfirmed account; the other three write, so they are
+    // disabled here and refused again in the action. See `VerifiedContext`.
+    const blocked = useWriteBlockedReason();
     return (
         // Outer `border-t` separates the row from the content above; the inner tray groups the six
         // controls into one bordered object so a row of ghost buttons does not read as loose text.
@@ -82,8 +86,8 @@ export function ItemDrawerToolbar({
                     variant="ghost"
                     size="sm"
                     onClick={onToggleFavorite}
-                    disabled={isFavoriting}
-                    title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    disabled={isFavoriting || blocked !== null}
+                    title={blocked ?? (isFavorite ? "Remove from favorites" : "Add to favorites")}
                     aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                 >
                     <Star
@@ -99,8 +103,8 @@ export function ItemDrawerToolbar({
                     variant="ghost"
                     size="sm"
                     onClick={onTogglePin}
-                    disabled={isPinning}
-                    title={isPinned ? "Unpin" : "Pin to the top"}
+                    disabled={isPinning || blocked !== null}
+                    title={blocked ?? (isPinned ? "Unpin" : "Pin to the top")}
                     aria-label={isPinned ? "Unpin" : "Pin to the top"}
                 >
                     {/* Filled `sky-400` when pinned — a fill alone reads as a bolder icon, not a
@@ -163,8 +167,8 @@ export function ItemDrawerToolbar({
                         variant="ghost"
                         size="sm"
                         onClick={onEdit}
-                        disabled={!canEdit}
-                        title="Edit"
+                        disabled={!canEdit || blocked !== null}
+                        title={blocked ?? "Edit"}
                         aria-label="Edit"
                     >
                         <Pencil aria-hidden="true" />

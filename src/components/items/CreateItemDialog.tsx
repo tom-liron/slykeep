@@ -15,6 +15,7 @@ import {
     TagsField,
 } from "@/components/items/ItemFormFields";
 import { TypeIcon } from "@/components/items/TypeIcon";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -90,6 +91,10 @@ export function CreateItemDialog({
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
 } = {}) {
+    // The trigger is disabled for an unconfirmed account rather than hidden, so the way in
+    // stays where it is expected and says on hover what would open it.
+    const blocked = useWriteBlockedReason();
+
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const isControlled = controlledOpen !== undefined;
     const open = isControlled ? controlledOpen : uncontrolledOpen;
@@ -102,7 +107,11 @@ export function CreateItemDialog({
                     {/* Label appears at `lg`: the top bar only has room for the labelled create
                         buttons alongside the brand, search field and star from about 900px.
                         `aria-label` carries the name at every width. */}
-                    <Button aria-label="New Item">
+                    <Button
+                        aria-label="New Item"
+                        disabled={blocked !== null}
+                        title={blocked ?? undefined}
+                    >
                         <Plus className="size-4" aria-hidden="true" />
                         <span className="hidden lg:inline">New Item</span>
                     </Button>

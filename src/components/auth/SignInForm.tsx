@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { signInWithCredentials } from "@/actions/auth";
-import { ResendVerification } from "@/components/auth/ResendVerification";
 import { AuthField } from "@/components/ui/AuthField";
 import { Button } from "@/components/ui/button";
 import { invalidProps } from "@/components/ui/Field";
@@ -18,7 +17,8 @@ import { EMPTY_AUTH_STATE } from "@/types/auth";
  *
  * One of the two controls on `/sign-in` (the other is `GitHubSignInButton`). `callbackUrl` travels
  * as a hidden field because a Server Action cannot read the URL of the page that invoked it. On a
- * rejected credential it renders {@link ResendVerification} when the account is unverified.
+ * Every failure it reports is generic by design — `authorize` in `src/auth.ts` makes a wrong
+ * password, an unknown address and an OAuth-only account indistinguishable.
  */
 export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
     const [state, formAction, isPending] = useActionState(signInWithCredentials, EMPTY_AUTH_STATE);
@@ -80,13 +80,9 @@ export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
             {/* Every failure reports here or against its field. Toasts are for the successful
                 outcome only, so there is exactly one place to look when something goes wrong. */}
             {state.error && (
-                <div className="text-sm text-destructive">
-                    <p role="alert">{state.error}</p>
-                    {/* The only failure a user can act on from this form. Their password was
-                        accepted, so the address is theirs and prefilling it is safe — and it
-                        spares them retyping it into a second box on the same screen. */}
-                    {state.unverified && <ResendVerification defaultEmail={state.email} />}
-                </div>
+                <p role="alert" className="text-sm text-destructive">
+                    {state.error}
+                </p>
             )}
 
             <Button type="submit" disabled={isPending} className="w-full">

@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
-import { EMAIL_UNVERIFIED_CODE, RATE_LIMITED_CODE } from "@/lib/auth-errors";
+import { RATE_LIMITED_CODE } from "@/lib/auth-errors";
 import { signInSchema } from "@/lib/auth-schemas";
 import { prisma } from "@/server/infra/prisma";
 import { checkRateLimit, clientIp } from "@/server/infra/rate-limit";
@@ -29,19 +29,6 @@ import authConfig from "./auth.config";
  * their timing, and it is where the sign-in rate limit is spent.
  */
 
-/**
- * Thrown when the password was right but the address was never confirmed.
- *
- * @remarks
- * A `CredentialsSignin` subclass rather than a bare `null`, so the sign-in form can tell this apart
- * from a bad password and offer to resend the link — a generic "invalid email or password" would
- * strand someone whose credentials are correct. `code` is the only field Auth.js carries through to
- * the caller; everything else about the error is flattened.
- */
-class EmailUnverifiedError extends CredentialsSignin {
-    code = EMAIL_UNVERIFIED_CODE;
-}
-
 /** Thrown when this address has spent its guesses from this address block. */
 class RateLimitedError extends CredentialsSignin {
     code = RATE_LIMITED_CODE;
@@ -54,6 +41,10 @@ class RateLimitedError extends CredentialsSignin {
  * Every failure returns `null` and none of them say why — not in the response and not in how long it
  * takes to arrive. A wrong password, an unknown email and an OAuth-only account are one outcome from
  * the outside, so the form cannot be used to enumerate accounts.
+ *
+ * An unconfirmed address is **not** a failure here. Verification gates writing rather than signing
+ * in — `readOnlyRefusal` in `server/access.ts` is where it is applied — so this checks the password
+ * and nothing else about the account's standing.
  *
  * The rate limit lives here rather than in the sign-in Server Action because this is the only place
  * every sign-in passes through. The action guards the form;
@@ -93,7 +84,6 @@ const credentials = Credentials({
                 name: true,
                 image: true,
                 password: true,
-                emailVerified: true,
             },
         });
 
@@ -104,12 +94,6 @@ const credentials = Credentials({
         const passwordMatches = await bcrypt.compare(parsed.data.password, hash);
 
         if (!passwordMatches || !user?.password) return null;
-
-        // *After* the compare, which is what makes naming this state safe: by this line the caller
-        // has proven they know the password, so the account's existence is not disclosed by the
-        // answer. Above the compare it would leak which addresses are registered and reopen the
-        // timing gap the decoy hash closes.
-        if (!user.emailVerified) throw new EmailUnverifiedError();
 
         return { id: user.id, email: user.email, name: user.name, image: user.image };
     },

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { openBillingPortal, startCheckout } from "@/actions/billing";
+import { revealVerificationBanner } from "@/components/layout/VerificationBanner";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PanelRow } from "@/components/ui/Panel";
@@ -42,6 +44,10 @@ export function BillingPanelRows({
     collectionCount: number;
     justCheckedOut: boolean;
 }) {
+    // Read to decide whether a refusal is the verification one, not to disable the button:
+    // checkout stays clickable so the refusal can explain itself. See `VerifiedContext`.
+    const blocked = useWriteBlockedReason();
+
     const [pending, start] = useTransition();
     const router = useRouter();
 
@@ -67,7 +73,15 @@ export function BillingPanelRows({
     const upgrade = (cycle: BillingCycle) =>
         start(async () => {
             const result = await startCheckout(cycle);
-            if (result) toast.error(result.error);
+
+            if (!result) return;
+
+            toast.error(result.error);
+
+            // The refusal points at the banner, which may have been dismissed earlier in this
+            // session; this is what puts it back. Conditional on the account rather than on the
+            // message, so a Stripe outage does not raise a verification banner.
+            if (blocked) revealVerificationBanner();
         });
 
     const manage = () =>

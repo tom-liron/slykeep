@@ -91,6 +91,7 @@ export interface UserRow {
     email: string;
     image: string | null;
     isPro: boolean;
+    emailVerified: Date | null;
 }
 
 /** Item types keyed by id, as every builder here resolves an item's or collection's type. */
@@ -319,5 +320,6 @@ export function buildUserViewModel(user: UserRow): UserViewModel {
         email: user.email,
         image: user.image,
         isPro: user.isPro,
+        emailVerified: user.emailVerified !== null,
     };
 }

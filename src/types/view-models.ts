@@ -130,6 +130,14 @@ export interface UserViewModel {
     email: string;
     image: string | null;
     isPro: boolean;
+    /**
+     * Whether the address has been confirmed.
+     *
+     * An unconfirmed account is read-only and cannot reach checkout, so this decides whether the
+     * verification banner renders and whether write controls are worth offering. A boolean rather
+     * than the column's date because nothing rendered cares *when* it happened.
+     */
+    emailVerified: boolean;
 }
 
 /**

@@ -3,12 +3,7 @@
 import { AuthError } from "next-auth";
 
 import { signIn, signOut } from "@/auth";
-import {
-    EMAIL_UNVERIFIED_CODE,
-    EMAIL_UNVERIFIED_MESSAGE,
-    RATE_LIMITED_CODE,
-    RATE_LIMITED_MESSAGE,
-} from "@/lib/auth-errors";
+import { RATE_LIMITED_CODE, RATE_LIMITED_MESSAGE } from "@/lib/auth-errors";
 import { resolveCallbackUrl, signInDestination } from "@/lib/auth-redirects";
 import { signInSchema } from "@/lib/auth-schemas";
 import { fieldErrorsOf } from "@/lib/field-errors";
@@ -80,13 +75,6 @@ export async function signInWithCredentials(
         // Next needs to receive. Only genuine auth failures are ours to report; rethrow the rest or
         // the redirect is swallowed and the form silently does nothing.
         if (error instanceof AuthError) {
-            // Safe to name: reaching it required a correct password, so the account's existence is
-            // something the caller has already proven rather than something this message reveals —
-            // and anything vaguer strands a user whose credentials are perfectly good.
-            if ("code" in error && error.code === EMAIL_UNVERIFIED_CODE) {
-                return { error: EMAIL_UNVERIFIED_MESSAGE, unverified: true, email };
-            }
-
             // Safe for the opposite reason: it says nothing about the account, only that this
             // browser has been trying too often. Left generic it would read as "your password is
             // wrong" and invite the retries the limit exists to stop.
@@ -101,6 +89,39 @@ export async function signInWithCredentials(
     }
 
     return EMPTY_AUTH_STATE;
+}
+
+/**
+ * Opens a session for an account `POST /api/auth/register` has just created.
+ *
+ * @returns Whether the session was opened. `RegisterForm` navigates to
+ * `DEFAULT_SIGN_IN_DESTINATION` in `lib/auth-redirects.ts` on `true` and falls back to the sign-in
+ * form on `false` — the account exists either way, so a refused sign-in is a detour rather than a
+ * failed registration.
+ *
+ * @remarks
+ * The soft gate is what makes this possible: `authorize` no longer refuses an unconfirmed address,
+ * so registration ends in the app rather than at a form the new account could not yet use. The
+ * credentials come back from the browser that typed them a moment ago rather than the session being
+ * opened inside the register route, because the cookie has to be set on a response the browser is
+ * following.
+ *
+ * `redirect: false` so this returns instead of throwing `NEXT_REDIRECT`. The caller is a click
+ * handler rather than a form action, and a redirect raised there is ambiguous to catch — the
+ * navigation is the client's to make once it knows the cookie is set. The one failure worth
+ * expecting is the sign-in rate limit, which a registration immediately followed by a sign-in can
+ * reach on a shared address block.
+ */
+export async function signInAfterRegister(email: string, password: string): Promise<boolean> {
+    try {
+        await signIn("credentials", { email, password, redirect: false });
+
+        return true;
+    } catch (error) {
+        console.error("Signing in a newly registered account failed:", error);
+
+        return false;
+    }
 }
 
 /**

@@ -43,6 +43,16 @@ type CreateData = {
 
 type CollectionWhere = { id?: string; userId?: string };
 
+/**
+ * The signed-in account's verification standing, as `getCurrentUser` reports it.
+ *
+ * Confirmed by default so every other test measures its own subject; the guard tests at the bottom
+ * flip it, since an unconfirmed account is read-only from the moment it exists.
+ */
+const state = vi.hoisted(() => ({
+    verification: { emailVerified: true },
+}));
+
 const db = vi.hoisted(() => ({
     collections: [] as CollectionRow[],
     // What the last `collection.create` / `collection.update` was asked to write, so a test can
@@ -66,8 +76,9 @@ const db = vi.hoisted(() => ({
 vi.mock("@/server/current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
     // `createCollection` reads `isPro` for the free-tier cap. Pro here so the cap is never what
-    // these tests are measuring — the cap has its own tests in `lib/limits.test.ts`.
-    getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true }),
+    // these tests are measuring — the cap has its own tests in `lib/limits.test.ts`. Confirmed and
+    // writable for the same reason; the verification guard is tested at the bottom of this file.
+    getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true, ...state.verification }),
 }));
 
 // The real one throws outside a request, and what matters here is only that it was called with the
@@ -201,6 +212,7 @@ function seedTwoOwners() {
 }
 
 beforeEach(() => {
+    state.verification = { emailVerified: true };
     db.collections = [];
     db.lastCreateData = null;
     db.lastUpdateData = null;
@@ -557,5 +569,28 @@ describe("toggleCollectionFavorite", () => {
             success: false,
             error: "Could not update this collection. Try again.",
         });
+    });
+});
+
+/** The same read-only refusal, on the collection write paths. */
+describe("a read-only account", () => {
+    beforeEach(() => {
+        state.verification = { emailVerified: false };
+        db.collections = [];
+    });
+
+    it("cannot create", async () => {
+        const result = await createCollection({ name: "Blocked" } as CreateCollectionInput);
+
+        expect(result.success).toBe(false);
+        expect(db.collections).toHaveLength(0);
+    });
+
+    it("cannot update, favourite or delete", async () => {
+        expect(
+            (await updateCollection("c-1", { name: "New" } as UpdateCollectionInput)).success,
+        ).toBe(false);
+        expect((await toggleCollectionFavorite("c-1", true)).success).toBe(false);
+        expect((await deleteCollection("c-1")).success).toBe(false);
     });
 });

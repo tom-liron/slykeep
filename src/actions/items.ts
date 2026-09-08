@@ -15,6 +15,7 @@ import { FREE_ITEM_LIMIT, canAccessItemType, canCreateItem } from "@/lib/limits"
 import { prisma } from "@/server/infra/prisma";
 import { deleteObject, isOwnedKey } from "@/server/infra/r2";
 import { getCurrentUser, getCurrentUserId } from "@/server/current-user";
+import { readOnlyRefusal } from "@/server/access";
 import { getItemDetail } from "@/server/items";
 import { isRecordNotFound } from "@/server/prisma-errors";
 import type {
@@ -137,6 +138,13 @@ const UNKNOWN_COLLECTION = {
  */
 export async function createItem(input: CreateItemInput): Promise<CreateItemResult> {
     const userId = await getCurrentUserId();
+
+    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
+    // this refusal depends on the account rather than on what was submitted, so there is nothing to
+    // learn from validating input the account may not write anyway.
+    const readOnly = await readOnlyRefusal();
+
+    if (readOnly) return { success: false, error: readOnly };
 
     const parsed = createItemSchema.safeParse(input);
 
@@ -281,6 +289,13 @@ export async function updateItem(
     input: UpdateItemInput,
 ): Promise<UpdateItemResult> {
     const userId = await getCurrentUserId();
+
+    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
+    // this refusal depends on the account rather than on what was submitted, so there is nothing to
+    // learn from validating input the account may not write anyway.
+    const readOnly = await readOnlyRefusal();
+
+    if (readOnly) return { success: false, error: readOnly };
 
     const parsed = updateItemSchema.safeParse(input);
 
@@ -443,6 +458,13 @@ export async function toggleItemFavorite(
 ): Promise<ToggleItemFavoriteResult> {
     const userId = await getCurrentUserId();
 
+    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
+    // this refusal depends on the account rather than on what was submitted, so there is nothing to
+    // learn from validating input the account may not write anyway.
+    const readOnly = await readOnlyRefusal();
+
+    if (readOnly) return { success: false, error: readOnly };
+
     try {
         const updated = await prisma.item.update({
             where: { id: itemId, userId },
@@ -486,6 +508,13 @@ export async function toggleItemPin(
 ): Promise<ToggleItemPinResult> {
     const userId = await getCurrentUserId();
 
+    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
+    // this refusal depends on the account rather than on what was submitted, so there is nothing to
+    // learn from validating input the account may not write anyway.
+    const readOnly = await readOnlyRefusal();
+
+    if (readOnly) return { success: false, error: readOnly };
+
     try {
         const updated = await prisma.item.update({
             where: { id: itemId, userId },
@@ -526,6 +555,13 @@ export async function toggleItemPin(
  */
 export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
     const userId = await getCurrentUserId();
+
+    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
+    // this refusal depends on the account rather than on what was submitted, so there is nothing to
+    // learn from validating input the account may not write anyway.
+    const readOnly = await readOnlyRefusal();
+
+    if (readOnly) return { success: false, error: readOnly };
 
     let fileKey: string | null = null;
     let collectionIds: string[] = [];

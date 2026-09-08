@@ -9,6 +9,7 @@ import { appOrigin } from "@/server/infra/app-origin";
 import { checkRateLimit } from "@/server/infra/rate-limit";
 import { stripe } from "@/server/infra/stripe";
 import { getOrCreateCustomerId } from "@/server/billing";
+import { readOnlyRefusal } from "@/server/access";
 import { getCurrentUserId } from "@/server/current-user";
 import type { BillingActionResult } from "@/types/billing";
 
@@ -50,6 +51,13 @@ const billingCycleSchema = z.enum(["monthly", "yearly"]) satisfies z.ZodType<Bil
  */
 export async function startCheckout(input: BillingCycle): Promise<BillingActionResult> {
     const userId = await getCurrentUserId();
+
+    // A confirmed address before any money moves. A subscription bought against an address nobody
+    // can be reached at leaves the receipt, the renewal notice and the failed-payment warning with
+    // nowhere to go, and it is the one action here that cannot simply be undone by confirming later.
+    const refusal = await readOnlyRefusal("upgrade to Pro");
+
+    if (refusal) return { success: false, error: refusal };
 
     // A Server Action is a callable endpoint and `BillingCycle` is erased at runtime, so the
     // parameter's type is a statement about this application's own callers rather than about what

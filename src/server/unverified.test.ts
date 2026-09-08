@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The sweep's `where`, clause by clause.
  *
  * This is a scheduled job that deletes user rows, so the tests that matter are the ones asserting
- * what it does **not** delete. Three of the six clauses are guards rather than the rule, and a guard
+ * what it does **not** delete. Four of the six clauses are guards rather than the rule, and a guard
  * nobody tests is a guard that can be dropped in a refactor without anything going red — right up
  * until a nightly job removes someone's account.
  *
@@ -18,8 +18,8 @@ type UserRow = {
     createdAt: Date;
     password: string | null;
     accounts: number;
-    items: number;
-    collections: number;
+    isPro: boolean;
+    stripeSubscriptionId: string | null;
 };
 
 type UserWhere = {
@@ -27,8 +27,8 @@ type UserWhere = {
     createdAt: { lt: Date };
     password: { not: null };
     accounts: { none: Record<string, never> };
-    items: { none: Record<string, never> };
-    collections: { none: Record<string, never> };
+    isPro: boolean;
+    stripeSubscriptionId: null;
 };
 
 const db = vi.hoisted(() => ({
@@ -43,16 +43,16 @@ vi.mock("@/server/infra/prisma", () => ({
                 db.lastWhere = where;
 
                 const doomed = db.users.filter(
-                    (row) =>
-                        row.emailVerified === null &&
-                        row.createdAt < where.createdAt.lt &&
-                        row.password !== null &&
-                        row.accounts === 0 &&
-                        row.items === 0 &&
-                        row.collections === 0,
+                    (user) =>
+                        user.emailVerified === null &&
+                        user.createdAt < where.createdAt.lt &&
+                        user.password !== null &&
+                        user.accounts === 0 &&
+                        user.isPro === false &&
+                        user.stripeSubscriptionId === null,
                 );
 
-                db.users = db.users.filter((row) => !doomed.includes(row));
+                db.users = db.users.filter((user) => !doomed.includes(user));
 
                 return Promise.resolve({ count: doomed.length });
             },
@@ -63,112 +63,101 @@ vi.mock("@/server/infra/prisma", () => ({
 const { UNVERIFIED_ACCOUNT_TTL_DAYS, sweepUnverifiedAccounts, unverifiedCutoff } =
     await import("./unverified");
 
-const NOW = new Date("2026-09-01T00:00:00Z");
+const NOW = new Date("2026-09-01T00:00:00.000Z");
 
-function makeUser(overrides: Partial<UserRow> = {}): UserRow {
+function daysAgo(days: number): Date {
+    return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
+}
+
+function makeUser(overrides: Partial<UserRow> & { id: string }): UserRow {
     return {
-        id: "user-1",
         emailVerified: null,
-        // Comfortably past the window, so each test varies one thing.
-        createdAt: new Date("2026-08-01T00:00:00Z"),
-        password: "hashed",
+        createdAt: daysAgo(30),
+        password: "hash",
         accounts: 0,
-        items: 0,
-        collections: 0,
+        isPro: false,
+        stripeSubscriptionId: null,
         ...overrides,
     };
 }
 
-async function sweep(users: UserRow[]) {
-    db.users = users;
-    const deleted = await sweepUnverifiedAccounts(NOW);
-
-    return { deleted, survivors: db.users.map((row) => row.id) };
-}
+beforeEach(() => {
+    db.users = [];
+    db.lastWhere = null;
+});
 
 describe("unverifiedCutoff", () => {
-    it("is the configured number of days behind now", () => {
+    it("is the TTL back from now", () => {
         expect(unverifiedCutoff(NOW).toISOString()).toBe("2026-08-25T00:00:00.000Z");
         expect(UNVERIFIED_ACCOUNT_TTL_DAYS).toBe(7);
     });
 });
 
-describe("sweepUnverifiedAccounts", () => {
-    it("deletes an unconfirmed registration past the window", async () => {
-        const { deleted, survivors } = await sweep([makeUser({ id: "stale" })]);
+describe("what the sweep deletes", () => {
+    it("removes an unconfirmed registration past the TTL", async () => {
+        db.users = [makeUser({ id: "abandoned", createdAt: daysAgo(8) })];
 
-        expect(deleted).toBe(1);
-        expect(survivors).toEqual([]);
+        expect(await sweepUnverifiedAccounts(NOW)).toBe(1);
+        expect(db.users).toEqual([]);
     });
 
-    it("keeps one inside the window", async () => {
-        // Registered yesterday: the link may still be sitting unread in an inbox.
-        const { deleted, survivors } = await sweep([
-            makeUser({ id: "fresh", createdAt: new Date("2026-08-31T00:00:00Z") }),
-        ]);
+    // Nothing of the owner's can be lost here: an unconfirmed account is read-only from the moment
+    // it exists, so it holds only the starter content it was seeded with.
+    it("leaves one inside the TTL alone", async () => {
+        db.users = [makeUser({ id: "fresh", createdAt: daysAgo(2) })];
 
-        expect(deleted).toBe(0);
-        expect(survivors).toEqual(["fresh"]);
+        expect(await sweepUnverifiedAccounts(NOW)).toBe(0);
+        expect(db.users.map((user) => user.id)).toEqual(["fresh"]);
+    });
+});
+
+describe("what the sweep refuses to touch", () => {
+    it("a confirmed account, however old", async () => {
+        db.users = [
+            makeUser({ id: "confirmed", createdAt: daysAgo(400), emailVerified: daysAgo(399) }),
+        ];
+
+        expect(await sweepUnverifiedAccounts(NOW)).toBe(0);
+        expect(db.users.map((user) => user.id)).toEqual(["confirmed"]);
     });
 
-    it("keeps a confirmed account however old it is", async () => {
-        const { survivors } = await sweep([
-            makeUser({
-                id: "verified",
-                emailVerified: new Date("2026-01-01T00:00:00Z"),
-                createdAt: new Date("2025-01-01T00:00:00Z"),
-            }),
-        ]);
+    // A GitHub sign-up whose `linkAccount` verification write failed sits at `emailVerified: null`
+    // and would otherwise look exactly like an abandoned registration.
+    it("an account with a linked OAuth account", async () => {
+        db.users = [makeUser({ id: "github", createdAt: daysAgo(400), accounts: 1 })];
 
-        expect(survivors).toEqual(["verified"]);
+        expect(await sweepUnverifiedAccounts(NOW)).toBe(0);
+        expect(db.users.map((user) => user.id)).toEqual(["github"]);
     });
 
-    it("keeps a GitHub account whose verification stamp never landed", async () => {
-        // The guard that matters most. `linkAccount` in `src/auth.ts` stamps `emailVerified` as a
-        // *second* write after the User and Account rows exist, so a transient failure there leaves
-        // a real GitHub account looking exactly like an abandoned registration. The linked account
-        // row is what tells them apart.
-        const { deleted, survivors } = await sweep([
-            makeUser({ id: "github", password: null, accounts: 1 }),
-        ]);
+    it("an OAuth-only account with no password", async () => {
+        db.users = [makeUser({ id: "oauth", createdAt: daysAgo(400), password: null })];
 
-        expect(deleted).toBe(0);
-        expect(survivors).toEqual(["github"]);
+        expect(await sweepUnverifiedAccounts(NOW)).toBe(0);
+        expect(db.users.map((user) => user.id)).toEqual(["oauth"]);
     });
 
-    it("keeps a linked account that also has a password", async () => {
-        // Isolates the `accounts` clause from the `password` one. Someone who registered with a
-        // password and later signed in with GitHub has both, so the previous test alone would still
-        // pass if the linked-account guard were dropped.
-        const { deleted, survivors } = await sweep([makeUser({ id: "linked", accounts: 1 })]);
+    // Checkout refuses an unconfirmed address, so neither of these rows should exist. If one ever
+    // does, a nightly deletion job must not be what discovers it.
+    it("a paying account, by either billing column", async () => {
+        db.users = [
+            makeUser({ id: "pro", createdAt: daysAgo(400), isPro: true }),
+            makeUser({ id: "subscribed", createdAt: daysAgo(400), stripeSubscriptionId: "sub_1" }),
+        ];
 
-        expect(deleted).toBe(0);
-        expect(survivors).toEqual(["linked"]);
+        expect(await sweepUnverifiedAccounts(NOW)).toBe(0);
+        expect(db.users.map((user) => user.id)).toEqual(["pro", "subscribed"]);
     });
 
-    it("keeps an unconfirmed account that somehow owns content", async () => {
-        // Should be unreachable — an account that cannot sign in cannot have created anything — and
-        // that is exactly why it is a clause rather than a comment. If the reasoning is ever wrong,
-        // this refuses instead of cascading someone's items away to prove the point.
-        const { survivors } = await sweep([
-            makeUser({ id: "has-items", items: 1 }),
-            makeUser({ id: "has-collections", collections: 1 }),
-        ]);
-
-        expect(survivors).toEqual(["has-items", "has-collections"]);
-    });
-
-    it("asks for every guard, not just the age", async () => {
-        // Pins the shape of the query itself: a refactor that drops a clause would still pass every
-        // test above, because the stand-in only filters on what it is given.
-        await sweep([]);
+    it("keeps every guard in the where clause", async () => {
+        await sweepUnverifiedAccounts(NOW);
 
         expect(db.lastWhere).toMatchObject({
             emailVerified: null,
             password: { not: null },
             accounts: { none: {} },
-            items: { none: {} },
-            collections: { none: {} },
+            isPro: false,
+            stripeSubscriptionId: null,
         });
     });
 });

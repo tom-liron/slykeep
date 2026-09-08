@@ -16,6 +16,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { Button } from "@/components/ui/button";
 import { ActionLabel } from "./ActionLabel";
 
@@ -41,6 +42,10 @@ export function DeleteItemDialog({
     title: string;
     onDeleted: () => void;
 }) {
+    // Disabled rather than hidden for an unconfirmed account, so the control stays where the user
+    // expects it and says on hover what would bring it back. `deleteItem` refuses independently.
+    const blocked = useWriteBlockedReason();
+
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -82,7 +87,8 @@ export function DeleteItemDialog({
                     variant="ghost"
                     size="sm"
                     className="text-destructive hover:text-destructive"
-                    title="Delete"
+                    disabled={blocked !== null}
+                    title={blocked ?? "Delete"}
                     aria-label="Delete"
                 >
                     <Trash2 aria-hidden="true" />

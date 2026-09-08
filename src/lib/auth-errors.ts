@@ -11,13 +11,6 @@
  * This module imports nothing, which is what lets those consumers share it freely.
  */
 
-/** The `code` the `CredentialsSignin` subclass `authorize` throws for an unconfirmed address. */
-export const EMAIL_UNVERIFIED_CODE = "email_unverified";
-
-/** What the sign-in form shows when the password was right but the address is unconfirmed. */
-export const EMAIL_UNVERIFIED_MESSAGE =
-    "Confirm your email address before signing in. Check your inbox for the link we sent.";
-
 /** The `code` `authorize` throws once the sign-in limit for this address and address block is spent. */
 export const RATE_LIMITED_CODE = "rate_limited";
 

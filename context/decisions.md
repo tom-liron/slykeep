@@ -30,3 +30,92 @@ Nothing here is maintained. Where an entry disagrees with `src/`, the code wins.
 
 **Resolved 2026-09-02.** §8 said recency was `updatedAt` and both the dashboard's recent collections and the sidebar's recent list did order by it — but nothing ever moved the column. Membership is written as a nested write on the **Item**, so `item_collections` changed while the `collections` row was never in the statement; `updatedAt` therefore equalled `createdAt` for every collection nobody had renamed, "recent" meant "newest", and the one thing that did move it was a rename, which is metadata rather than activity. `touchCollections()` in `src/actions/items.ts` now moves it from all three item write paths. The two halves worth knowing: an **edit takes the union of old and new membership**, because a collection the item left changed as much as the one it joined — and when a payload carries no `collectionIds` at all, the collections already holding the item are still touched, since editing an item is activity for wherever it is filed (that is the common case, and the one a naive implementation misses). **Delete reads membership before the row**, since the join rows cascade. The read-time alternative — the greatest of the collection's own `updatedAt`, its items' and `ItemCollection.addedAt` — was rejected: it puts a joined aggregate no index can serve into the `ORDER BY` of two queries on every dashboard page view, to save one `UPDATE` on a path already writing. Last *visited* was rejected too; it needs a new column and a write on every page view, and the products this imitates sort by last message, not by opening a conversation. The touch is best-effort and logged: the item write has already succeeded and been reported, so a failure costs a sidebar ordering rather than the user's work.
 
+
+## Account linking must read the local row's `emailVerified`
+
+**Recorded 2026-09-08, ahead of the feature it constrains.** The soft verification gate lets an
+unconfirmed account sign in and use the product, which raises the obvious question of whether it
+reopens the account-takeover class that verification-on-signup is usually credited with closing. It
+does not, because that class is a **linking**-layer failure rather than a login-layer one.
+[CVE-2026-53516](https://github.com/advisories/GHSA-g38m-r43w-p2q7) hit applications whether or not
+they gated signup: the auto-link check read the OAuth provider's verified claim and never read the
+local row's `emailVerified`, so an attacker who registered `victim@x.com` and never confirmed it was
+handed the account the moment the victim signed in with GitHub. A hard front door was never what
+protected against it. **There is no account linking here and none is planned**, so nothing is exposed
+today — this exists so a future feature cannot reintroduce it.
+
+> If account linking is ever built, check the **local row's** `emailVerified` when an OAuth sign-in
+> matches an existing account by email. Never merge on email match alone, and never accept the
+> provider's claim as a substitute.
+
+`src/auth.ts` currently has no `signIn` callback doing email matching, and its `linkAccount` event
+only stamps `emailVerified` on an account NextAuth has already decided to link — which today is only
+ever a fresh GitHub sign-up. The `OAuthAccountNotLinked` message in `lib/auth-errors.ts` is the
+current behaviour: a GitHub sign-in whose address already belongs to a password account is
+**refused**, and the user is sent to the credentials form. That refusal is the protection, and it is
+what a linking feature would be replacing.
+
+**What carries the risk instead of the login gate:** spam and abuse are handled by gating billing,
+the AI actions and uploads behind a confirmed address, and by keeping the seven-day prune for
+untouched registrations. [The pre-hijacking study](https://arxiv.org/pdf/2205.10174) names pruning
+as a primary mitigation, and a pre-hijacking account is untouched by construction — the attacker
+registers the victim's address and then waits — so pruning untouched accounts removes exactly the
+risky rows and spares exactly the real ones. The rules are in `src/lib/verification-access.ts` and
+the sweep in `src/server/unverified.ts`.
+
+## How long an unverified account keeps working
+
+**Decided 2026-09-08, replacing two earlier answers from the same day.** The soft-gate plan gave an
+unconfirmed account seven days of full access and then dropped it to read-only, and a first pass also
+opened checkout to it on the reasoning that payment is a stronger identity signal than a clicked
+link. Both were wrong, and checking what established products do is what settled it.
+
+**Nobody uses a timer.** The two patterns in the field are
+[Supabase's default](https://supabase.com/docs/guides/auth/passwords), which refuses sign-in until
+the address is confirmed, and
+[GitHub's](https://docs.github.com/en/account-and-profile/reference/email-addresses-reference), which
+lets an unverified user sign in and read but blocks creating repositories, issues, pull requests,
+comments, gists, stars, Actions, tokens — and Sponsors, which is a payment action. GitHub's
+restrictions apply from signup. A seven-day window has the property that nothing signals anything
+until a working application quietly stops working, and the restriction is what teaches the rule, so
+deferring it defers the teaching.
+
+**What we do:** GitHub's model. An unconfirmed account signs in, reads and copies everything
+including its seeded starter content, and cannot create, edit, delete, or reach checkout. One flag,
+checked in `server/access.ts`, and no clock anywhere.
+
+**What this deleted rather than added:** the grace period, `lib/verification-access.ts` and its
+day-count rules, `hasContentBeyondSeed`, the day-7 read-only reminder, the day-83 warning, the day-90
+deletion, two `User` columns and two email templates. If an unconfirmed account can never write, it
+can never accumulate work, so every account the nightly sweep sees holds exactly its seed — which is
+what made the elaborate lifecycle unnecessary. The sweep is the seven-day delete it always was,
+minus the `items: { none: {} }` guard that seeding had already invalidated, plus `isPro` and
+`stripeSubscriptionId` guards so a paying row can never be reached by it.
+
+## Whether an unverified account may pay
+
+**Superseded the same day by "How long an unverified account keeps working" above — checkout is
+gated again, following GitHub's treatment of Sponsors. Kept because the reasoning about
+`ENFORCE_PRO_LIMITS` still holds and explains why the AI and upload gates do not exist.**
+
+**Decided 2026-09-08, reversing this plan's own first answer.** The soft-gate plan gated billing
+alongside the AI actions, and it was built that way before the contradiction surfaced: the AI
+features and file uploads are **already Pro-only** under `ENFORCE_PRO_LIMITS`, so gating checkout
+made the other two gates unreachable. An unconfirmed account could not pay, so it could not be Pro,
+so `canUseAi` and `canAccessItemType` refused it before verification was ever consulted. The gate
+was dead code, and the manual test for it was impossible to perform.
+
+**Checkout is now open to an unconfirmed account, and payment substitutes for a confirmed address**
+everywhere the rules are read: `canWriteContent` returns true for a Pro account, `unverifiedRefusal`
+passes it, and `SWEEPABLE` in `server/unverified.ts` excludes any row with `isPro` or a
+`stripeSubscriptionId`. The reasoning is that a completed payment is a far stronger identity signal
+than a clicked link, Stripe collects a billing address of its own, and the alternative — taking
+someone's money and then making their account read-only, or deleting it on day 90 — is indefensible.
+Both billing columns are checked in the sweep rather than one, because they fail apart: `isPro` is
+only as current as the last webhook that landed, and `stripeSubscriptionId` survives a cancellation,
+which is the conservative direction for a rule that deletes rows.
+
+**What verification still gates**, therefore, is exactly one thing: the seven-day write clock on a
+free account. The AI and upload checks are kept as cover for `ENFORCE_PRO_LIMITS` being switched
+off — which opens both features to every account — and are documented as that rather than as a live
+gate.

@@ -20,7 +20,19 @@ import { Input } from "@/components/ui/input";
  * along with the credentials), and Enter is handled explicitly so the key does not resubmit the
  * sign-in form.
  */
-export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: string }) {
+export function ResendVerification({
+    defaultEmail = "",
+    knownEmail = false,
+}: {
+    defaultEmail?: string;
+    /**
+     * Renders the button alone, without the address field.
+     *
+     * For callers that already know whose address it is — the signed-in banner — where a field is
+     * something to mistype rather than something to fill in.
+     */
+    knownEmail?: boolean;
+}) {
     const [email, setEmail] = useState(defaultEmail);
     const [isPending, setIsPending] = useState(false);
     const [sent, setSent] = useState(false);
@@ -66,6 +78,30 @@ export function ResendVerification({ defaultEmail = "" }: { defaultEmail?: strin
                 Check your email — if <span className="font-medium">{email}</span> still needs
                 confirming, a new link is on its way. It expires in 24 hours.
             </p>
+        );
+    }
+
+    if (knownEmail) {
+        // No margin of its own: this form is laid out by its caller, which sits it in a row beside
+        // the message rather than under it.
+        return (
+            <div>
+                <Button
+                    type="button"
+                    onClick={() => void requestLink()}
+                    variant="outline"
+                    size="sm"
+                    disabled={isPending}
+                >
+                    {isPending ? "Sending…" : "Resend link"}
+                </Button>
+
+                {limitError && (
+                    <p role="alert" className="mt-2 text-sm text-destructive">
+                        {limitError}
+                    </p>
+                )}
+            </div>
         );
     }
 

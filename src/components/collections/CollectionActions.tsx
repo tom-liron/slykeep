@@ -6,6 +6,7 @@ import { MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { toggleCollectionFavorite } from "@/actions/collections";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -99,6 +100,10 @@ export function CollectionActions({
         <Star className={cn(isFavorite && "fill-favorite text-favorite")} aria-hidden="true" />
     );
 
+    // Every control here writes, so all of them go dead for an unconfirmed account. The actions
+    // refuse independently; this only decides what is offered.
+    const blocked = useWriteBlockedReason();
+
     return (
         <>
             {layout === "menu" ? (
@@ -115,11 +120,19 @@ export function CollectionActions({
                     </DropdownMenuTrigger>
 
                     <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                        <DropdownMenuItem
+                            onSelect={() => setEditOpen(true)}
+                            disabled={blocked !== null}
+                            title={blocked ?? undefined}
+                        >
                             <Pencil aria-hidden="true" />
                             Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={favorite} disabled={isFavoriting}>
+                        <DropdownMenuItem
+                            onSelect={favorite}
+                            disabled={isFavoriting || blocked !== null}
+                            title={blocked ?? undefined}
+                        >
                             {star}
                             {favoriteLabel}
                         </DropdownMenuItem>
@@ -129,6 +142,8 @@ export function CollectionActions({
                         <DropdownMenuItem
                             variant="destructive"
                             onSelect={() => setDeleteOpen(true)}
+                            disabled={blocked !== null}
+                            title={blocked ?? undefined}
                         >
                             <Trash2 aria-hidden="true" />
                             Delete
@@ -137,11 +152,22 @@ export function CollectionActions({
                 </DropdownMenu>
             ) : (
                 <div className={cn("flex items-center gap-1", className)}>
-                    <Button variant="ghost" size="icon" onClick={favorite} disabled={isFavoriting}>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={favorite}
+                        disabled={isFavoriting || blocked !== null}
+                        title={blocked ?? undefined}
+                    >
                         {star}
                         <span className="sr-only">{favoriteLabel}</span>
                     </Button>
-                    <Button variant="outline" onClick={() => setEditOpen(true)}>
+                    <Button
+                        variant="outline"
+                        onClick={() => setEditOpen(true)}
+                        disabled={blocked !== null}
+                        title={blocked ?? undefined}
+                    >
                         <Pencil className="size-4" aria-hidden="true" />
                         Edit
                     </Button>
@@ -150,6 +176,8 @@ export function CollectionActions({
                         size="icon"
                         className="text-destructive hover:text-destructive"
                         onClick={() => setDeleteOpen(true)}
+                        disabled={blocked !== null}
+                        title={blocked ?? undefined}
                     >
                         <Trash2 aria-hidden="true" />
                         <span className="sr-only">Delete collection</span>

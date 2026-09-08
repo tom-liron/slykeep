@@ -23,12 +23,27 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
  * rather than styling toasts per call site. The `--normal-*` variables cover plain, info, and
  * loading toasts, which have no outcome to signal. `coding-standards.md` § Styling requires this
  * prop rather than per-call styling.
+ *
+ * {@link TOAST_DURATION_MS} lengthens sonner's default for the same reason: one value here rather
+ * than an argument at each of the three dozen call sites.
  */
+
+/**
+ * How long a toast stays on screen, against sonner's own default of four seconds.
+ *
+ * @remarks
+ * Set for the error toasts, which carry the longest copy in the application — a refusal has to name
+ * what was refused *and* what would fix it, and four seconds is not enough to read one. Sonner has
+ * no per-type duration, so the success toasts inherit it; they are short enough that the extra two
+ * seconds costs nothing, which is the trade that makes one central value acceptable.
+ */
+const TOAST_DURATION_MS = 6000;
 const Toaster = ({ ...props }: ToasterProps) => {
     return (
         <Sonner
             theme="dark"
             richColors
+            duration={TOAST_DURATION_MS}
             className="toaster group"
             position="top-center"
             icons={{

@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { startCheckout } from "@/actions/billing";
+import { revealVerificationBanner } from "@/components/layout/VerificationBanner";
+import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
 import { BillingCycleToggle } from "@/components/pricing/BillingCycleToggle";
 import { PricingPlanCard } from "@/components/pricing/PricingPlanCard";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,9 @@ import { PRICING_PLANS, type BillingCycle } from "@/config/marketing";
  * links. No section heading or `Reveal` animations — the page is one screen inside the app.
  */
 export function UpgradePlans() {
+    // Read to decide whether a refusal is the verification one, not to disable the button: checkout
+    // stays clickable so the refusal can explain itself. See `VerifiedContext`.
+    const blocked = useWriteBlockedReason();
     const [cycle, setCycle] = useState<BillingCycle>("monthly");
     const [pending, start] = useTransition();
 
@@ -25,7 +30,15 @@ export function UpgradePlans() {
     const upgrade = () =>
         start(async () => {
             const result = await startCheckout(cycle);
-            if (result) toast.error(result.error);
+
+            if (!result) return;
+
+            toast.error(result.error);
+
+            // That message sends them to the banner, so make sure there is one: it may have been
+            // dismissed earlier in this session. Conditional on the account rather than on the
+            // message, so a Stripe outage does not raise a verification banner.
+            if (blocked) revealVerificationBanner();
         });
 
     return (

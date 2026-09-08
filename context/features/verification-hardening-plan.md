@@ -3,14 +3,15 @@
 Written 2026-09-07. Three pieces of work, each on its own branch, in this order. Steps 1 and 2 are
 independent bug fixes; step 3 is the feature they clear the way for.
 
-**This file is the record that survives a cleared session.** `CLAUDE.md` points at it while the plan
-is live. Delete the pointer and archive this file when step 3 merges.
+**Complete.** All three steps shipped; the `CLAUDE.md` pointer that referenced this file while the
+plan was live has been removed. Kept as the record of what was decided and, for step 3, of two
+designs that were built and abandoned before the one that shipped.
 
 ## Progress
 
 - [x] **Step 1** — monaco 404s on production (`fix/monaco-production-assets`) — done 2026-09-07
 - [x] **Step 2** — the verification link gets swallowed (`fix/verification-link-session`) — done 2026-09-08
-- [ ] **Step 3** — the soft gate (`feature/soft-verification-gate`)
+- [x] **Step 3** — the soft gate (`feature/soft-verification-gate`) — done 2026-09-08
 
 ---
 
@@ -60,41 +61,47 @@ becomes an entitlement check rather than a door.
 
 | State | What works |
 |---|---|
-| Unverified, days 0–7 | Everything except billing and the AI actions |
-| Unverified, day 7+ | **Read-only** — read and copy freely, no creating or editing |
+| Unverified | **Read-only** — sign in, browse and copy everything, including the starter content. No creating, editing or deleting, and no checkout |
 | Verified | Everything |
 
-Read-only rather than a lockout: refusing someone access to snippets they wrote is hostile and
-reversible in one click anyway. It removes the reason to keep coasting unverified without taking
-anything away.
+The restriction applies from the moment the account exists, not after a grace period. That is what
+makes it explain itself: the first attempted write is where a person learns the address needs
+confirming, rather than a week later when a working app quietly stops working. It follows
+[GitHub's model](https://docs.github.com/en/account-and-profile/reference/email-addresses-reference),
+which blocks creating repositories, issues, comments, gists, stars and Sponsors for an unverified
+address while leaving reading open. The alternative in the field is
+[Supabase's default](https://supabase.com/docs/guides/auth/passwords), which refuses sign-in
+outright; nothing established uses a silent timer.
+
+Read-only rather than a lockout because every account is seeded with starter content at
+registration: an unconfirmed visitor can see what the product is and copy from it, which makes the
+seed a demo rather than a wall.
 
 ### Account lifecycle
 
 | When | Condition | Action |
 |---|---|---|
-| Day 7 | nothing beyond the seeded starter content | Deleted, no warning |
-| Day 7 | has real user content | Read-only, plus a reminder email |
-| Day 83 | still unverified | Warning email naming the deletion date |
-| Day 90 | still unverified | Deleted |
+| Day 7 | still unverified | Deleted |
 
-The clock runs on how long the account has been unverified, not on inactivity: once an account is
-read-only, activity stops meaning much, and one clock is easier to explain and to test.
-
-Every new account is seeded with two collections and twelve items at registration, so "an empty
-account" does not exist and cannot be the test. The signal is whether the user has created, edited
-or deleted anything **beyond the seed**.
+One rule, and it is the one that already existed. Nothing of the owner's can be lost to it: an
+unconfirmed account is read-only from the moment it exists, so it holds exactly the starter content
+it was seeded with and nothing else.
 
 ### The work
 
-- Remove the login gate in `auth.ts`.
+- Remove the login gate in `auth.ts`, and make `api/auth/register` sign the new account in. The
+  gate is two halves: the throw that refuses an unconfirmed sign-in, and a registration that ends at
+  `/sign-in?registered=sent` rather than in the app.
 - A write guard in the mutating actions, following the shape `canUseAi` and the Pro limit checks
-  already use.
-- Gate billing and the AI actions behind verification. That is the whole outward-facing surface:
-  there are no invites, no sharing, no public content and no bulk import, so the gated set is far
-  smaller here than the pattern usually implies.
-- A persistent banner carrying the resend control.
-- Extend the nightly sweep from one rule to four, with a `deletionWarningSentAt` column so a warning
-  is not re-sent every night, and two new emails.
+  already use. It reads `emailVerified` from the database, never from the session token: the JWT is
+  reissued on `updateAge` (24h), so a token-borne flag would leave someone who confirmed on their
+  phone read-only on their laptop for a day.
+- Gate checkout on the same flag. The AI actions and uploads need no gate of their own — both are
+  Pro-only under `ENFORCE_PRO_LIMITS`, and an unconfirmed account cannot reach checkout, so the Pro
+  check already refuses them.
+- A dismissible banner carrying the resend control, as the standing explanation for why saving is
+  refused.
+- Leave the nightly sweep as it is, minus the `items`/`collections` guards that seeding invalidated.
 - Record the linking rule in `context/decisions.md` (below).
 
 ### Why this is safe
@@ -121,7 +128,8 @@ risky rows and spares exactly the real ones.
 Nobody loses work to an unclicked email: two warnings, ninety days, and the account has been
 read-only for eighty-three of them.
 
-### Open decision
+### Settled
 
-The gated set is scoped to billing and the AI actions. Widen it here if anything else should require
-a proven address.
+**2026-09-08.** Verification gates writing and checkout, immediately, with no grace period. The
+seven-day soft window this plan originally described was abandoned before it shipped — see
+`context/decisions.md`, "How long an unverified account keeps working".

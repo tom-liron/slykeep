@@ -2,6 +2,8 @@ import { ProProvider } from "@/components/layout/ProContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { TopBar } from "@/components/layout/TopBar";
+import { VerificationBanner } from "@/components/layout/VerificationBanner";
+import { VerifiedProvider } from "@/components/layout/VerifiedContext";
 import { EditorPreferencesProvider } from "@/components/settings/EditorPreferencesProvider";
 import { getSidebarCollections } from "@/server/collections";
 import { getSidebarNav } from "@/server/item-types";
@@ -45,8 +47,11 @@ export default async function DashboardLayout({
             {/* `nav.user.isPro` again, for the controls too far from this layout to be handed a
                 prop — see `ProContext`. The bar below still takes one, being one hop away. */}
             <ProProvider isPro={nav.user.isPro}>
-                <EditorPreferencesProvider preferences={editorPreferences}>
-                    {/* Two shapes. From `md` up this is a frame pinned to the viewport: the bar and the
+                {/* Every write control below reads this to disable itself; the Server Actions refuse
+                    independently, so this decides what is offered, not what is allowed. */}
+                <VerifiedProvider emailVerified={nav.user.emailVerified}>
+                    <EditorPreferencesProvider preferences={editorPreferences}>
+                        {/* Two shapes. From `md` up this is a frame pinned to the viewport: the bar and the
                     rail hold still and `main` scrolls inside them. Below `md` the frame is dropped
                     and the whole thing is an ordinary page — `min-h-dvh` so it fills the screen, and
                     the document does the scrolling.
@@ -54,24 +59,29 @@ export default async function DashboardLayout({
                     `dvh` rather than `vh`: `vh` is the *largest* viewport, chrome excluded, so a
                     pinned frame measured in it hangs its last row behind the browser's own bars.
                     `dvh` tracks what is actually visible. */}
-                    <div className="flex min-h-dvh flex-col md:h-dvh">
-                        {/* `nav.user` is already read for the sidebar, so the bar costs no query of its own. */}
-                        <TopBar searchData={searchData} isPro={nav.user.isPro} />
-                        <div className="flex min-h-0 flex-1">
-                            <Sidebar data={sidebarData} />
-                            {/* The named container (`@container/app`) that content inside measures
+                        <div className="flex min-h-dvh flex-col md:h-dvh">
+                            {/* `nav.user` is already read for the sidebar, so the bar costs no query of its own. */}
+                            <TopBar searchData={searchData} isPro={nav.user.isPro} />
+                            <div className="flex min-h-0 flex-1">
+                                <Sidebar data={sidebarData} />
+                                {/* The named container (`@container/app`) that content inside measures
                             itself against, so a component asks how much room it has rather than
                             guessing a sidebar width off the viewport. The name pins which box —
                             an anonymous container would re-target if anything between here and the
                             component declared one. `overflow-y-auto` only from `md`, where this is a
                             pane in a pinned frame; below that the document scrolls and a second
                             scroller here would trap the page in a screen-sized box. */}
-                            <main className="@container/app min-w-0 flex-1 p-4 sm:p-6 md:overflow-y-auto">
-                                {children}
-                            </main>
+                                <main className="@container/app min-w-0 flex-1 p-4 sm:p-6 md:overflow-y-auto">
+                                    {/* Inside `main` rather than above the bar, so it scrolls with the
+                                    page: it is a standing request, not something to trap the
+                                    viewport. Renders nothing for a confirmed account. */}
+                                    <VerificationBanner user={nav.user} />
+                                    {children}
+                                </main>
+                            </div>
                         </div>
-                    </div>
-                </EditorPreferencesProvider>
+                    </EditorPreferencesProvider>
+                </VerifiedProvider>
             </ProProvider>
         </SidebarProvider>
     );

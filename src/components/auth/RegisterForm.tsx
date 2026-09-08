@@ -5,23 +5,28 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 
+import { signInAfterRegister } from "@/actions/auth";
 import { AuthField } from "@/components/ui/AuthField";
 import { Button } from "@/components/ui/button";
 import { invalidProps } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { DEFAULT_SIGN_IN_DESTINATION } from "@/lib/auth-redirects";
 import { registerSchema } from "@/lib/auth-schemas";
 
 /**
  * The account-creation form, posting to `POST /api/auth/register` (a route, not a Server Action,
  * so the client can tell a 400 from a 409).
  *
- * The credentials half of `/register`, beside `GitHubSignInButton`. On success it redirects to
- * `/sign-in` with a flag saying whether the verification email was sent.
+ * The credentials half of `/register`, beside `GitHubSignInButton`. On success it opens a session
+ * with the credentials it already holds and lands in the app, so a new account is usable before the
+ * confirmation email arrives.
  *
  * @remarks
- * Registration creates an account with `emailVerified: null`; credentials sign-in remains unavailable
- * until the owner proves control of the inbox through a verification or password-reset link.
+ * The account is created with `emailVerified: null` and stays that way until the link is clicked.
+ * That is not a sign-in gate: it makes the account read-only — `readOnlyRefusal` in
+ * `server/access.ts` is what enforces it — and the dashboard banner is what asks for the
+ * confirmation.
  */
 
 type FieldErrors = Partial<Record<"name" | "email" | "password" | "confirmPassword", string[]>>;
@@ -99,11 +104,22 @@ export function RegisterForm() {
         // "Creating account…" state until the next page takes over, which stops a second
         // submission during the navigation.
 
-        // The account is not signed in here. It is created with `emailVerified` null, which
-        // `authorize` refuses, so a sign-in attempt would fail and read as a broken registration.
-        // The link in the inbox is the next step. `emailSent` only means Resend accepted the
-        // request, so `registered=sent` is a claim about the attempt, not proof of delivery.
-        router.push(`/sign-in?registered=${emailSent ? "sent" : "unsent"}`);
+        // Signed in with the credentials still in hand, which is the whole point of the soft gate:
+        // a new account works immediately and confirms its address afterwards.
+        const signedIn = await signInAfterRegister(parsed.data.email, parsed.data.password);
+
+        // The account exists whether or not the session opened, so a refusal is a detour to the
+        // sign-in form rather than a failed registration. `emailSent` only means Resend accepted
+        // the request, which is why that screen carries a resend control either way.
+        if (!signedIn) {
+            router.push(`/sign-in?registered=${emailSent ? "sent" : "unsent"}`);
+            return;
+        }
+
+        router.push(DEFAULT_SIGN_IN_DESTINATION);
+        // The session cookie was set by the action, so the server components above this one have to
+        // be re-rendered with it before the destination reads the new user.
+        router.refresh();
     }
 
     return (

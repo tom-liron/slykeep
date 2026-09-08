@@ -45,7 +45,15 @@ export async function GET(request: Request) {
         const session = await auth();
         const signedInAs = session?.user?.email?.toLowerCase();
 
-        if (signedInAs && signedInAs !== result.email.toLowerCase()) {
+        if (signedInAs) {
+            // Already signed in as the account the link confirms — the ordinary case under the soft
+            // gate, since registration opens a session. There is nothing to decide and nothing to
+            // sign in to, so the result page is skipped and `WelcomeToast` reports it at the
+            // destination.
+            if (signedInAs === result.email.toLowerCase()) {
+                return NextResponse.redirect(new URL("/?welcome=verified", request.url));
+            }
+
             target.searchParams.set("mismatch", "1");
         }
     }

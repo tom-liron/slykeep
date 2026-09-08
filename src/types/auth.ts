@@ -24,14 +24,6 @@ export type AuthActionState = {
      * user their address as well without this.
      */
     email: string;
-    /**
-     * Set when the credentials were correct but the address is unconfirmed.
-     *
-     * Distinct from `error` because the form does more than show a message here — it offers to
-     * resend the verification link, which needs a positive signal rather than a string comparison
-     * against the copy.
-     */
-    unverified?: boolean;
 };
 
 /** The state the form starts in, before the action has run. */

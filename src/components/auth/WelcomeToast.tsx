@@ -14,14 +14,19 @@ import { toast } from "sonner";
  */
 const MESSAGES = {
     "signed-in": (name: string) => (name ? `Welcome, ${name}!` : "Welcome!"),
+    // Set by `GET /api/auth/verify-email` when the link confirms the account already signed in
+    // here. That click has no page of its own to land on — it belongs back in the app — so this
+    // toast is the whole of the confirmation.
+    verified: () => "Email confirmed. Thanks!",
 } as const;
 
 /**
  * Raises the post-sign-in toast, then strips the flag that triggered it.
  *
- * Mounted only on the dashboard home, this turns `welcome=signed-in` into the post-sign-in toast. It
- * must live at the redirect destination because the sign-in form unmounts before a server redirect
- * completes.
+ * Mounted only on the dashboard home, this turns a `welcome` flag into a toast — the post-sign-in
+ * greeting, or the confirmation of a verification link clicked while already signed in. It must
+ * live at the redirect destination because whatever raised the flag is gone before a server
+ * redirect completes.
  *
  * Clearing the param with `replace` prevents the toast from firing again on refresh.
  */
