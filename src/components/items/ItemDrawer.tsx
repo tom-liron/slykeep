@@ -9,12 +9,13 @@ import { toggleItemFavorite, toggleItemPin, updateItem } from "@/actions/items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useCopyAction } from "@/hooks/use-copy-action";
 import { useFileText } from "@/hooks/use-file-text";
 import { useItemDetail } from "@/hooks/use-item-detail";
-import { copyToClipboard } from "@/lib/clipboard";
 import { filePreviewFor } from "@/lib/file-preview";
 import { formatLongDate } from "@/lib/format";
 import { itemTypeOwns } from "@/lib/item-schemas";
+import { TOAST_IDS } from "@/lib/toast-ids";
 import { withAlpha } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
 import { CodeEditor } from "./CodeEditor";
@@ -178,9 +179,11 @@ export function ItemDrawer({
         return true;
     };
 
-    // The write and both toasts moved to `copyToClipboard`, shared with the cards' copy icon: the
-    // same action reached two ways should not be able to start reporting itself two ways.
-    const copyBody = () => copyToClipboard(body);
+    // The write, its failure toast and the copied state all live in `useCopyAction`, shared with
+    // the cards' copy icon: the same action reached two ways should not be able to start reporting
+    // itself two ways. The body is already in hand here, so nothing is fetched.
+    const { copy, isCopied } = useCopyAction();
+    const copyBody = () => copy(body);
 
     const isFavorite = writtenFavorite ?? view.isFavorite;
 
@@ -191,7 +194,7 @@ export function ItemDrawer({
             const result = await toggleItemFavorite(itemId, next);
 
             if (!result.success) {
-                toast.error(result.error);
+                toast.error(result.error, { id: TOAST_IDS.itemFavorite });
 
                 return;
             }
@@ -199,6 +202,7 @@ export function ItemDrawer({
             setWrittenFavorite(result.data.isFavorite);
             toast.success(
                 result.data.isFavorite ? "Added to favorites." : "Removed from favorites.",
+                { id: TOAST_IDS.itemFavorite },
             );
 
             // Re-renders the page behind the drawer: the card's star, the dashboard's favourite
@@ -219,13 +223,15 @@ export function ItemDrawer({
             const result = await toggleItemPin(itemId, next);
 
             if (!result.success) {
-                toast.error(result.error);
+                toast.error(result.error, { id: TOAST_IDS.itemPin });
 
                 return;
             }
 
             setWrittenPinned(result.data.isPinned);
-            toast.success(result.data.isPinned ? "Pinned to the top." : "Unpinned.");
+            toast.success(result.data.isPinned ? "Pinned to the top." : "Unpinned.", {
+                id: TOAST_IDS.itemPin,
+            });
 
             // The listing behind the drawer orders by pin, so this moves the row the drawer was
             // opened from — and on the dashboard it adds the item to the Pinned section without
@@ -325,6 +331,7 @@ export function ItemDrawer({
                             showsCopy={showsCopy}
                             canCopy={Boolean(body)}
                             onCopy={copyBody}
+                            isCopied={isCopied}
                             isFile={isFile}
                             fileName={detail?.fileName ?? ""}
                             fileUrl={fileUrl}

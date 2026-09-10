@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Download, Pencil, Pin, Star } from "lucide-react";
+import { Check, Copy, Download, Pencil, Pin, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useWriteBlockedReason } from "@/components/layout/VerifiedContext";
@@ -44,6 +44,7 @@ export function ItemDrawerToolbar({
     showsCopy,
     canCopy,
     onCopy,
+    isCopied,
     isFile,
     /** Empty until the detail has loaded, which is what the disabled Download stands in for. */
     fileName,
@@ -63,6 +64,8 @@ export function ItemDrawerToolbar({
     showsCopy: boolean;
     canCopy: boolean;
     onCopy: () => void;
+    /** Confirms the copy on the control itself, in place of a toast. */
+    isCopied: boolean;
     isFile: boolean;
     fileName: string;
     fileUrl: string;
@@ -123,11 +126,20 @@ export function ItemDrawerToolbar({
                         size="sm"
                         onClick={onCopy}
                         disabled={!canCopy}
-                        title="Copy"
-                        aria-label="Copy"
+                        title={isCopied ? "Copied" : "Copy"}
+                        aria-label={isCopied ? "Copied" : "Copy"}
                     >
-                        <Copy aria-hidden="true" />
-                        <ActionLabel>Copy</ActionLabel>
+                        {/* Green for the two seconds the copy is confirmed, on the icon and word
+                            themselves: the ghost variant's `hover:text-foreground` would otherwise
+                            win back the colour under the pointer that just clicked. */}
+                        {isCopied ? (
+                            <Check className="text-emerald-500" aria-hidden="true" />
+                        ) : (
+                            <Copy aria-hidden="true" />
+                        )}
+                        <ActionLabel className={isCopied ? "text-emerald-500" : undefined}>
+                            {isCopied ? "Copied" : "Copy"}
+                        </ActionLabel>
                     </Button>
                 )}
                 {isFile &&
