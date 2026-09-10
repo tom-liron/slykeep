@@ -33,9 +33,9 @@ const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
     // `actions/auth.ts` guard a different threat: an unauthenticated visitor probing for registered
     // emails.
     OAuthAccountNotLinked:
-        "That email already has a DevStash account with a password. Sign in with your email and password below.",
+        "That email already has a SlyKeep account with a password. Sign in with your email and password below.",
     AccountNotLinked:
-        "That email already has a DevStash account with a password. Sign in with your email and password below.",
+        "That email already has a SlyKeep account with a password. Sign in with your email and password below.",
     // The provider itself refused or returned an error response — retrying is the useful advice.
     OAuthCallbackError: "GitHub sign-in did not complete. Try again.",
     AccessDenied: "GitHub sign-in was cancelled or declined.",

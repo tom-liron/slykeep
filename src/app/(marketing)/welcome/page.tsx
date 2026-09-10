@@ -14,7 +14,7 @@ import { PricingPlans } from "@/components/marketing/PricingPlans";
  * search result or a shared link lands on.
  */
 export const metadata: Metadata = {
-    title: "DevStash — Stop Losing Your Developer Knowledge",
+    title: "SlyKeep — Stop Losing Your Developer Knowledge",
     description:
         "One fast, searchable hub for your snippets, prompts, commands, notes, files, and links.",
 };
@@ -24,8 +24,10 @@ export default function WelcomePage() {
         <>
             <Hero />
             <FeatureGrid />
-            <AiSection />
+            {/* Pricing precedes the AI section: `AiSection` is badged "Pro Feature", which means
+                nothing to a reader who has not yet been told the plans exist. */}
             <PricingPlans />
+            <AiSection />
             <CtaSection />
         </>
     );

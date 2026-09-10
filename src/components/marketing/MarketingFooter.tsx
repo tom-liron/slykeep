@@ -1,26 +1,29 @@
+import Link from "next/link";
+
 import { Brand } from "@/components/layout/Brand";
 
 /**
- * The landing page's footer: the {@link Brand} lockup, the in-page Product nav, and two columns of
- * placeholder links.
+ * The landing page's footer: the {@link Brand} lockup, the in-page Product nav, and the Company
+ * column of written pages.
  *
  * One of the sections composed by the `/welcome` page.
  */
 
 const PRODUCT_LINKS = [
     { href: "#features", label: "Features" },
-    { href: "#ai", label: "AI" },
     { href: "#pricing", label: "Pricing" },
 ];
 
 /**
- * Footer columns whose entries have no page yet, so they render as muted `<span>` rather than
- * links — nothing on the landing page points at a 404. Turn an entry into an `<a>` once its page
- * exists.
+ * The Company column: the site's written pages, each a route rather than an in-page jump.
+ *
+ * Every entry points at a page that exists. A link with nowhere to go does not belong here — a
+ * footer advertising documentation and support that were never built reads as a mockup, which is
+ * the opposite of what these pages are for.
  */
-const PLACEHOLDER_COLUMNS = [
-    { heading: "Resources", labels: ["Docs", "Changelog", "Support"] },
-    { heading: "Company", labels: ["About", "Privacy", "Terms"] },
+const COMPANY_LINKS = [
+    { href: "/privacy", label: "Privacy" },
+    { href: "/terms", label: "Terms" },
 ];
 
 export function MarketingFooter() {
@@ -34,8 +37,15 @@ export function MarketingFooter() {
                     </p>
                 </div>
 
-                <nav aria-label="Footer" className="grid grid-cols-3 gap-6 max-[460px]:grid-cols-2">
-                    <div className="grid content-start gap-2">
+                {/* Flex, not a two-column grid: equal grid tracks would push Product and Company
+                    to opposite ends of the nav area now that there are only two of them. Sized by
+                    their content and anchored right, they stay adjacent and the column keeps the
+                    right edge it had when there were three. */}
+                <nav
+                    aria-label="Footer"
+                    className="flex flex-wrap justify-end gap-x-16 gap-y-8 max-[860px]:justify-start"
+                >
+                    <div className="grid min-w-[7rem] content-start gap-2">
                         <p className="text-[0.78rem] font-bold tracking-[0.06em] uppercase">
                             Product
                         </p>
@@ -54,25 +64,29 @@ export function MarketingFooter() {
                         ))}
                     </div>
 
-                    {PLACEHOLDER_COLUMNS.map((column) => (
-                        <div key={column.heading} className="grid content-start gap-2">
-                            <p className="text-[0.78rem] font-bold tracking-[0.06em] uppercase">
-                                {column.heading}
-                            </p>
-                            {column.labels.map((label) => (
-                                <span key={label} className="text-[0.88rem] text-zinc-400">
-                                    {label}
-                                </span>
-                            ))}
-                        </div>
-                    ))}
+                    <div className="grid min-w-[7rem] content-start gap-2">
+                        <p className="text-[0.78rem] font-bold tracking-[0.06em] uppercase">
+                            Company
+                        </p>
+                        {COMPANY_LINKS.map((link) => (
+                            // `next/link`, unlike the Product column's plain anchors: those are
+                            // in-page jumps, these leave the page for a route.
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className="flex items-center text-[0.88rem] text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
+                    </div>
                 </nav>
             </div>
 
             <div className="mx-auto mt-10 flex w-[min(1180px,calc(100%-2.5rem))] flex-wrap justify-between gap-2 border-t border-border pt-6 text-[0.82rem] text-zinc-400">
                 {/* Rendered on the server: a `new Date()` in the browser would disagree with the
                     markup that was sent, and this is a number nobody needs to the minute. */}
-                <p>© {new Date().getFullYear()} DevStash. All rights reserved.</p>
+                <p>© {new Date().getFullYear()} SlyKeep. All rights reserved.</p>
                 <p>Built for developers who are tired of looking for things.</p>
             </div>
         </footer>

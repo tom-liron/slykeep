@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 
 const SECTIONS = [
     { href: "#features", label: "Features" },
-    { href: "#ai", label: "AI" },
     { href: "#pricing", label: "Pricing" },
 ];
 

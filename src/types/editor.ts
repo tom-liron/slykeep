@@ -25,14 +25,14 @@ export type EditorTabSize = 2 | 4 | 8;
  * A monaco theme id.
  *
  * `vs-dark` and `hc-black` are monaco's own. `CodeEditor` registers the other three in `beforeMount`
- * as `vs-dark` with `inherit: true`: `devstash-dark` overrides the chrome so an editor sits on the
+ * as `vs-dark` with `inherit: true`: `slykeep-dark` overrides the chrome so an editor sits on the
  * app's surface colour, and `monokai` and `github-dark` add a handful of token colours on top.
  *
  * @remarks
  * Everything an inheriting theme does not name falls through to `vs-dark`, so none of the three is a
  * per-language syntax palette to maintain.
  */
-export type EditorThemeId = "devstash-dark" | "monokai" | "github-dark" | "vs-dark" | "hc-black";
+export type EditorThemeId = "slykeep-dark" | "monokai" | "github-dark" | "vs-dark" | "hc-black";
 
 /** How a theme is offered, and the surface the editor's frame has to match while it is active. */
 export interface EditorThemePresentation {

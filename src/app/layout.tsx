@@ -23,8 +23,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "DevStash",
-    description: "One fast, searchable, AI-enhanced hub for all developer knowledge.",
+    title: "SlyKeep",
+    description:
+        "A personal knowledge hub for developers. Save code snippets, terminal commands, AI prompts, notes, files and links — and search across all of them in one keystroke.",
 };
 
 export default function RootLayout({

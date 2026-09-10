@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
                     <h1 className="text-xl font-semibold">Check your email</h1>
                     <p className="text-sm text-muted-foreground">
                         If <span className="font-medium text-foreground">{sentTo}</span> has a
-                        DevStash account, a link to reset your password is on its way.
+                        SlyKeep account, a link to reset your password is on its way.
                     </p>
                 </div>
 

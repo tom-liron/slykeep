@@ -22,7 +22,7 @@ import type {
  */
 
 /**
- * The surface {@link EDITOR_THEME_CATALOG}'s `devstash-dark` entry paints on: what `--card` resolves to, so an editor sits on
+ * The surface {@link EDITOR_THEME_CATALOG}'s `slykeep-dark` entry paints on: what `--card` resolves to, so an editor sits on
  * the same colour as every other panel in the app.
  *
  * @remarks
@@ -45,7 +45,7 @@ export const EDITOR_SURFACE = "#171717";
  * editor body inside a dark drawer renders that frame's muted text unreadably.
  */
 export const EDITOR_THEME_CATALOG: Record<EditorThemeId, EditorThemePresentation> = {
-    "devstash-dark": { label: "DevStash Dark", surface: EDITOR_SURFACE },
+    "slykeep-dark": { label: "SlyKeep Dark", surface: EDITOR_SURFACE },
     monokai: { label: "Monokai", surface: "#272822" },
     "github-dark": { label: "GitHub Dark", surface: "#0d1117" },
     "vs-dark": { label: "VS Dark", surface: "#1e1e1e" },
@@ -82,7 +82,7 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
     tabSize: 2,
     wordWrap: true,
     minimap: false,
-    theme: "devstash-dark",
+    theme: "slykeep-dark",
 };
 
 /**

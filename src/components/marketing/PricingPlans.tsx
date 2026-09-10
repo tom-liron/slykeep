@@ -24,13 +24,13 @@ export function PricingPlans() {
     const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
     return (
-        <section id="pricing" className="scroll-mt-20 py-[clamp(4rem,9vw,7rem)]">
+        <section id="pricing" className="scroll-mt-20 py-[clamp(3rem,6vw,4.5rem)]">
             <div className="mx-auto w-[min(1180px,calc(100%-2.5rem))]">
                 <Reveal>
                     <SectionHeading
                         eyebrow="Pricing"
                         title="Start free. Upgrade when it earns it."
-                        sub="Everything you need to stop losing things is free. Pro is for when your stash becomes the thing you work out of."
+                        sub="Everything you need to stop losing things is free. Pro is for when what you have stashed becomes the thing you work out of."
                         className="mb-[clamp(2.5rem,5vw,3.5rem)]"
                     >
                         <div className="mt-7 inline-flex">

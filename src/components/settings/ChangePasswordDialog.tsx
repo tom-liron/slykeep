@@ -50,7 +50,7 @@ export function ChangePasswordDialog() {
                 <DialogHeader>
                     <DialogTitle>Change Password</DialogTitle>
                     <DialogDescription>
-                        Update the password you use to sign in to DevStash.
+                        Update the password you use to sign in to SlyKeep.
                     </DialogDescription>
                 </DialogHeader>
 

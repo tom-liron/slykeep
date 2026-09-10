@@ -55,7 +55,7 @@ export function Hero() {
                         <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.9em] text-foreground">
                             .txt
                         </code>{" "}
-                        file somewhere. DevStash puts all of it in one fast, searchable place you
+                        file somewhere. SlyKeep puts all of it in one fast, searchable place you
                         actually come back to.
                     </p>
 
@@ -109,7 +109,7 @@ export function Hero() {
                             id="preview-label"
                             className="mb-3.5 text-[0.8rem] font-medium text-muted-foreground"
                         >
-                            …with DevStash
+                            …with SlyKeep
                         </p>
                         <AppPreview />
                         <p className="mt-3.5 text-xs text-zinc-400">

@@ -26,7 +26,7 @@ import type { UserViewModel } from "@/types/view-models";
  * no such thing, so the server snapshot is a flat `false` and React reconciles after hydration
  * without the render and the markup ever disagreeing.
  */
-const DISMISSED_KEY = "devstash:verification-banner-dismissed";
+const DISMISSED_KEY = "slykeep:verification-banner-dismissed";
 
 const listeners = new Set<() => void>();
 

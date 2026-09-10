@@ -55,7 +55,7 @@ vi.mock("@/server/infra/stripe", () => ({
         },
         paymentMethods: { detach: api.detach },
     }),
-    billingOrigin: () => "https://devstash.test",
+    billingOrigin: () => "https://slykeep.test",
 }));
 
 vi.mock("@/server/current-user", () => ({

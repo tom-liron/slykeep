@@ -135,7 +135,7 @@ describe("deleteUserObjects", () => {
         vi.stubEnv("R2_ACCOUNT_ID", "account");
         vi.stubEnv("R2_ACCESS_KEY_ID", "access-key");
         vi.stubEnv("R2_SECRET_ACCESS_KEY", "secret");
-        vi.stubEnv("R2_BUCKET_NAME", "devstash-test");
+        vi.stubEnv("R2_BUCKET_NAME", "slykeep-test");
     });
 
     afterEach(() => {
@@ -151,7 +151,7 @@ describe("deleteUserObjects", () => {
             expect(deleted).toBe(2);
             expect(s3.sent[0]).toMatchObject({
                 type: "list",
-                input: { Bucket: "devstash-test", Prefix: `users/${USER}/` },
+                input: { Bucket: "slykeep-test", Prefix: `users/${USER}/` },
             });
             expect(s3.sent[1]).toMatchObject({
                 type: "delete",

@@ -4,7 +4,7 @@ import { Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * The DevStash wordmark and logo. Rendered in the top bar, the mobile drawer header, and the
+ * The SlyKeep wordmark and logo. Rendered in the top bar, the mobile drawer header, and the
  * marketing/auth bar.
  *
  * `href` is optional: with it, the lockup is a `<Link>`; without it, a plain label for a surface
@@ -32,7 +32,7 @@ export function Brand({
                 <Layers className="size-5" aria-hidden="true" />
             </span>
             <span className={cn("truncate text-lg font-semibold", compact && "hidden sm:inline")}>
-                DevStash
+                SlyKeep
             </span>
         </>
     );

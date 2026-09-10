@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     DEFAULT_SIGN_IN_DESTINATION,
+    OPEN_ROUTES,
     resolveCallbackUrl,
     signInDestination,
 } from "./auth-redirects";
@@ -77,5 +78,21 @@ describe("signInDestination", () => {
 
     it("does not attach the welcome flag to a callback", () => {
         expect(signInDestination("/collections/abc123")).not.toContain("welcome");
+    });
+});
+
+describe("OPEN_ROUTES", () => {
+    // The proxy is deny-by-default, so membership here is the only thing making the legal pages
+    // readable without a session. Dropping one costs no compile error and no failing render — the
+    // page simply serves a redirect to `/sign-in` to every signed-out reader, search engines
+    // included, which is the appearance that got the domain flagged as deceptive.
+    it.each(["/privacy", "/terms"])("keeps %s reachable without a session", (route) => {
+        expect(OPEN_ROUTES.has(route)).toBe(true);
+    });
+
+    // Both are refused as post-sign-in destinations by the same set membership: landing on a legal
+    // page after authenticating is never where the user was trying to go.
+    it.each(["/privacy", "/terms"])("refuses %s as a callback destination", (route) => {
+        expect(resolveCallbackUrl(route)).toBeNull();
     });
 });

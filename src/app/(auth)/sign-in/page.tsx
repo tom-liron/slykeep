@@ -18,7 +18,7 @@ import { resolveCallbackUrl } from "@/lib/auth-redirects";
  * {@link resolveCallbackUrl}, and again in the sign-in action.
  */
 export const metadata: Metadata = {
-    title: "Sign in · DevStash",
+    title: "Sign in · SlyKeep",
 };
 
 export default async function SignInPage({
@@ -59,12 +59,12 @@ export default async function SignInPage({
 
     return (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            {/* "Sign in to DevStash", not "Welcome back": this page greets first-time arrivals as
+            {/* "Sign in to SlyKeep", not "Welcome back": this page greets first-time arrivals as
                 often as returning ones, and the subtitle says what the product is for the same
                 reason. The post-sign-in toast can say "welcome back" — by then the account has
                 authenticated. */}
             <div className="mb-6 space-y-1">
-                <h1 className="text-xl font-semibold">Sign in to DevStash</h1>
+                <h1 className="text-xl font-semibold">Sign in to SlyKeep</h1>
                 <p className="text-sm text-muted-foreground">
                     One place for your snippets, prompts, commands, and notes.
                 </p>

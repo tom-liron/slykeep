@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { DemoBillingNotice } from "@/components/billing/DemoBillingNotice";
 import { UpgradePlans } from "@/components/billing/UpgradePlans";
 import { TYPE_COLOR_VARS } from "@/lib/type-color-vars";
 import { getCurrentUser } from "@/server/current-user";
 
 export const metadata: Metadata = {
-    title: "Upgrade · DevStash",
+    title: "Upgrade · SlyKeep",
 };
 
 // Entitlement is read per request from the database; nothing here can be baked in at build time.
@@ -42,12 +43,14 @@ export default async function UpgradePage() {
             <header className="space-y-2 text-center">
                 <h1 className="text-2xl font-bold">Upgrade to Pro</h1>
                 <p className="text-muted-foreground">
-                    Unlimited items and collections, file and image uploads, AI features, and
-                    export. Cancel any time.
+                    Unlimited items and collections, file and image uploads, and the AI features.
+                    Cancel any time.
                 </p>
             </header>
 
             <UpgradePlans />
+
+            <DemoBillingNotice />
         </div>
     );
 }

@@ -5,7 +5,7 @@ import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 import { checkPasswordResetToken } from "@/server/verification";
 
 export const metadata: Metadata = {
-    title: "Choose a new password · DevStash",
+    title: "Choose a new password · SlyKeep",
 };
 
 /**

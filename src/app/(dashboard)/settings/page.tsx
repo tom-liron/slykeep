@@ -9,7 +9,7 @@ import { getBillingSummary } from "@/server/billing";
 import { getAccountSettings } from "@/server/profile";
 
 export const metadata: Metadata = {
-    title: "Settings · DevStash",
+    title: "Settings · SlyKeep",
 };
 
 // The account is read per request from the session; nothing here can be baked in at build time.
@@ -46,7 +46,7 @@ export default async function SettingsPage({
         <div className="mx-auto max-w-3xl space-y-8">
             <header>
                 <h1 className="text-2xl font-bold">Settings</h1>
-                <p className="text-muted-foreground">Manage your DevStash account.</p>
+                <p className="text-muted-foreground">Manage your SlyKeep account.</p>
             </header>
 
             <Panel
@@ -68,7 +68,7 @@ export default async function SettingsPage({
                 {hasPassword ? (
                     <PanelRow
                         title="Password"
-                        description="Update the password you use to sign in to DevStash."
+                        description="Update the password you use to sign in to SlyKeep."
                     >
                         <ChangePasswordDialog />
                     </PanelRow>
@@ -77,7 +77,7 @@ export default async function SettingsPage({
                     // credential lives rather than just stating an absence, and carries no control.
                     <PanelRow
                         title="Password"
-                        description="You sign in with GitHub, so there's no DevStash password to manage. Your sign-in credentials are managed by GitHub."
+                        description="You sign in with GitHub, so there's no SlyKeep password to manage. Your sign-in credentials are managed by GitHub."
                     />
                 )}
 
