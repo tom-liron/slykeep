@@ -84,7 +84,12 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
                 variant="ghost"
                 size="sm"
                 asChild
-                className="relative z-10 shrink-0"
+                // Same hover fill as the cards' copy button and the drawer toolbar: the ghost
+                // variant's `bg-muted` is too close to the row underneath it to read as a hover.
+                // Written twice because this project's `dark` variant (`&:is(.dark *)`) adds
+                // specificity, so the plain rule loses to `dark:hover:bg-muted/50` without the
+                // repeat.
+                className="relative z-10 shrink-0 hover:bg-foreground/15 dark:hover:bg-foreground/15"
                 title={`Download ${fileName}`}
             >
                 <a href={`/api/files/${item.id}?download`} download={fileName}>

@@ -1,30 +1,34 @@
 import { toast } from "sonner";
 
+import { TOAST_IDS } from "@/lib/toast-ids";
+
 /**
- * The clipboard write behind every copy control, with its success and failure toasts.
+ * The clipboard write behind every copy control, with the toast for when it fails.
  *
  * `CopyItemButton` and the drawer toolbar both call {@link copyToClipboard}: one action reached two
  * ways, so the wording lives here rather than at each call site. The text may still be in flight —
  * item cards copy a body that list queries never load — so {@link writeClipboardText} accepts a
  * promise.
+ *
+ * A successful copy is confirmed on the button that was pressed rather than by a toast, which is
+ * `useCopyAction` in `hooks/use-copy-action.ts`; both call sites go through that hook.
  */
 
 /**
- * Writes text to the clipboard and shows the outcome toast.
+ * Writes text to the clipboard, reporting only failure.
  *
- * Resolves `text` (which may be a promise), writes it, and reports success or failure through
- * sonner. Returns whether the write succeeded, for a caller that needs to branch; the toast is
- * already shown.
+ * Resolves `text` (which may be a promise) and writes it. Returns whether the write succeeded, so
+ * the calling control can show its own confirmation; a failure is already on screen as a toast by
+ * the time this returns.
  */
 export async function copyToClipboard(text: string | Promise<string>): Promise<boolean> {
     try {
         await writeClipboardText(text);
-        toast.success("Copied to clipboard");
         return true;
     } catch {
         // A failed fetch and a refused clipboard are one fact to the person who clicked: the text is
         // not on the clipboard. One message covers both.
-        toast.error("Could not copy to clipboard");
+        toast.error("Could not copy to clipboard", { id: TOAST_IDS.copy });
         return false;
     }
 }

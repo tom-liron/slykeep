@@ -15,6 +15,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TOAST_IDS } from "@/lib/toast-ids";
 import { cn } from "@/lib/utils";
 import type { CollectionActionTarget } from "@/types/collection";
 import { DeleteCollectionDialog } from "./DeleteCollectionDialog";
@@ -67,7 +68,7 @@ export function CollectionActions({
             const result = await toggleCollectionFavorite(collection.id, next);
 
             if (!result.success) {
-                toast.error(result.error);
+                toast.error(result.error, { id: TOAST_IDS.collectionFavorite });
 
                 return;
             }
@@ -77,6 +78,7 @@ export function CollectionActions({
             setWritten(result.data.isFavorite);
             toast.success(
                 result.data.isFavorite ? "Added to favorites." : "Removed from favorites.",
+                { id: TOAST_IDS.collectionFavorite },
             );
 
             // The action revalidates the layout, which re-renders the sidebar's favourites; this is

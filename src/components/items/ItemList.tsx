@@ -59,7 +59,9 @@ export function ItemList({
                     return (
                         // `group` so an entry can react to the pointer at all: the trigger below
                         // covers it and is its sibling, not its parent, so the entry itself never
-                        // matches `:hover` — the thumbnail's zoom is `group-hover`.
+                        // matches `:hover` — the thumbnail's zoom is `group-hover`, and so is the
+                        // trigger's own tint, which keeps the card lit while the pointer is on the
+                        // copy button beside it.
                         <div key={item.id} className="group relative">
                             {variant === "file" && <FileRow item={item} />}
                             {variant === "image" && <ImageCard item={item} />}
@@ -69,7 +71,7 @@ export function ItemList({
                                 type="button"
                                 onClick={() => openItem(item)}
                                 className={cn(
-                                    "absolute inset-0 cursor-pointer transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                                    "absolute inset-0 cursor-pointer transition-colors group-hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                                     // Matched to the entry underneath, so the hover tint stops
                                     // exactly where its border curves.
                                     variant === "file" && "rounded-lg",
@@ -81,7 +83,7 @@ export function ItemList({
                                     // A thumbnail is already lit by its zoom, and a tint over a
                                     // picture reads as the image changing rather than the card
                                     // responding.
-                                    variant === "image" && "hover:bg-transparent",
+                                    variant === "image" && "group-hover:bg-transparent",
                                 )}
                             >
                                 <span className="sr-only">Open {item.title}</span>

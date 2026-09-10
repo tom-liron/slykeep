@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { copyToClipboard } from "@/lib/clipboard";
+import { useCopyAction } from "@/hooks/use-copy-action";
 import { filePreviewFor } from "@/lib/file-preview";
 import { cn } from "@/lib/utils";
 import type { ItemDetailViewModel, ItemSummaryViewModel } from "@/types/view-models";
@@ -69,8 +68,11 @@ async function fetchBody(source: CopySource): Promise<string> {
  * body is fetched when the icon is clicked, from the same routes the drawer reads. Nothing loads
  * for a card nobody copies.
  *
+ * The copy is confirmed on the icon itself, which becomes a check for two seconds.
+ * {@link useCopyAction} owns that state, and the drawer's Copy control shares it.
+ *
  * @remarks
- * The pending fetch is passed to `copyToClipboard` unawaited — see `writeClipboardText` in
+ * The pending fetch is passed to {@link useCopyAction} unawaited — see `writeClipboardText` in
  * `lib/clipboard.ts` for why Safari needs the clipboard write to start synchronously. A
  * consequence: an empty body is reported by the fetch rejecting, not by disabling the button up
  * front, since this cannot know the body is empty until it asks.
@@ -84,35 +86,41 @@ export function CopyItemButton({
     item: ItemSummaryViewModel;
     className?: string;
 }) {
-    const [isCopying, setIsCopying] = useState(false);
+    const { copy, isCopying, isCopied } = useCopyAction();
 
     const source = copyableSourceFor(item);
 
     if (!source) return null;
-
-    const copy = async () => {
-        setIsCopying(true);
-        try {
-            await copyToClipboard(fetchBody(source));
-        } finally {
-            setIsCopying(false);
-        }
-    };
 
     return (
         <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            onClick={copy}
+            onClick={() => copy(fetchBody(source))}
             disabled={isCopying}
-            title="Copy"
+            title={isCopied ? "Copied" : "Copy"}
             // Named with the item so a column of these does not read as identically labelled
-            // buttons to assistive tech.
-            aria-label={`Copy ${item.title}`}
-            className={cn("text-muted-foreground", className)}
+            // buttons to assistive tech. The icon has no text beside it, so the label carries the
+            // confirmation too.
+            aria-label={isCopied ? `Copied ${item.title}` : `Copy ${item.title}`}
+            // The hover fill is the drawer toolbar's, not the ghost variant's `bg-muted`, which is
+            // too close to the card underneath it to read as a hover at all. Written twice because
+            // this project's `dark` variant (`&:is(.dark *)`) adds specificity, so the plain rule
+            // loses to `dark:hover:bg-muted/50` without the repeat.
+            className={cn(
+                "text-muted-foreground hover:bg-foreground/15 dark:hover:bg-foreground/15",
+                className,
+            )}
         >
-            <Copy aria-hidden="true" />
+            {/* Tinted on the icon rather than the button: the ghost variant's `hover:text-foreground`
+                would take the colour back at exactly the moment the check is shown, since the
+                pointer is still on the button that was just clicked. */}
+            {isCopied ? (
+                <Check className="text-emerald-500" aria-hidden="true" />
+            ) : (
+                <Copy aria-hidden="true" />
+            )}
         </Button>
     );
 }

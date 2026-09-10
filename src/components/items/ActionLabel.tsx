@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 /**
  * The visible word inside a toolbar button in the item drawer's action row.
  *
@@ -12,6 +14,6 @@
  * Its own module because `DeleteItemDialog` (which `ItemDrawer` imports) also renders a button in
  * the row, so this cannot live in `ItemDrawer`.
  */
-export function ActionLabel({ children }: { children: string }) {
-    return <span className="hidden min-[42.5rem]:inline">{children}</span>;
+export function ActionLabel({ children, className }: { children: string; className?: string }) {
+    return <span className={cn("hidden min-[42.5rem]:inline", className)}>{children}</span>;
 }
