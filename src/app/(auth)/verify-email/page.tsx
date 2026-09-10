@@ -139,6 +139,11 @@ export default async function VerifyEmailPage({
                     everything here is a way off the page for someone who cannot use it. */}
                 <div className={confirmed ? undefined : "border-t border-border pt-4"}>
                     {offerChoice ? (
+                        // Both outline, deliberately. A solid button on this page means the step we
+                        // recommend, and this fork exists because we cannot know which half the
+                        // visitor wants — emphasising either is the guess the panel was built to
+                        // avoid, and "sign out" is the wrong one to make it, since confirming a
+                        // second account on one's own machine is the commoner reason to be here.
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <Button asChild variant="outline" className="sm:flex-1">
                                 <Link href="/">Stay signed in</Link>
@@ -148,16 +153,15 @@ export default async function VerifyEmailPage({
                                 before `/sign-in` is worth anything, and the proxy would bounce a
                                 signed-in visitor straight off it. */}
                             <form action={signOutToSignIn} className="sm:flex-1">
-                                <Button
-                                    type="submit"
-                                    variant={confirmed ? "default" : "outline"}
-                                    className="w-full"
-                                >
+                                <Button type="submit" variant="outline" className="w-full">
                                     Sign out and switch account
                                 </Button>
                             </form>
                         </div>
                     ) : (
+                        // Solid only when this is the one step left. On a dead link it stays
+                        // outline so it does not out-shout the resend field, which is what actually
+                        // resolves the situation.
                         <Button
                             asChild
                             variant={confirmed ? "default" : "outline"}
