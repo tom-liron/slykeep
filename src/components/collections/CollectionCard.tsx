@@ -19,7 +19,7 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
 
     return (
         <div
-            className="relative flex flex-col rounded-xl border border-border border-l-4 bg-card p-4 transition-colors hover:bg-muted/50 focus-within:bg-muted/50"
+            className="group relative flex flex-col rounded-xl border border-border border-l-4 bg-card p-4"
             style={accent ? { borderLeftColor: accent } : undefined}
         >
             {/* Padded clear of the menu laid over the row's right-hand end. `CollectionActions`
@@ -54,10 +54,16 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
 
             {/* Covers the card, so clicking anywhere that is not the menu opens the collection. It
                 carries the accessible name on its own, which is why the heading above needs no link
-                of its own. */}
+                of its own.
+
+                The hover tint rides on this overlay, not on the card, because `bg-card` is opaque:
+                a `hover:` background on the card *replaces* it rather than tinting it, which in
+                dark mode lands within `oklch(0.002)` of the resting colour. Layered on top, the
+                `foreground/5` the item cards use reads in both themes. `group-*` rather than
+                `hover:` keeps the card lit while the pointer is on the actions menu above it. */}
             <Link
                 href={`/collections/${collection.id}`}
-                className="absolute inset-0 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="absolute inset-0 rounded-xl transition-colors group-hover:bg-foreground/5 group-focus-within:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
                 <span className="sr-only">{collection.name}</span>
             </Link>
