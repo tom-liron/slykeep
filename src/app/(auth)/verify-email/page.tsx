@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { parseVerificationOutcome, type VerificationOutcome } from "@/lib/verification-outcomes";
 
 /**
- * Where a verification link lands: it reports what the click did and offers the one next step that
- * follows from it.
+ * Where a verification link lands: it reports what the click did and offers the next step that
+ * follows from it — or, when which account the visitor is dealing with is unsettled, both of them.
  *
  * `GET /api/auth/verify-email` has already consumed the token and applied the result by the time
  * anyone arrives here, so this page only reads `?status=` and renders. It owns a page rather than
@@ -27,6 +27,11 @@ export const metadata: Metadata = {
 /**
  * The heading and sentence for each outcome, saying what the click did and nothing about what to do
  * next — the action block below decides that from the session, which the outcome alone cannot.
+ *
+ * @remarks
+ * Declarative and contraction-free, including for the two outcomes that report a dead link. Those
+ * are the ones a person reads while something has gone wrong for them, which is the moment a
+ * chatty register reads as the product not taking it seriously.
  */
 const OUTCOME_COPY: Record<VerificationOutcome, { heading: string; body: string }> = {
     verified: {
@@ -34,16 +39,16 @@ const OUTCOME_COPY: Record<VerificationOutcome, { heading: string; body: string 
         body: "Your email address is confirmed and the account is ready to use.",
     },
     "already-verified": {
-        heading: "Already confirmed",
-        body: "That address was confirmed earlier, so this link had nothing left to do.",
+        heading: "Email already confirmed",
+        body: "This address was confirmed earlier, so the link had no further effect.",
     },
     expired: {
-        heading: "This link has expired",
-        body: "Verification links are good for 24 hours, and this one is past it.",
+        heading: "This verification link has expired",
+        body: "Verification links are valid for 24 hours, and this one is past that.",
     },
     invalid: {
-        heading: "This link won't work",
-        body: "That verification link is not valid, or it has already been used.",
+        heading: "This verification link is not valid",
+        body: "It has already been used, or it is not a link we issued.",
     },
 };
 
@@ -63,15 +68,25 @@ export default async function VerifyEmailPage({
     const session = await auth();
     const signedInAs = session?.user?.email ?? null;
 
-    // Set by the route handler when the token's address is not the one this session belongs to,
-    // which it can tell for every outcome except `invalid`. The param is forgeable, and forging it
-    // buys only the panel below — no account state is read from it, and the address it names is the
-    // visitor's own.
+    // Set by the route handler when the token's address is not the one this session belongs to. The
+    // param is forgeable, and forging it buys only the choice below — no account state is read from
+    // it, and the address it names is the visitor's own.
     const otherAccount = signedInAs !== null && params.mismatch === "1";
 
-    // Four labels for one button, because both halves of what it means vary: where it goes depends
-    // on whether there is a session, and whether it is the next step or the way out depends on
-    // whether anything was confirmed.
+    // `invalid` is the one outcome with no address behind it: the row is gone, so the route had
+    // nothing to compare the session against. That is the ordinary second click on a dead link
+    // rather than an edge case — an expired link is spent by the click that reports it expired, so
+    // clicking it again lands here — and it is exactly when the page must not assume the session
+    // owns the link.
+    const unknownAccount = signedInAs !== null && !otherAccount && outcome === "invalid";
+
+    // Whose account this is about is unsettled in both cases, so both ways off the page are offered
+    // and neither is guessed at: someone dealing with a second account on their own machine wants
+    // to stay where they are, and someone on a shared one does not.
+    const offerChoice = otherAccount || unknownAccount;
+
+    // The one-way label, for when the account *is* settled: every outcome but `invalid` carries an
+    // address, so no mismatch on one of those means the route compared and they matched.
     const onwardLabel = signedInAs
         ? confirmed
             ? "Continue to your account"
@@ -88,23 +103,20 @@ export default async function VerifyEmailPage({
             </div>
 
             <div className="space-y-4 text-sm">
-                {/* Named whenever there is a session, not only on a mismatch: on `invalid` there is
-                    no address to compare against, and "back to your account" is only unambiguous
-                    once the page has said which account that is. */}
+                {/* The address is named whenever there is a session, because on this page it is
+                    the one fact the visitor cannot check for themselves and everything else turns
+                    on. What follows it is what to do about it — never why the page cannot tell:
+                    that a spent link no longer names an account is our problem, not theirs. */}
                 {signedInAs !== null && (
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
-                        {otherAccount ? (
-                            <p>
-                                This browser is signed in as{" "}
-                                <span className="font-medium">{signedInAs}</span>, which is a
-                                different account from the one that link was for. Nothing about this
-                                session changed.
-                            </p>
-                        ) : (
-                            <p>
-                                Signed in as <span className="font-medium">{signedInAs}</span>.
-                            </p>
-                        )}
+                        <p>
+                            Signed in as <span className="font-medium">{signedInAs}</span>
+                            {otherAccount &&
+                                ". That link was for a different account, so nothing about this session changed."}
+                            {unknownAccount &&
+                                ". If you were confirming a different account, send a new link to that address below."}
+                            {!offerChoice && "."}
+                        </p>
                     </div>
                 )}
 
@@ -126,10 +138,7 @@ export default async function VerifyEmailPage({
                     dead link, a new link is the action that actually resolves the situation, and
                     everything here is a way off the page for someone who cannot use it. */}
                 <div className={confirmed ? undefined : "border-t border-border pt-4"}>
-                    {otherAccount ? (
-                        // Both choices are offered rather than one being guessed at: someone
-                        // dealing with a second account on their own machine wants to stay where
-                        // they are, and someone on a shared one does not.
+                    {offerChoice ? (
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <Button asChild variant="outline" className="sm:flex-1">
                                 <Link href="/">Stay signed in</Link>
@@ -139,7 +148,11 @@ export default async function VerifyEmailPage({
                                 before `/sign-in` is worth anything, and the proxy would bounce a
                                 signed-in visitor straight off it. */}
                             <form action={signOutToSignIn} className="sm:flex-1">
-                                <Button type="submit" className="w-full">
+                                <Button
+                                    type="submit"
+                                    variant={confirmed ? "default" : "outline"}
+                                    className="w-full"
+                                >
                                     Sign out and switch account
                                 </Button>
                             </form>
