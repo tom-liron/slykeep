@@ -141,11 +141,18 @@ export function createVerificationToken(email: string): Promise<string> {
     return issueToken("email-verification", email);
 }
 
-/** Why a token could not be used, for a caller that has to explain itself to a person. */
+/**
+ * Why a token could not be used, for a caller that has to explain itself to a person.
+ *
+ * @remarks
+ * Every outcome that found a row carries the address it was issued for, expiry included, so the
+ * caller can tell a click on one's own link from a click on another account's. Only `invalid` has
+ * none, because there is no row to read one from.
+ */
 export type VerificationResult =
     | { status: "verified"; email: string }
     | { status: "already-verified"; email: string }
-    | { status: "expired" }
+    | { status: "expired"; email: string }
     | { status: "invalid" };
 
 /**
@@ -164,7 +171,7 @@ export async function verifyEmailToken(token: string): Promise<VerificationResul
     const email = emailFrom("email-verification", record.identifier);
     const consumed = await consumeRow(record.token);
 
-    if (record.expires < new Date()) return { status: "expired" };
+    if (record.expires < new Date()) return { status: "expired", email };
 
     // Lost the race. The other request already applied the effect, so report the account as it now
     // stands rather than calling a link invalid when it demonstrably worked.

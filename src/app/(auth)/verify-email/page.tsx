@@ -63,10 +63,22 @@ export default async function VerifyEmailPage({
     const session = await auth();
     const signedInAs = session?.user?.email ?? null;
 
-    // Set by the route handler when the token's address is not the one this session belongs to. The
-    // param is forgeable, and forging it buys only the panel below — no account state is read from
-    // it, and the address it names is the visitor's own.
-    const otherAccount = confirmed && signedInAs !== null && params.mismatch === "1";
+    // Set by the route handler when the token's address is not the one this session belongs to,
+    // which it can tell for every outcome except `invalid`. The param is forgeable, and forging it
+    // buys only the panel below — no account state is read from it, and the address it names is the
+    // visitor's own.
+    const otherAccount = signedInAs !== null && params.mismatch === "1";
+
+    // Four labels for one button, because both halves of what it means vary: where it goes depends
+    // on whether there is a session, and whether it is the next step or the way out depends on
+    // whether anything was confirmed.
+    const onwardLabel = signedInAs
+        ? confirmed
+            ? "Continue to your account"
+            : "Back to your account"
+        : confirmed
+          ? "Sign in"
+          : "Back to sign in";
 
     return (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -75,69 +87,74 @@ export default async function VerifyEmailPage({
                 <p className="text-sm text-muted-foreground">{body}</p>
             </div>
 
-            {otherAccount ? (
-                <div className="space-y-4">
-                    <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
-                        <p>
-                            This browser is signed in as{" "}
-                            <span className="font-medium">{signedInAs}</span>, which is a different
-                            account from the one the link confirmed. Nothing about this session
-                            changed.
-                        </p>
-                    </div>
-
-                    {/* Both choices are offered rather than one being guessed at: someone confirming
-                        a second account on their own machine wants to stay where they are, and
-                        someone confirming their own account on a shared one does not. */}
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button asChild variant="outline" className="sm:flex-1">
-                            <Link href="/">Stay signed in</Link>
-                        </Button>
-
-                        {/* A form, not a link: the session has to be cleared on the server before
-                            `/sign-in` is worth anything, and the proxy would bounce a signed-in
-                            visitor straight off it. */}
-                        <form action={signOutToSignIn} className="sm:flex-1">
-                            <Button type="submit" className="w-full">
-                                Sign out and switch account
-                            </Button>
-                        </form>
-                    </div>
-                </div>
-            ) : (
-                <div className="space-y-3 text-sm">
-                    {confirmed ? (
-                        <Button asChild className="w-full">
-                            <Link href={signedInAs ? "/" : "/sign-in"}>
-                                {signedInAs ? "Continue to your account" : "Sign in"}
-                            </Link>
-                        </Button>
-                    ) : (
-                        <>
-                            {/* The account is intact in both dead-link cases — only the link is
-                                spent — so the remedy is always a fresh one rather than support. */}
-                            <p className="text-muted-foreground">
-                                Enter your email address and we will send another link.
+            <div className="space-y-4 text-sm">
+                {/* Named whenever there is a session, not only on a mismatch: on `invalid` there is
+                    no address to compare against, and "back to your account" is only unambiguous
+                    once the page has said which account that is. */}
+                {signedInAs !== null && (
+                    <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
+                        {otherAccount ? (
+                            <p>
+                                This browser is signed in as{" "}
+                                <span className="font-medium">{signedInAs}</span>, which is a
+                                different account from the one that link was for. Nothing about this
+                                session changed.
                             </p>
+                        ) : (
+                            <p>
+                                Signed in as <span className="font-medium">{signedInAs}</span>.
+                            </p>
+                        )}
+                    </div>
+                )}
 
-                            <ResendVerification />
+                {!confirmed && (
+                    <div>
+                        {/* The account is intact in both dead-link cases — only the link is spent —
+                            so the remedy is always a fresh one rather than support. The address is
+                            asked for rather than assumed: the session, when there is one, may well
+                            belong to a different account than the link did. */}
+                        <p className="text-muted-foreground">
+                            Enter the address that needs confirming and we will send another link.
+                        </p>
 
-                            {/* A button rather than a bare link: this is the only way off the page
-                                for someone who cannot use the resend control, and a text link
-                                under a bordered field reads as part of the prose above it. The
-                                rule keeps it from competing with "Resend link", which is the
-                                action that actually resolves the situation. */}
-                            <div className="border-t border-border pt-4">
-                                <Button asChild variant="outline" className="w-full">
-                                    <Link href={signedInAs ? "/" : "/sign-in"}>
-                                        {signedInAs ? "Back to your account" : "Back to sign in"}
-                                    </Link>
+                        <ResendVerification />
+                    </div>
+                )}
+
+                {/* Separated from the resend control by a rule so it does not compete with it: on a
+                    dead link, a new link is the action that actually resolves the situation, and
+                    everything here is a way off the page for someone who cannot use it. */}
+                <div className={confirmed ? undefined : "border-t border-border pt-4"}>
+                    {otherAccount ? (
+                        // Both choices are offered rather than one being guessed at: someone
+                        // dealing with a second account on their own machine wants to stay where
+                        // they are, and someone on a shared one does not.
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <Button asChild variant="outline" className="sm:flex-1">
+                                <Link href="/">Stay signed in</Link>
+                            </Button>
+
+                            {/* A form, not a link: the session has to be cleared on the server
+                                before `/sign-in` is worth anything, and the proxy would bounce a
+                                signed-in visitor straight off it. */}
+                            <form action={signOutToSignIn} className="sm:flex-1">
+                                <Button type="submit" className="w-full">
+                                    Sign out and switch account
                                 </Button>
-                            </div>
-                        </>
+                            </form>
+                        </div>
+                    ) : (
+                        <Button
+                            asChild
+                            variant={confirmed ? "default" : "outline"}
+                            className="w-full"
+                        >
+                            <Link href={signedInAs ? "/" : "/sign-in"}>{onwardLabel}</Link>
+                        </Button>
                     )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }
