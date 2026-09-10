@@ -37,24 +37,29 @@ export async function GET(request: Request) {
     // the one the user is actually on, and a mismatch would bounce them to another host mid-flow.
     const target = new URL(`/verify-email?status=${status}`, request.url);
 
-    // A link opened on a shared machine, or on a second account, confirms one address while the
+    // A link opened on a shared machine, or on a second account, acts on one address while the
     // browser is signed in as another. The page can read its own session but not the address the
     // token was issued for, so the comparison happens here and only its answer travels — which keeps
-    // the confirmed address out of the URL, the browser history and the referrer.
+    // that address out of the URL, the browser history and the referrer.
+    //
+    // Every outcome carrying an address is compared, not just the two that confirm something. An
+    // expired second-account link is the case that reaches a person while they are signed in
+    // elsewhere and looks least like it: the page would otherwise offer them "back to your account"
+    // meaning the account they happen to be signed in as, which is not the one they were dealing
+    // with.
     if ("email" in result) {
         const session = await auth();
         const signedInAs = session?.user?.email?.toLowerCase();
 
-        if (signedInAs) {
+        if (signedInAs && signedInAs !== result.email.toLowerCase()) {
+            target.searchParams.set("mismatch", "1");
+        } else if (signedInAs && (status === "verified" || status === "already-verified")) {
             // Already signed in as the account the link confirms — the ordinary case under the soft
             // gate, since registration opens a session. There is nothing to decide and nothing to
             // sign in to, so the result page is skipped and `WelcomeToast` reports it at the
-            // destination.
-            if (signedInAs === result.email.toLowerCase()) {
-                return NextResponse.redirect(new URL("/?welcome=verified", request.url));
-            }
-
-            target.searchParams.set("mismatch", "1");
+            // destination. An expired link falls through instead: it confirmed nothing, so there is
+            // no welcome to report and the page still has a resend control to offer.
+            return NextResponse.redirect(new URL("/?welcome=verified", request.url));
         }
     }
 

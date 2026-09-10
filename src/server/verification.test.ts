@@ -195,6 +195,19 @@ describe("verification tokens", () => {
         });
     });
 
+    // The route handler compares this address against the session to tell a click on one's own
+    // expired link from a click on another account's, and offers a different way off the page for
+    // each. Dropping it here is what made the second case silently offer the first account.
+    it("names the address an expired link was for", async () => {
+        const token = await createVerificationToken(EMAIL);
+        expireAll();
+
+        expect(await verifyEmailToken(token)).toEqual({ status: "expired", email: EMAIL });
+        expect(db.users[0].emailVerified).toBeNull();
+        // Spent all the same: a late click still uses the link up.
+        expect(db.tokens).toHaveLength(0);
+    });
+
     it("reads as a dead link when the account is gone", async () => {
         const token = await createVerificationToken(EMAIL);
         db.users = [];
