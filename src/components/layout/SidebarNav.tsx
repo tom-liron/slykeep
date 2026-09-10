@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
-import { ArrowRight, ChevronDown, Star } from "lucide-react";
+import { ArrowRight, ChevronDown, LayoutDashboard, Star } from "lucide-react";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { UserMenu } from "@/components/layout/UserMenu";
@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
 import type { SidebarCollectionViewModel, SidebarViewModel } from "@/types/view-models";
 
 /**
- * The contents of the sidebar rail and mobile drawer: the Favorites link, the collapsible Types and
- * Collections sections, and {@link UserMenu} at the foot.
+ * The contents of the sidebar rail and mobile drawer: the Overview and Favorites links, the
+ * collapsible Types and Collections sections, and {@link UserMenu} at the foot.
  *
  * Rendered by `Sidebar` in both its forms. `data` is the server-built `SidebarViewModel`.
  * `onNavigate` is passed through to every link so the mobile drawer closes on navigation.
@@ -38,9 +38,31 @@ export function SidebarNav({
         <div className="flex h-full flex-col">
             {/* Scrollable nav */}
             <nav className="flex-1 overflow-y-auto p-2">
-                {/* Favorites, above both collapsible sections and outside them — a view across
-                    every type and collection, so it belongs under neither heading. The top-bar
-                    star is a second route to the same page at every width. */}
+                {/* Overview and Favorites, above both collapsible sections and outside them —
+                    each is a view across every type and collection, so neither belongs under
+                    either heading. The top-bar star is a second route to Favorites at every
+                    width; the brand lockup is a second route to Overview.
+
+                    "Overview" rather than "Dashboard": this rail sits *inside* what the route
+                    group, the layout and `components/dashboard/` all already call the dashboard,
+                    so that word names the shell and cannot also name one page within it. Not
+                    "Home" either — that label belongs to a triage surface asking what needs your
+                    attention, and this page summarizes what you have. */}
+                <Link
+                    href="/"
+                    onClick={onNavigate}
+                    className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors pointer-coarse:py-3 hover:bg-sidebar-accent",
+                        pathname === "/" && "bg-sidebar-accent font-medium",
+                    )}
+                >
+                    {/* Neutral, like the row's own text: the coloured icons in this rail all stand
+                        for something — a type's colour, the favourite yellow — and the dashboard
+                        is not one of them. */}
+                    <LayoutDashboard className="size-4 shrink-0" aria-hidden="true" />
+                    <span className="flex-1 truncate">Overview</span>
+                </Link>
+
                 <Link
                     href="/favorites"
                     onClick={onNavigate}

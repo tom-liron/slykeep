@@ -14,7 +14,7 @@ import { getCurrentUser } from "@/server/current-user";
 import { getDashboardItems } from "@/server/items";
 
 /**
- * The dashboard overview, served at `/` for a signed-in visitor.
+ * The account overview, served at `/` for a signed-in visitor.
  *
  * A server component that reads the four summary counts, the recent collections, and the pinned and
  * recent item lists in parallel, then composes them. `WelcomeToast` is the one client island, in a
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
             </Suspense>
 
             <header>
-                <h1 className="text-2xl font-bold">Dashboard</h1>
+                <h1 className="text-2xl font-bold">Overview</h1>
                 <p className="text-muted-foreground">Your developer knowledge hub</p>
             </header>
 
