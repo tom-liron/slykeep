@@ -55,7 +55,7 @@ const MIN_HEIGHT = EDITOR_MIN_HEIGHT;
  * Not a full theme — its colours are pinned to `EDITOR_SURFACE` rather than to the selected
  * theme's, so it stays the app's own surface whatever else is switched on.
  */
-const THEME_NAME: EditorThemeId = "devstash-dark";
+const THEME_NAME: EditorThemeId = "slykeep-dark";
 
 /**
  * The scrollbar, shared by every theme registered here.
@@ -405,7 +405,7 @@ export function CodeEditor({
                             height={height}
                             language={monacoLanguage}
                             value={value}
-                            // The preference *is* the monaco theme name: `devstash-dark` is the one registered
+                            // The preference *is* the monaco theme name: `slykeep-dark` is the one registered
                             // above, and the rest are built in.
                             theme={preferences.theme}
                             beforeMount={defineTheme}

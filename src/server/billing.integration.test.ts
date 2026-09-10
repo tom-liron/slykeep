@@ -82,8 +82,8 @@ beforeAll(async () => {
     }
 
     const customer = await stripe().customers.create({
-        email: `${RUN_ID}@devstash.test`,
-        metadata: { purpose: "devstash billing integration test", runId: RUN_ID },
+        email: `${RUN_ID}@slykeep.test`,
+        metadata: { purpose: "slykeep billing integration test", runId: RUN_ID },
     });
     customerId = customer.id;
 
@@ -105,13 +105,13 @@ beforeAll(async () => {
     subscriptionId = subscription.id;
 
     const stray = await stripe().customers.create({
-        email: `${RUN_ID}-stray@devstash.test`,
-        metadata: { purpose: "devstash billing integration test", runId: RUN_ID },
+        email: `${RUN_ID}-stray@slykeep.test`,
+        metadata: { purpose: "slykeep billing integration test", runId: RUN_ID },
     });
     strayCustomerId = stray.id;
 
     const user = await prisma.user.create({
-        data: { email: `${RUN_ID}@devstash.test`, name: "Billing integration test" },
+        data: { email: `${RUN_ID}@slykeep.test`, name: "Billing integration test" },
         select: { id: true },
     });
     userId = user.id;
@@ -304,7 +304,7 @@ describe("ending the billing relationship", () => {
         const customer = await stripe().customers.retrieve(customerId);
 
         expect("deleted" in customer && customer.deleted).toBeFalsy();
-        expect((customer as Stripe.Customer).email).toBe(`${RUN_ID}@devstash.test`);
+        expect((customer as Stripe.Customer).email).toBe(`${RUN_ID}@slykeep.test`);
     });
 
     it("cancels the subscription outright rather than leaving it scheduled", async () => {

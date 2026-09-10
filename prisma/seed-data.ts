@@ -23,7 +23,7 @@ export type SeedItem = StarterItem;
 export type SeedCollection = StarterCollection;
 
 export const DEMO_USER = {
-    email: "demo@devstash.io",
+    email: "demo@slykeep.com",
     name: "Demo User",
     password: "12345678",
     isPro: false,

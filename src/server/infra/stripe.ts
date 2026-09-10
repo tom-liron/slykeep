@@ -40,7 +40,7 @@ export function stripe(): Stripe {
 
     client = new Stripe(key, {
         apiVersion: API_VERSION,
-        appInfo: { name: "DevStash" },
+        appInfo: { name: "SlyKeep" },
     });
 
     return client;

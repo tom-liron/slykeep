@@ -83,7 +83,12 @@ export function AiSection() {
     return (
         <section
             id="ai"
-            className="scroll-mt-20 border-y border-border bg-background py-[clamp(4rem,9vw,7rem)] [background-image:radial-gradient(80%_60%_at_15%_0%,color-mix(in_srgb,var(--type-prompt)_9%,transparent),transparent_70%)]"
+            // Two background layers. The radial is the purple bloom, centred in the middle of the
+            // section rather than on its top edge; the linear over it holds the first and last 30%
+            // at `--background`, the same colour the sections above and below paint. The tint
+            // therefore reaches both boundaries at zero, and the section blends into its neighbours
+            // instead of starting at a hard line.
+            className="scroll-mt-20 bg-background py-[clamp(3rem,6vw,4.5rem)] [background-image:linear-gradient(180deg,var(--background)_0%,transparent_30%,transparent_70%,var(--background)_100%),radial-gradient(85%_70%_at_15%_50%,color-mix(in_srgb,var(--type-prompt)_12%,transparent),transparent_70%)]"
         >
             <div className="mx-auto grid w-[min(1180px,calc(100%-2.5rem))] grid-cols-2 items-center gap-[clamp(2rem,5vw,4rem)] max-[980px]:grid-cols-1">
                 <Reveal className="min-w-0">
@@ -95,7 +100,7 @@ export function AiSection() {
                     </h2>
                     <p className="mt-3.5 text-[1.02rem] text-muted-foreground">
                         Stashing something should cost one paste, not five minutes of tidying.
-                        DevStash reads what you saved and fills in the rest.
+                        SlyKeep reads what you saved and fills in the rest.
                     </p>
 
                     <ul className="mt-7 grid gap-4">

@@ -14,7 +14,7 @@ describe("getSignInErrorMessage", () => {
     it("explains a blocked GitHub sign-in and points at the credentials form", () => {
         const message = getSignInErrorMessage("OAuthAccountNotLinked");
 
-        expect(message).toContain("already has a DevStash account with a password");
+        expect(message).toContain("already has a SlyKeep account with a password");
     });
 
     it("reports an unmapped code generically rather than rendering it", () => {

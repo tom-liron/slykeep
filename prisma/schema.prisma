@@ -1,4 +1,4 @@
-// DevStash — persisted data model.
+// SlyKeep — persisted data model.
 // Datasource URL and seed command live in `prisma.config.ts` (Prisma 7).
 // Schema changes go through `prisma migrate dev` — never `prisma db push`.
 

@@ -41,6 +41,15 @@ piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
 
 ## Queued work
 
+- **Original marketing copy** — the `/welcome` sections still carry the course instructor's wording
+  almost verbatim, so the landing page reads as a near-copy of his DevStash app. The rebrand renamed
+  the product but not its voice. Rewrite `Hero`, `FeatureGrid`, `AiSection`, `PricingPlans` and
+  `CtaSection`, plus the copy they read from `config/marketing.ts` — `MARKETING_FEATURES`,
+  `AI_HIGHLIGHTS` and the plan `note` strings. The "stash"-as-a-noun rule still applies, and any
+  price change has to stay in step with `config/billing.ts` and `project-overview.md` §7. Its own
+  branch and its own spec.
+
+
 - **Verification hardening, three steps** — monaco 404ing on production, the verification link
   swallowed by an existing session, and the move to a soft verification gate. Each on its own
   branch; the plan and its progress checklist are in

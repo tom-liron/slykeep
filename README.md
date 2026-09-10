@@ -1,4 +1,4 @@
-# DevStash
+# SlyKeep
 
 One fast, searchable, AI-enhanced hub for everything a developer stashes and looks up again —
 snippets, prompts, commands, notes, links, files, and images.
@@ -14,7 +14,7 @@ chat history, commands in shell history or a stray `.txt`, links in bookmarks, c
 inside a project. Nothing is searchable across the set, so the same lookup gets re-done from memory
 every few weeks.
 
-DevStash is one place for all of it, with search that spans types, and AI that does the tedious part
+SlyKeep is one place for all of it, with search that spans types, and AI that does the tedious part
 of filing.
 
 ## What it does

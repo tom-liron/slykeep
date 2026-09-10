@@ -11,7 +11,7 @@ import { withAlpha } from "@/lib/utils";
 import { getProfile } from "@/server/profile";
 
 export const metadata: Metadata = {
-    title: "Profile · DevStash",
+    title: "Profile · SlyKeep",
 };
 
 // The user is read per request from the session; nothing here can be baked in at build time.
@@ -47,7 +47,7 @@ export default async function ProfilePage() {
                 </div>
             </Panel>
 
-            <Panel id="usage" title="Usage" description="What is in your stash right now.">
+            <Panel id="usage" title="Usage" description="What you have stashed right now.">
                 {/* The two totals as one band split down the middle, not two bordered cards inside a
                     bordered panel. Its own cells rather than `Stat` from `StatBand`, which brings a
                     border and padding this `Panel` already draws. One column on a phone; the

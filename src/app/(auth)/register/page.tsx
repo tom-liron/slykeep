@@ -13,7 +13,7 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
  * `/sign-in` from {@link RegisterForm}.
  */
 export const metadata: Metadata = {
-    title: "Create an account · DevStash",
+    title: "Create an account · SlyKeep",
 };
 
 export default function RegisterPage() {

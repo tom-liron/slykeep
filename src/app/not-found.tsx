@@ -13,7 +13,7 @@ import { RouteNotice } from "@/components/ui/RouteNotice";
  * `notFound()` thrown by a page that *does* exist keeps the signed-in chrome.
  */
 export const metadata = {
-    title: "Page not found · DevStash",
+    title: "Page not found · SlyKeep",
 };
 
 export default function NotFound() {

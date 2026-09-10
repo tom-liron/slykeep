@@ -60,7 +60,7 @@ export async function changePassword(
         // would let a session alone mint a password on an account that never had one.
         if (!account?.password) {
             return {
-                error: "You sign in with GitHub, so there is no DevStash password to update.",
+                error: "You sign in with GitHub, so there is no SlyKeep password to update.",
             };
         }
 

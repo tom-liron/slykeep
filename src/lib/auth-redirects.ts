@@ -19,16 +19,24 @@
 export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-password", "/welcome"]);
 
 /**
- * Reachable with or without a session.
+ * Reachable with or without a session, for two different reasons.
  *
- * Both are reached from an inbox, in whatever browser the mail client hands the link to — possibly
- * one signed in as the person who followed it, or as someone else on a shared machine. Redirecting
- * a signed-in visitor to `/` would swallow the link along with its query string, which on
- * `/verify-email` is the entire message. Neither page is unsafe for them: `/reset-password` grants
- * nothing the token in the URL does not, and `/verify-email` only reports an outcome that
- * `GET /api/auth/verify-email` has already applied.
+ * `/reset-password` and `/verify-email` are reached from an inbox, in whatever browser the mail
+ * client hands the link to — possibly one signed in as the person who followed it, or as someone
+ * else on a shared machine. Redirecting a signed-in visitor to `/` would swallow the link along
+ * with its query string, which on `/verify-email` is the entire message. Neither page is unsafe for
+ * them: `/reset-password` grants nothing the token in the URL does not, and `/verify-email` only
+ * reports an outcome that `GET /api/auth/verify-email` has already applied.
+ *
+ * `/privacy` and `/terms` are here on the opposite grounds — not because a link arrives from
+ * outside, but because they must be readable by *anyone*, and that includes a search engine. The
+ * proxy is deny-by-default: a request with no session that is not listed in a route set here is
+ * redirected to `/sign-in`. A crawler never has a session, so leaving these out would serve
+ * Googlebot a login form in place of the site's legal pages — which is the precise appearance that
+ * got the domain flagged as deceptive in the first place. Both are static and hold nothing of
+ * anyone's, so a signed-in reader is served them unchanged.
  */
-export const OPEN_ROUTES = new Set(["/reset-password", "/verify-email"]);
+export const OPEN_ROUTES = new Set(["/reset-password", "/verify-email", "/privacy", "/terms"]);
 
 /** Where sign-in lands when there is nowhere in particular to return to. */
 export const DEFAULT_SIGN_IN_DESTINATION = "/?welcome=signed-in";

@@ -27,7 +27,7 @@ const STAGGER = [
 
 export function FeatureGrid() {
     return (
-        <section id="features" className="scroll-mt-20 py-[clamp(4rem,9vw,7rem)]">
+        <section id="features" className="scroll-mt-20 py-[clamp(3rem,6vw,4.5rem)]">
             <div className="mx-auto w-[min(1180px,calc(100%-2.5rem))]">
                 <Reveal>
                     <SectionHeading

@@ -65,7 +65,7 @@ describe("deleteUserObjects against the real bucket", () => {
                 const key = buildObjectKey(USER, name);
                 await putObject(
                     key,
-                    Buffer.from(`devstash integration test: ${name}`),
+                    Buffer.from(`slykeep integration test: ${name}`),
                     "text/plain",
                 );
                 return key;

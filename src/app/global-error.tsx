@@ -45,7 +45,7 @@ export default function GlobalError({
                     <p className="mt-6 font-mono text-sm text-destructive">
                         {error.digest ? `500 · ${error.digest}` : "500"}
                     </p>
-                    <h1 className="mt-1 text-2xl font-bold text-balance">DevStash couldn’t load</h1>
+                    <h1 className="mt-1 text-2xl font-bold text-balance">SlyKeep couldn’t load</h1>
                     <p className="mt-3 max-w-md text-sm text-pretty text-muted-foreground">
                         The application failed to start rendering. Reloading usually clears it.
                     </p>

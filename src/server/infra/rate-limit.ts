@@ -151,7 +151,7 @@ function limiterFor(name: RateLimitName): Ratelimit | null {
         limiter: Ratelimit.slidingWindow(tokens, window),
         // Namespaced per limit so the eleven budgets cannot collide on a shared Redis instance, and
         // so one endpoint's keys can be inspected or flushed without touching another's.
-        prefix: `devstash:ratelimit:${name}`,
+        prefix: `slykeep:ratelimit:${name}`,
     });
 
     limiters.set(name, limiter);
