@@ -42,7 +42,7 @@ export const MARKETING_FEATURES: readonly MarketingFeature[] = [
         accent: ITEM_TYPE_COLORS.snippet,
     },
     {
-        title: "AI Prompts",
+        title: "Prompts",
         body: "The system prompt that finally worked, kept where you can find it and run it again on the next model.",
         icon: Sparkles,
         accent: ITEM_TYPE_COLORS.prompt,

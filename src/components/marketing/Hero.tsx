@@ -65,7 +65,7 @@ export function Hero() {
                     </div>
 
                     <p className="mt-4 text-[0.82rem] text-zinc-400">
-                        Free for your first 50 items
+                        For the things you always forget and always need
                     </p>
                 </Reveal>
 
