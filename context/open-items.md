@@ -41,15 +41,6 @@ piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
 
 ## Queued work
 
-- **Original marketing copy** — the `/welcome` sections still carry the course instructor's wording
-  almost verbatim, so the landing page reads as a near-copy of his DevStash app. The rebrand renamed
-  the product but not its voice. Rewrite `Hero`, `FeatureGrid`, `AiSection`, `PricingPlans` and
-  `CtaSection`, plus the copy they read from `config/marketing.ts` — `MARKETING_FEATURES`,
-  `AI_HIGHLIGHTS` and the plan `note` strings. The "stash"-as-a-noun rule still applies, and any
-  price change has to stay in step with `config/billing.ts` and `project-overview.md` §7. Its own
-  branch and its own spec.
-
-
 - **Verification hardening, three steps** — monaco 404ing on production, the verification link
   swallowed by an existing session, and the move to a soft verification gate. Each on its own
   branch; the plan and its progress checklist are in
@@ -106,9 +97,8 @@ levers left, in order of expected value:
   crawlable surface, and it is worth revisiting if the review fails.
 - **Check for sample URLs again** in Search Console; they sometimes appear on a later scan and would
   replace all of this guessing with the actual answer.
-- **Rewrite the marketing copy** (queued below). The current text is the course instructor's almost
-  verbatim, which means the page is near-identical to another app on another domain — a duplication
-  signal worth eliminating on its own merits, and possibly on these.
+- ~~**Rewrite the marketing copy**~~ — *done in 140.* The landing page now carries its own copy and
+  recordings of the real app, so it no longer mirrors another app's page on another domain.
 
 ## Deployment
 

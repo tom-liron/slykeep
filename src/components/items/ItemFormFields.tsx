@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, ChevronDown, Folder, Lightbulb, PenLine, X } from "lucide-react";
+import { Check, ChevronDown, Folder, Lightbulb, Loader2, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { generateAutoTags, generateDescription } from "@/actions/ai";
@@ -26,7 +26,6 @@ import { addTagToInput } from "@/lib/ai-tags";
 // `SidebarNav` imports `canAccessItemType` for its PRO badge.
 import { canUseAi } from "@/lib/limits";
 import { CODE_LANGUAGES, findCodeLanguage } from "@/lib/code-language";
-import { cn } from "@/lib/utils";
 import type { ItemDraft } from "@/types/ai";
 import { CodeEditor } from "./CodeEditor";
 import { MarkdownEditor } from "./MarkdownEditor";
@@ -60,10 +59,11 @@ type ItemFieldProps = {
  * The AI-suggestion button shared by {@link DescriptionField} and {@link TagsField}, rendered into
  * `Field`'s `action` slot.
  *
- * One button so the two cannot drift on size, spacing, or the pending animation. Both carry visible
+ * One button so the two cannot drift on size, spacing, or the pending state, which spins a loader in
+ * place of the icon as `ExplainButton` and `OptimizeButton` do in the editors. Both carry visible
  * text — an icon alone is unclear on a control that spends the user's rate limit, and a tooltip is
- * no answer on a touch screen. `pendingText` is per-field so the verb matches the button (tags
- * "suggests", description "writes").
+ * no answer on a touch screen. `pendingText` is per-field so it continues the button's own verb
+ * ("Suggesting…", "Describing…"), as the editors' "Explaining…" and "Optimizing…" do.
  *
  * @remarks
  * `label` is the accessible name and the tooltip, and must **contain** the visible `text`: WCAG
@@ -96,7 +96,11 @@ function SuggestButton({
             title={label}
             className="-my-1 h-7 gap-1.5 px-2 text-xs"
         >
-            <Icon className={cn("size-3.5", isPending && "animate-pulse")} aria-hidden="true" />
+            {isPending ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+                <Icon className="size-3.5" aria-hidden="true" />
+            )}
             <span>{isPending ? pendingText : text}</span>
         </Button>
     );
@@ -171,7 +175,7 @@ export function DescriptionField({
                         icon={PenLine}
                         label="Describe this item with AI"
                         text="Describe"
-                        pendingText="Writing…"
+                        pendingText="Describing…"
                         isPending={isPending}
                         onClick={suggest}
                     />

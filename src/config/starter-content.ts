@@ -53,24 +53,24 @@ export const STARTER_COLLECTIONS: StarterCollection[] = [
         isFavorite: true,
         items: [
             {
-                title: "useDebounce",
+                title: "Render a filtered list",
                 type: "snippet",
-                description: "Defers a rapidly changing value until it settles.",
-                language: "typescript",
-                tags: ["react", "hooks", "typescript"],
+                description:
+                    "Filter an array down to what you need, then map each item to a list row with a stable key.",
+                language: "javascript",
+                tags: ["react", "arrays", "javascript"],
                 isFavorite: true,
                 isPinned: true,
-                body: `import { useEffect, useState } from "react";
-
-export function useDebounce<T>(value: T, delay = 300): T {
-    const [debounced, setDebounced] = useState(value);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setDebounced(value), delay);
-        return () => clearTimeout(timer);
-    }, [value, delay]);
-
-    return debounced;
+                body: `export function ActiveUsers({ users }) {
+    return (
+        <ul>
+            {users
+                .filter((user) => user.isActive)
+                .map((user) => (
+                    <li key={user.id}>{user.name}</li>
+                ))}
+        </ul>
+    );
 }`,
             },
             {

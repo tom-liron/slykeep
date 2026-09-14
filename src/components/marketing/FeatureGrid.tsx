@@ -32,8 +32,8 @@ export function FeatureGrid() {
                 <Reveal>
                     <SectionHeading
                         eyebrow="Features"
-                        title="Everything you stash, in one shape"
-                        sub="Seven built-in types, one search box, and collections that let an item live in as many places as it belongs."
+                        title="One library for everything you keep"
+                        sub="Seven item types, one search box, and collections that let an item sit wherever it belongs."
                         className="mb-[clamp(2.5rem,5vw,3.5rem)]"
                     />
                 </Reveal>
@@ -48,7 +48,12 @@ export function FeatureGrid() {
                                 style={{ "--accent": feature.accent } as CSSProperties}
                                 className="group relative h-full rounded-xl border border-border bg-linear-to-b from-card to-background p-6 transition-[transform,border-color,box-shadow] duration-[250ms] hover:-translate-y-[3px] hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border))] hover:shadow-[0_22px_45px_-30px_color-mix(in_srgb,var(--accent)_70%,transparent)]"
                             >
-                                <span className="absolute -inset-x-px -top-px h-0.5 rounded-t-xl bg-[var(--accent)] opacity-0 transition-opacity duration-[250ms] group-hover:opacity-100" />
+                                {/* The accent rule is the top border of a card-sized overlay, so it
+                                    follows the card's rounded corners and tapers into them. */}
+                                <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute -inset-px rounded-xl border-t-2 border-[var(--accent)] opacity-0 transition-opacity duration-[250ms] group-hover:opacity-100"
+                                />
                                 <span className="mb-4.5 grid size-[42px] place-items-center rounded-[11px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
                                     <feature.icon className="size-[21px]" aria-hidden="true" />
                                 </span>

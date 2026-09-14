@@ -30,7 +30,7 @@ export function PricingPlans() {
                     <SectionHeading
                         eyebrow="Pricing"
                         title="Start free. Upgrade when it earns it."
-                        sub="Everything you need to stop losing things is free. Pro is for when what you have stashed becomes the thing you work out of."
+                        sub="Free holds a working library of 50 items. Pro lifts the limits and adds files, images and AI."
                         className="mb-[clamp(2.5rem,5vw,3.5rem)]"
                     >
                         <div className="mt-7 inline-flex">

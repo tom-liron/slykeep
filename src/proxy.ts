@@ -90,13 +90,14 @@ export const proxy = auth((req) => {
  *   no session cookie, the proxy answers 302, and Vercel records a 302 as a *successful* invocation,
  *   so the schedule reports green every night while the sweep never runs.
  *
- * `monaco` is excluded on different grounds: it is the editor build in `public/`, not a route, and
- * holds nothing of anyone's. Files under `public/` are not covered by the `_next/static` exclusion,
- * so without this every one of monaco's several hundred chunks makes a round trip through the
- * session check on its way to being served.
+ * `monaco` and `marketing/` are excluded on different grounds: they are static folders in `public/`
+ * — the editor build, and the landing page's videos and screenshots — not routes, and hold nothing
+ * of anyone's. Files under `public/` are not covered by the `_next/static` exclusion, so inside the
+ * matcher every one of monaco's chunks makes a round trip through the session check, and the
+ * landing media is redirected to `/sign-in` for exactly the signed-out visitors it is for.
  */
 export const config = {
     matcher: [
-        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|favicon.ico).*)",
+        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|marketing/|favicon.ico).*)",
     ],
 };

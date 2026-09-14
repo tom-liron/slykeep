@@ -4,7 +4,9 @@
  * `FeatureGrid`, `AiSection` and `PricingPlans` build the signed-out landing page out of these
  * arrays, and the signed-in `/upgrade` page renders the same {@link PRICING_PLANS} through the same
  * `PricingPlanCard`, so a visitor and a free user comparing plans always read one pricing table.
- * Holding the copy here is what lets those components stay layout-only.
+ * Each AI highlight's clip is one of {@link AI_VIDEOS}, from `config/marketing-media.ts`, which
+ * also holds the hero video and device screenshots. Holding the copy here is what lets those
+ * components stay layout-only.
  *
  * {@link BillingCycle} is declared here and travels well beyond marketing: `actions/billing.ts`
  * takes it as checkout input, `config/billing.ts` maps it to a Stripe Price, and `BillingViewModel`
@@ -22,6 +24,7 @@
 import { Code, File, Layers, Search, Sparkles, Terminal, type LucideIcon } from "lucide-react";
 
 import { ITEM_TYPE_COLORS } from "./item-type-catalog";
+import { AI_VIDEOS, type MarketingVideo } from "./marketing-media";
 
 export type MarketingFeature = {
     title: string;
@@ -34,19 +37,19 @@ export type MarketingFeature = {
 export const MARKETING_FEATURES: readonly MarketingFeature[] = [
     {
         title: "Code Snippets",
-        body: "Save the function you rewrite every project. Syntax highlighting, a language per snippet, and one click to copy it back out.",
+        body: "Keep the function you rewrite every project. Syntax highlighting, a language per snippet, and one click to copy it back out.",
         icon: Code,
         accent: ITEM_TYPE_COLORS.snippet,
     },
     {
         title: "AI Prompts",
-        body: "The system message that finally worked, out of a chat history you will never scroll back through again.",
+        body: "The system prompt that finally worked, kept where you can find it and run it again on the next model.",
         icon: Sparkles,
         accent: ITEM_TYPE_COLORS.prompt,
     },
     {
         title: "Instant Search",
-        body: "Hit ⌘K anywhere and match across titles, tags, and types as you type. No loading state, no waiting.",
+        body: "⌘K or Ctrl+K from any page. Find any item by title, tag or description as you type.",
         icon: Search,
         accent: ITEM_TYPE_COLORS.note,
     },
@@ -74,24 +77,30 @@ export type AiHighlight = {
     /** Rendered bold, and read as the name of the capability. */
     title: string;
     body: string;
+    /** The feature running in the item drawer, played while this highlight is selected. */
+    video: MarketingVideo;
 };
 
 export const AI_HIGHLIGHTS: readonly AiHighlight[] = [
     {
         title: "Auto-tagging.",
         body: "Tags suggested from the content itself, so search works before you have organised anything.",
+        video: AI_VIDEOS.tags,
     },
     {
         title: "Summaries.",
         body: "A one-line description for the long note you pasted and never titled.",
+        video: AI_VIDEOS.summary,
     },
     {
         title: "Explain this code.",
         body: "A plain-English read of the snippet you saved eight months ago.",
+        video: AI_VIDEOS.explain,
     },
     {
         title: "Prompt optimizer.",
         body: "Sharper wording, clearer constraints, on the prompts you already keep.",
+        video: AI_VIDEOS.optimize,
     },
 ];
 
@@ -145,12 +154,12 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             monthly: {
                 amount: "$0",
                 period: "forever",
-                note: "Everything you need to stop losing things.",
+                note: "Enough for the things you reach for most.",
             },
             yearly: {
                 amount: "$0",
                 period: "forever",
-                note: "Everything you need to stop losing things.",
+                note: "Enough for the things you reach for most.",
             },
         },
         // Eight rows, the same count as Pro: two lists of different lengths do not read as a
@@ -164,7 +173,7 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             // wrap, and the number puts the difference in the row itself. The features section
             // above this on the landing page is what says which five.
             { label: "Five item types", included: true },
-            { label: "Instant ⌘K search", included: true },
+            { label: "Instant search", included: true },
             // The row names three of `ItemDrawer`'s controls rather than the drawer, which means
             // nothing to a reader who has not seen one. "in place" is the claim being made: the
             // drawer opens over whatever page the user was already on.

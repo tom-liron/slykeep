@@ -33,7 +33,7 @@ export function MarketingFooter() {
                 <div>
                     <Brand href="/" />
                     <p className="mt-3.5 max-w-[320px] text-[0.88rem] text-zinc-400">
-                        One fast, searchable hub for everything a developer needs to stash.
+                        A searchable library for the snippets, prompts and commands developers keep.
                     </p>
                 </div>
 
@@ -87,7 +87,7 @@ export function MarketingFooter() {
                 {/* Rendered on the server: a `new Date()` in the browser would disagree with the
                     markup that was sent, and this is a number nobody needs to the minute. */}
                 <p>© {new Date().getFullYear()} SlyKeep. All rights reserved.</p>
-                <p>Built for developers who are tired of looking for things.</p>
+                <p>Save it once. Find it in seconds.</p>
             </div>
         </footer>
     );

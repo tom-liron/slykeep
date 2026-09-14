@@ -59,6 +59,11 @@ Open it when a task touches one of these. Do not answer from memory on any of th
   It exists because `ListObjectsV2` and `DeleteObjects` are sent from nowhere else in the app, so a
   call shape Cloudflare rejects would leave every unit test green and fail only at deletion time.
   The prefix cannot collide with a real account, and the test cleans up after itself.
+- `npm run marketing:record` — re-record the landing page's product media into `public/marketing/`:
+  the hero walkthrough, one drawer-cropped clip per AI feature, and a dashboard screenshot per device.
+  Needs `npm run dev` running; creates and deletes its own Pro account on the dev database and makes
+  real OpenAI calls. Pass scene names to redo only some (`-- hero ai-tags screenshots`). Run it after
+  any UI change the landing page shows.
 
 ## Neon MCP
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AiSection } from "@/components/marketing/AiSection";
 import { CtaSection } from "@/components/marketing/CtaSection";
+import { DeviceShowcase } from "@/components/marketing/DeviceShowcase";
 import { FeatureGrid } from "@/components/marketing/FeatureGrid";
 import { Hero } from "@/components/marketing/Hero";
 import { PricingPlans } from "@/components/marketing/PricingPlans";
@@ -14,9 +15,9 @@ import { PricingPlans } from "@/components/marketing/PricingPlans";
  * search result or a shared link lands on.
  */
 export const metadata: Metadata = {
-    title: "SlyKeep — Stop Losing Your Developer Knowledge",
+    title: "SlyKeep — Save it once. Find it in seconds.",
     description:
-        "One fast, searchable hub for your snippets, prompts, commands, notes, files, and links.",
+        "A searchable library for your snippets, prompts, commands, notes, files and links, with instant search and AI tagging.",
 };
 
 export default function WelcomePage() {
@@ -24,6 +25,7 @@ export default function WelcomePage() {
         <>
             <Hero />
             <FeatureGrid />
+            <DeviceShowcase />
             {/* Pricing precedes the AI section: `AiSection` is badged "Pro Feature", which means
                 nothing to a reader who has not yet been told the plans exist. */}
             <PricingPlans />

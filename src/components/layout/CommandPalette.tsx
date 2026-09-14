@@ -15,6 +15,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import { usePaletteShortcutLabel } from "@/hooks/use-palette-shortcut-label";
 import { rankBySearch, type SearchField } from "@/lib/fuzzy-search";
 import type {
     ItemSummaryViewModel,
@@ -64,6 +65,7 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
+    const shortcutLabel = usePaletteShortcutLabel();
 
     // Two pieces of state rather than one, so the drawer can animate out after the palette has gone:
     // `drawerOpen` goes false on close while `selectedItem` keeps rendering until the transition
@@ -146,9 +148,11 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
                     aria-hidden="true"
                 />
                 <span className="hidden truncate sm:block">Search items and collections...</span>
-                <kbd className="ml-auto hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-sans text-xs sm:inline-block">
-                    ⌘K
-                </kbd>
+                {shortcutLabel && (
+                    <kbd className="ml-auto hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-sans text-xs sm:inline-block">
+                        {shortcutLabel}
+                    </kbd>
+                )}
             </button>
 
             <CommandDialog open={open} onOpenChange={setOpen}>

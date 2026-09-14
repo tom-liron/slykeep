@@ -1,18 +1,15 @@
-import { ArrowRight } from "lucide-react";
-
-import { AppPreview } from "@/components/marketing/AppPreview";
-import { ChaosField } from "@/components/marketing/ChaosField";
+import { BrowserFrame } from "@/components/marketing/BrowserFrame";
 import { CtaButton } from "@/components/marketing/CtaButton";
+import { LoopingVideo } from "@/components/marketing/LoopingVideo";
 import { Reveal } from "@/components/marketing/Reveal";
 import { Button } from "@/components/ui/button";
+import { HERO_VIDEO } from "@/config/marketing-media";
 
 /**
- * The landing page's hero: the headline and the chaos → order figure the page turns on —
- * {@link ChaosField} drifting on the left, {@link AppPreview} on the right.
+ * The landing page's hero: the headline, the sign-up call to action, and a recorded walkthrough
+ * of the real app playing in a {@link BrowserFrame}.
  *
- * The first section the `/welcome` page composes. The two panels stack below 1024px, not the nav's
- * 860: side by side, {@link AppPreview}'s self-scaling type gets too small to read before the nav
- * itself needs to collapse.
+ * The first section the `/welcome` page composes. The clip is {@link HERO_VIDEO}.
  */
 export function Hero() {
     return (
@@ -43,20 +40,15 @@ export function Hero() {
                     </p>
 
                     <h1 className="text-[clamp(2.35rem,6.2vw,4.15rem)] leading-[1.05] font-bold tracking-[-0.035em]">
-                        Stop Losing Your{" "}
+                        Save it once.{" "}
                         <span className="inline-block bg-[linear-gradient(100deg,var(--type-snippet),var(--type-prompt)_48%,var(--type-image))] bg-clip-text text-transparent">
-                            Developer Knowledge
+                            Find it in seconds.
                         </span>
                     </h1>
 
-                    <p className="mx-auto mt-5.5 max-w-[620px] text-[clamp(1rem,1.6vw,1.15rem)] text-muted-foreground">
-                        Your snippets live in VS Code, your prompts are buried in chat history, your
-                        commands are in a{" "}
-                        <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.9em] text-foreground">
-                            .txt
-                        </code>{" "}
-                        file somewhere. SlyKeep puts all of it in one fast, searchable place you
-                        actually come back to.
+                    <p className="mx-auto mt-5.5 max-w-[600px] text-[clamp(1rem,1.6vw,1.15rem)] text-muted-foreground">
+                        Snippets, prompts, commands, notes, files and links in one searchable
+                        library. Copy anything back out in a click.
                     </p>
 
                     <div className="mt-8 flex flex-wrap justify-center gap-3 max-[680px]:flex-col">
@@ -68,54 +60,23 @@ export function Hero() {
                         >
                             {/* A plain anchor, like every other jump on this page: `next/link`
                                 would route to `/` and re-enter the proxy for a scroll. */}
-                            <a href="#features">See how it works</a>
+                            <a href="#features">Explore the features</a>
                         </Button>
                     </div>
 
                     <p className="mt-4 text-[0.82rem] text-zinc-400">
-                        Free forever for your first 50 items · No card required
+                        Free for your first 50 items
                     </p>
                 </Reveal>
 
-                <Reveal className="mt-[clamp(3rem,7vw,5rem)] grid grid-cols-[1fr_auto_1fr] items-stretch gap-[clamp(0.75rem,2.5vw,2rem)] max-[1024px]:grid-cols-1 max-[1024px]:gap-4">
-                    <section
-                        aria-labelledby="chaos-label"
-                        className="flex flex-col rounded-xl border border-[color-mix(in_srgb,var(--color-red-500)_18%,transparent)] p-4 [background-image:radial-gradient(120%_90%_at_50%_0%,color-mix(in_srgb,var(--color-red-500)_7%,transparent),transparent_70%),linear-gradient(180deg,var(--card),var(--background))]"
-                    >
-                        <p
-                            id="chaos-label"
-                            className="mb-3.5 text-[0.8rem] font-medium text-muted-foreground"
-                        >
-                            Your knowledge today…
-                        </p>
-                        <ChaosField />
-                        <p className="mt-3.5 text-xs text-zinc-400">
-                            8 places. None of them searchable together.
-                        </p>
-                    </section>
-
-                    <div aria-hidden="true" className="grid place-items-center">
-                        <span className="relative grid size-[54px] place-items-center rounded-full border border-[color-mix(in_srgb,var(--type-prompt)_40%,transparent)] bg-[color-mix(in_srgb,var(--type-prompt)_12%,transparent)] text-purple-300 max-[1024px]:rotate-90">
-                            <span className="absolute inset-0 rounded-full bg-[var(--type-prompt)] opacity-30 motion-safe:animate-ping motion-safe:[animation-duration:2.4s]" />
-                            <ArrowRight className="relative size-6" strokeWidth={2.2} />
-                        </span>
-                    </div>
-
-                    <section
-                        aria-labelledby="preview-label"
-                        className="flex flex-col rounded-xl border border-[color-mix(in_srgb,var(--type-link)_18%,transparent)] p-4 [background-image:radial-gradient(120%_90%_at_50%_0%,color-mix(in_srgb,var(--type-link)_7%,transparent),transparent_70%),linear-gradient(180deg,var(--card),var(--background))]"
-                    >
-                        <p
-                            id="preview-label"
-                            className="mb-3.5 text-[0.8rem] font-medium text-muted-foreground"
-                        >
-                            …with SlyKeep
-                        </p>
-                        <AppPreview />
-                        <p className="mt-3.5 text-xs text-zinc-400">
-                            One place. Searchable in a keystroke.
-                        </p>
-                    </section>
+                <Reveal className="mx-auto mt-[clamp(3rem,7vw,4.5rem)] max-w-[1080px]">
+                    <BrowserFrame>
+                        <LoopingVideo
+                            video={HERO_VIDEO}
+                            label="SlyKeep walkthrough: searching the library, opening an item and copying it"
+                            className="size-full object-cover object-top"
+                        />
+                    </BrowserFrame>
                 </Reveal>
             </div>
         </header>
