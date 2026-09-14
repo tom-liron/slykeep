@@ -27,13 +27,25 @@ export function DeviceShowcase() {
 
                 <Reveal className="relative mx-auto max-w-[1040px] pb-[4%]">
                     <LaptopFrame className="mx-auto w-[84%]">
-                        <Screenshot capture={DEVICE_SCREENSHOTS.laptop} alt="SlyKeep on a laptop" />
+                        <Screenshot
+                            capture={DEVICE_SCREENSHOTS.laptop}
+                            alt="SlyKeep on a laptop"
+                            sizes="(min-width: 1080px) 748px, 72vw"
+                        />
                     </LaptopFrame>
-                    <TabletFrame className="absolute bottom-0 left-0 w-[23%]">
-                        <Screenshot capture={DEVICE_SCREENSHOTS.tablet} alt="SlyKeep on a tablet" />
+                    <TabletFrame className="absolute bottom-0 left-0 w-[24.8%]">
+                        <Screenshot
+                            capture={DEVICE_SCREENSHOTS.tablet}
+                            alt="SlyKeep on a tablet"
+                            sizes="(min-width: 1080px) 239px, 23vw"
+                        />
                     </TabletFrame>
                     <PhoneFrame className="absolute right-[1%] bottom-0 w-[12.5%]">
-                        <Screenshot capture={DEVICE_SCREENSHOTS.phone} alt="SlyKeep on a phone" />
+                        <Screenshot
+                            capture={DEVICE_SCREENSHOTS.phone}
+                            alt="SlyKeep on a phone"
+                            sizes="(min-width: 1080px) 120px, 12vw"
+                        />
                     </PhoneFrame>
                 </Reveal>
             </div>
@@ -41,15 +53,30 @@ export function DeviceShowcase() {
     );
 }
 
-/** A capture filling its frame's screen, served at a width that suits the frame's rendered size. */
-function Screenshot({ capture, alt }: { capture: DeviceScreenshot; alt: string }) {
+/**
+ * A capture filling its frame's screen, resized by the image optimizer to the frame's rendered size.
+ *
+ * @param sizes - The screen's rendered width: fixed once the showcase reaches its 1040px cap
+ * (a 1080px viewport, with the page gutter), a share of the viewport below it. Keep it in step with
+ * the frame's width class, so the optimizer rather than the browser does the downscaling.
+ */
+function Screenshot({
+    capture,
+    alt,
+    sizes,
+}: {
+    capture: DeviceScreenshot;
+    alt: string;
+    sizes: string;
+}) {
     return (
         <Image
             src={capture.src}
             alt={alt}
             width={capture.width * capture.deviceScaleFactor}
             height={capture.height * capture.deviceScaleFactor}
-            sizes="(min-width: 1040px) 900px, 90vw"
+            sizes={sizes}
+            quality={90}
             className="size-full object-cover object-top"
         />
     );

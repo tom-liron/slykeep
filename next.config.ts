@@ -65,6 +65,9 @@ function contentSecurityPolicy(frameAncestors: "'none'" | "'self'"): string {
 const nextConfig: NextConfig = {
     reactCompiler: true,
     devIndicators: false,
+    // Next serves only the listed qualities. 90 is for the landing page's product screenshots, whose
+    // small UI text blurs at the default 75.
+    images: { qualities: [75, 90] },
     async headers() {
         return [
             {

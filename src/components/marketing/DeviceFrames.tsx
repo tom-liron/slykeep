@@ -57,7 +57,15 @@ export function TabletFrame({ children, className }: FrameProps) {
     );
 }
 
-/** A phone with thin bezels, deep corner radii, the camera island and side buttons. */
+/**
+ * A phone with thin bezels, deep corner radii, side buttons, and a status bar holding the camera
+ * island.
+ *
+ * @remarks
+ * The screen content starts below the status bar, as an app does on a real phone, so the island
+ * never covers the app's header. The bar's colour matches the top edge of the phone capture so the
+ * two read as one surface; a re-recorded capture with a different header colour needs it updated.
+ */
 export function PhoneFrame({ children, className }: FrameProps) {
     return (
         <div className={cn("@container relative", className)}>
@@ -69,13 +77,12 @@ export function PhoneFrame({ children, className }: FrameProps) {
                 aria-hidden="true"
                 className="absolute top-[34cqw] -right-[1.2cqw] h-[18cqw] w-[1.4cqw] rounded-r-[1cqw] bg-[#2a2a2f]"
             />
-            <div className="relative rounded-[16cqw] bg-[#0b0b0d] p-[3.8cqw] shadow-[0_0_0_1px_rgba(255,255,255,0.14),0_30px_60px_-24px_rgba(0,0,0,0.95)]">
-                <span
-                    aria-hidden="true"
-                    className="absolute top-[7.5cqw] left-1/2 z-10 h-[8.5cqw] w-[29cqw] -translate-x-1/2 rounded-full bg-black"
-                />
-                <div className="aspect-[390/844] overflow-hidden rounded-[12.5cqw] bg-black">
-                    {children}
+            <div className="rounded-[16cqw] bg-[#0b0b0d] p-[3.8cqw] shadow-[0_0_0_1px_rgba(255,255,255,0.14),0_30px_60px_-24px_rgba(0,0,0,0.95)]">
+                <div className="flex aspect-[390/844] flex-col overflow-hidden rounded-[12.5cqw] bg-black">
+                    <div aria-hidden="true" className="relative h-[11cqw] shrink-0 bg-[#0a0a0a]">
+                        <span className="absolute top-[2.5cqw] left-1/2 h-[6.5cqw] w-[22cqw] -translate-x-1/2 rounded-full bg-black" />
+                    </div>
+                    <div className="min-h-0 flex-1">{children}</div>
                 </div>
             </div>
         </div>
