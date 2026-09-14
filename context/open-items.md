@@ -60,6 +60,56 @@ piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
   `src/components/profile/ChangePasswordForm.tsx`, which no longer exists (its banner already names
   the replacement, so the dead link is documented rather than repaired).
 
+## The Safe Browsing flag on slykeep.com
+
+**Open as of 2026-09-10; review filed 2026-09-14, awaiting Google's decision.** Chrome shows a red "Deceptive site ahead" interstitial on every visit,
+the GitHub OAuth callback included. Search Console is verified but lists **no sample URLs**, so the
+trigger was never confirmed — everything below is remediation against the two strongest hypotheses,
+both of which are now closed in the code (feature 139, `feature/slykeep-rebrand`):
+
+- the site served a password form headed "Sign in to DevStash" from a days-old domain called
+  slykeep.com, with nothing crawlable but a landing page and auth screens;
+- it quoted subscription prices behind a "Go Pro" button while Stripe ran on a test key.
+
+### The steps, in this order
+
+1. **Add the `privacy@slykeep.com` forwarding alias** in Namecheap (Domain List → Manage → Domain
+   tab → Redirect Email). The Privacy page publishes it, and an unreachable contact on a legal page
+   is worse than none. — *done 2026-09-10, confirmed receiving.*
+2. **Deploy**, then confirm **in incognito**: the `<title>` and wordmark read SlyKeep, and `/privacy`
+   and `/terms` load **without** redirecting to `/sign-in`. That last check is the mechanism of the
+   whole fix — they are in `OPEN_ROUTES` precisely so a session-less crawler can read them. — *done
+   2026-09-14: all four of `/`, `/privacy`, `/terms`, `/sign-in` return 200 with no redirect, SlyKeep
+   titles, and no "DevStash" in the served HTML.*
+3. GitHub OAuth app — already renamed, callback URL included. Nothing to do.
+4. **Then** Search Console → Security issues → Request Review. Describe it as a personal developer
+   knowledge-hub app that was mid-rename; the domain and site branding are now consistent, Privacy
+   and Terms are published, and the subscription pricing is a Stripe test-mode demonstration
+   labelled as such where checkout begins. — *filed 2026-09-14.* The description also stated that the
+   sign-in form serves only SlyKeep's own accounts, that GitHub sign-in runs through GitHub's own
+   OAuth flow, and that the site offers no downloads — the two things a "social engineering" label
+   actually means.
+
+Step 4 is last on purpose: a review filed before the deploy is a review against the site that was
+flagged, and it will be upheld.
+
+### After filing
+
+Reviews of this kind typically take a few days. A pass clears the interstitial within about a day of
+the decision. **Google gives no reason for a refusal**, and re-requesting without having changed
+anything makes each subsequent review slower — so if it is upheld, change something first. The
+levers left, in order of expected value:
+
+- **Give the domain more crawlable content.** This is the known remaining weakness: even now the
+  site is a landing page, two legal pages and auth screens. An About page was built and dropped
+  during 139 as redundant against the Terms — that judgment was about *duplication*, not about
+  crawlable surface, and it is worth revisiting if the review fails.
+- **Check for sample URLs again** in Search Console; they sometimes appear on a later scan and would
+  replace all of this guessing with the actual answer.
+- **Rewrite the marketing copy** (queued below). The current text is the course instructor's almost
+  verbatim, which means the page is near-identical to another app on another domain — a duplication
+  signal worth eliminating on its own merits, and possibly on these.
+
 ## Deployment
 
 - **`CRON_SECRET` and `AUTH_URL` are both set in Vercel Production** — confirmed 2026-09-05, nothing
