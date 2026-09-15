@@ -54,11 +54,14 @@ const BASE_URL = process.env.MARKETING_BASE_URL ?? "http://localhost:3000";
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 
 /**
- * The account every capture signs in as. Recreated at the start of a run, deleted at the end. The
- * sidebar shows its name and address in the recordings; `example.com` is reserved, so the address
- * can never belong to a real person.
+ * The account every capture signs in as. Recreated at the start of a run, deleted at the end.
+ *
+ * @remarks
+ * The sidebar shows the name and address in every published clip, so the address uses a common
+ * provider for realism and a local part unlikely to belong to anyone. The account is written
+ * straight to the database and never sent email.
  */
-const RECORDER = { email: "alex.morgan@example.com", name: "Alex Morgan" };
+const RECORDER = { email: "amorgan.slykeep.demo@gmail.com", name: "Alex Morgan" };
 
 /** Longest one unchanged frame may hold, so an idle stretch does not stall a clip. */
 const MAX_FRAME_HOLD_S = 1.2;

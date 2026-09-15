@@ -188,12 +188,21 @@ Models, in order: `User`, `Account`, `Session`, `VerificationToken`, `ContentTyp
 
 ### General Direction
 
-- Modern, minimal, developer-focused
-- Dark mode by default; light mode optional
-- Clean typography, generous whitespace
-- Subtle borders and shadows
-- Syntax highlighting for code blocks
+- Modern, minimal, developer-focused; syntax highlighting for code blocks
+- **Dark only.** The `.dark` palette in `globals.css` is the design; the light `:root` block is unused
+  until a light-mode feature restyles it
+- **Layered surfaces:** a near-black frame (top bar and sidebar, `#0E0E10`) around a lighter work area
+  (`#1A1A1D`), with cards and dialogs a clear step up (`#26262B`); subtle borders
+- **Gold brand accent `#F2B544`** — primary buttons, the logo, favourites and focus. The item-type
+  palette below keeps clear of it (prompts are orange, not gold)
+- **Brand mark:** a gold fox tile, used by `Brand.tsx`, the favicon set in `src/app/` and
+  `public/brand/slykeep-icon-512.png`. Stripe Checkout and the Customer Portal carry the same icon
+  and accent, set in the Stripe Dashboard rather than in code
+- **Type:** Rethink Sans across the app, Geist Mono for monospace, Mona Sans (expanded, weight 700)
+  on the landing page's headlines only
 - **References:** Notion, Linear, Raycast
+- Full token values: `context/features/redesign-spec.md`; source of truth is `globals.css` and
+  `config/item-type-catalog.ts`
 
 ### Layout
 
