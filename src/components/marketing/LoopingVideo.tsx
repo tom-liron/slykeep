@@ -7,9 +7,13 @@ import type { MarketingVideo } from "@/config/marketing-media";
 /**
  * Muted, inline product-clip player for the landing page.
  *
- * Plays a {@link MarketingVideo} only while it is on screen, so clips further down the page do not
- * decode in the background. For a visitor who prefers reduced motion it never starts on its own:
- * the poster shows, with native controls to play it by choice.
+ * Plays a {@link MarketingVideo} on every device while it is on screen, so clips further down the
+ * page do not decode in the background.
+ *
+ * @remarks
+ * Browsers that refuse muted autoplay — iOS Low Power Mode, Android data saver — keep the poster
+ * showing, and the visitor's next tap or click anywhere on the page starts the visible clip, since
+ * a user gesture lifts that restriction.
  */
 export function LoopingVideo({
     video,
@@ -33,25 +37,33 @@ export function LoopingVideo({
         const element = ref.current;
         if (!element) return;
 
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            element.controls = true;
-            return;
-        }
+        // Autoplay policies check the `muted` property, which React does not reliably set from the prop.
+        element.muted = true;
+
+        let visible = false;
+        const play = () => element.play().catch(() => {});
+        const retryOnGesture = () => {
+            if (visible && element.paused) play();
+        };
 
         const observer = new IntersectionObserver(
             ([entry]) => {
-                if (entry.isIntersecting) {
-                    // A refused autoplay leaves the poster in place, which is the intended fallback.
-                    element.play().catch(() => {});
-                } else {
-                    element.pause();
-                }
+                visible = entry.isIntersecting;
+                if (visible) play();
+                else element.pause();
             },
             { threshold: 0.25 },
         );
 
         observer.observe(element);
-        return () => observer.disconnect();
+        document.addEventListener("touchend", retryOnGesture, { passive: true });
+        document.addEventListener("click", retryOnGesture);
+
+        return () => {
+            observer.disconnect();
+            document.removeEventListener("touchend", retryOnGesture);
+            document.removeEventListener("click", retryOnGesture);
+        };
     }, [video.src]);
 
     return (
