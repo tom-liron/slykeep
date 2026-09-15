@@ -6,9 +6,10 @@ import type { BillingCycle, PricingPlan } from "@/config/marketing";
  * One plan card: name, price for the chosen cycle, the feature list, and a caller-supplied footer.
  *
  * Shared by the landing page's `PricingPlans` and the in-app `UpgradePlans`, so a visitor meets the
- * same card either side of sign-up rather than two that resemble each other. `cta` is the only
+ * same card either side of sign-up rather than two that resemble each other. `cta` is the main
  * seam: the marketing card links (no session), `/upgrade` runs a Server Action that opens Stripe
- * with the cycle chosen. Everything above the button lives here.
+ * with the cycle chosen. `cycleSwitch` is the other, carrying the billing switch into the Pro card
+ * on narrow screens. Everything else lives here.
  *
  * A server component — it renders props and holds no state; the cycle is decided above it.
  *
@@ -20,16 +21,24 @@ export function PricingPlanCard({
     plan,
     cycle,
     cta,
+    cycleSwitch,
 }: {
     plan: PricingPlan;
     cycle: BillingCycle;
     cta: React.ReactNode;
+    /**
+     * Rendered between the plan name and the price. Callers pass the billing switch to the featured
+     * card only, hidden at the widths where the switch above the cards shows instead.
+     */
+    cycleSwitch?: React.ReactNode;
 }) {
     const price = plan.price[cycle];
 
     return (
         <article
-            className={`relative flex h-full flex-col rounded-xl border p-7 ${
+            // Narrower side padding below 380px leaves the Pro card's full-width billing switch
+            // room on the smallest phones.
+            className={`relative flex h-full flex-col rounded-xl border p-7 max-[380px]:px-5 ${
                 plan.featured
                     ? "border-[color-mix(in_srgb,var(--type-prompt)_45%,transparent)] shadow-[0_30px_70px_-50px_color-mix(in_srgb,var(--type-prompt)_90%,transparent)] [background-image:radial-gradient(100%_60%_at_50%_0%,color-mix(in_srgb,var(--type-prompt)_13%,transparent),transparent_70%),linear-gradient(180deg,var(--card),var(--background))]"
                     : "border-border bg-linear-to-b from-card to-background"
@@ -42,6 +51,8 @@ export function PricingPlanCard({
             ) : null}
 
             <h3 className="text-[1.3rem] font-semibold tracking-[-0.015em]">{plan.name}</h3>
+
+            {cycleSwitch}
 
             <p className="mt-2.5 flex items-baseline gap-1.5">
                 <span className="text-[2.9rem] leading-none font-bold tracking-[-0.04em]">

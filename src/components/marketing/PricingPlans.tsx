@@ -19,6 +19,11 @@ import { PRICING_PLANS, type BillingCycle } from "@/config/marketing";
  * {@link PricingPlanCard}, shared with `/upgrade`; this adds the landing page's own section,
  * heading, and {@link Reveal} animations, and passes a `<Link>` as the `cta` since the reader has
  * no session.
+ *
+ * @remarks
+ * The cards stack below 681px, Free first. At that width the switch moves from the heading into the
+ * Pro card, so it stays next to the only price it changes; both copies hide on the same breakpoint
+ * as the grid.
  */
 export function PricingPlans() {
     const [cycle, setCycle] = useState<BillingCycle>("monthly");
@@ -33,7 +38,7 @@ export function PricingPlans() {
                         sub="Free holds a working library of 50 items. Pro lifts the limits and adds files, images and AI."
                         className="mb-[clamp(2.5rem,5vw,3.5rem)]"
                     >
-                        <div className="mt-7 inline-flex">
+                        <div className="mt-7 inline-flex max-[680px]:hidden">
                             <BillingCycleToggle value={cycle} onChange={setCycle} />
                         </div>
                     </SectionHeading>
@@ -43,17 +48,22 @@ export function PricingPlans() {
                     {PRICING_PLANS.map((plan) => (
                         <Reveal
                             key={plan.name}
-                            // The featured card follows the first in while side by side, and leads
-                            // (no delay) once they stack.
-                            className={
-                                plan.featured
-                                    ? "h-full max-[680px]:order-first min-[681px]:delay-[80ms]"
-                                    : "h-full"
-                            }
+                            // The featured card follows the first in while side by side.
+                            className={plan.featured ? "h-full min-[681px]:delay-[80ms]" : "h-full"}
                         >
                             <PricingPlanCard
                                 plan={plan}
                                 cycle={cycle}
+                                cycleSwitch={
+                                    plan.featured ? (
+                                        <BillingCycleToggle
+                                            value={cycle}
+                                            onChange={setCycle}
+                                            fullWidth
+                                            className="mt-4 mb-1.5 min-[681px]:hidden"
+                                        />
+                                    ) : null
+                                }
                                 cta={
                                     <Button
                                         asChild
