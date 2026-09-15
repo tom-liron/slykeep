@@ -21,14 +21,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Appends an alpha channel to a 6-digit hex colour, e.g. "#3b82f6" → "#3b82f61a".
+ * Appends an alpha channel to a 6-digit hex colour, e.g. "#5b9dff" → "#5b9dff38".
  *
- * The item-type palette in `config/item-type-catalog.ts` is opaque hex; the card and row accents
- * render it at low opacity. `opacity` is clamped to 0–1.
+ * The item-type palette in `config/item-type-catalog.ts` is opaque hex; the type-coloured icon
+ * tiles on the stat band, cards, rows, drawer header and profile render it as a tint behind the
+ * full-strength icon. `opacity` is clamped to 0–1.
  *
- * @defaultValue `opacity` is 0.1
+ * @defaultValue `opacity` is 0.22
  */
-export function withAlpha(hexColor: string, opacity = 0.1): string {
+export function withAlpha(hexColor: string, opacity = 0.22): string {
     const clamped = Math.max(0, Math.min(1, opacity));
     const alpha = Math.round(clamped * 255)
         .toString(16)

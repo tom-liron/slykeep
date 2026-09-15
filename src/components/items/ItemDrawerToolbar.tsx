@@ -110,10 +110,10 @@ export function ItemDrawerToolbar({
                     title={blocked ?? (isPinned ? "Unpin" : "Pin to the top")}
                     aria-label={isPinned ? "Unpin" : "Pin to the top"}
                 >
-                    {/* Filled `sky-400` when pinned — a fill alone reads as a bolder icon, not a
-                        state. Not `#3b82f6`, which is a snippet's own accent. */}
+                    {/* Filled in `--pin` when pinned — a fill alone reads as a bolder icon, not a
+                        state. The same colour as the pinned badge on cards and rows. */}
                     <Pin
-                        className={isPinned ? "fill-sky-400 text-sky-400" : undefined}
+                        className={isPinned ? "fill-pin text-pin" : undefined}
                         aria-hidden="true"
                     />
                     <ActionLabel>Pin</ActionLabel>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Layers } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -28,9 +27,12 @@ export function Brand({
 }) {
     const content = (
         <>
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
-                <Layers className="size-5" aria-hidden="true" />
-            </span>
+            {/* The fox mark. Literal colours rather than theme tokens: it is the logo, and it keeps
+                the same geometry and colours as `app/icon.svg`, which the two must share. */}
+            <svg viewBox="0 0 30 30" className="size-8 shrink-0" aria-hidden="true">
+                <rect width="30" height="30" rx="8" fill="#F2B544" />
+                <path d="M8 21V9.5l5 4.2h4l5-4.2V21l-7 3.2z" fill="#1D1405" />
+            </svg>
             <span className={cn("truncate text-lg font-semibold", compact && "hidden sm:inline")}>
                 SlyKeep
             </span>

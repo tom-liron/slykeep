@@ -28,6 +28,9 @@
     --color-favorite: var(--favorite);
     --color-suggestion: var(--suggestion);
     --color-confirm: var(--confirm);
+    --color-pin: var(--pin);
+    --color-prose-link: var(--prose-link);
+    --color-field: var(--field);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -84,16 +87,13 @@
     color-scheme: light;
     /**
      * One colour for every favourite star in the app — the top bar's, the sidebar's, the badge on a
-     * card or a row, and both toggles. It was `yellow-400` hard-coded at eight call sites, which is
-     * how the bar and the dashboard ended up wearing two different yellows next to each other.
+     * card or a row, and both toggles.
      *
-     * Its own token rather than the note type's colour, which it matches by value in dark mode. The
-     * two are the same yellow today and mean unrelated things — a favourite is not a note — so
-     * sharing a name would make either one impossible to retune without dragging the other with it.
+     * Its own token rather than `--primary`, which it matches by value in dark mode: a favourite and
+     * a primary action mean unrelated things, so each stays retunable without dragging the other.
      *
-     * Light mode takes it down to `yellow-600`. `#fde047` is picked for a near-black background and
-     * all but vanishes on a white card; there is no light theme to check it against yet, so the
-     * value that will not be invisible is the one to leave here.
+     * Light mode takes it down to `yellow-600`, since the dark theme's gold is chosen for a
+     * near-black background and washes out on a white card.
      */
     --favorite: #ca8a04;
     /**
@@ -101,14 +101,9 @@
      * control that accepts it. Rejecting one uses `--destructive`, which already means exactly
      * that everywhere else.
      *
-     * Tokens rather than palette classes, for the reason `--favorite` above is one: nothing in
-     * `src/` reaches for a raw Tailwind colour, and a hard-coded `text-blue-400` would be the
-     * first thing in the app that cannot be retuned in one place or answer to the light theme.
-     *
-     * The blue is the snippet type's, a shade lighter, so a suggestion reads as part of the same
-     * palette rather than a new accent — and the green is the link type's, for the same reason.
-     * Both are the light-mode values here: picked to stay legible on white, since the dark values
-     * below are chosen for a near-black background and wash out on one.
+     * Tokens rather than palette classes, like `--favorite`, so every accent is retuned in one place
+     * and answers to the light theme. These are the light-mode values, picked to stay legible on
+     * white; the dark values below are chosen for a near-black background.
      */
     --suggestion: #2563eb;
     --confirm: #16a34a;
@@ -148,40 +143,49 @@
 
 .dark {
     color-scheme: dark;
-    --favorite: #fde047;
-    --suggestion: #60a5fa;
-    --confirm: #4ade80;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --favorite: #f2b544;
+    --suggestion: #5b9dff;
+    --confirm: #3dd68c;
+    /* The pinned-item marker. Blue so a pinned badge never reads as the gold favourite beside it. */
+    --pin: #5b9dff;
+    /* Link colour in rendered markdown, kept apart from the gold `--primary` that marks actions. */
+    --prose-link: #5b9dff;
+    /* Input and search-field fill, a step darker than the work area so a field reads as recessed.
+       `EDITOR_SURFACE` in `config/editor.ts` holds the same value for monaco, which cannot read it. */
+    --field: #141416;
+    --background: #1a1a1d;
+    --foreground: #f4f4f5;
+    --card: #26262b;
+    --card-foreground: #f4f4f5;
+    --popover: #26262b;
+    --popover-foreground: #f4f4f5;
+    --primary: #f2b544;
+    --primary-foreground: #1d1405;
+    --secondary: #2b2b30;
+    --secondary-foreground: #f4f4f5;
+    --muted: #303036;
+    --muted-foreground: #a6a6ae;
+    --accent: #303036;
+    --accent-foreground: #f4f4f5;
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --border: #3a3a41;
+    --input: #3a3a41;
+    --ring: #f2b544;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* The frame. `TopBar` paints `--sidebar` as well, so the bar and the sidebar form one near-black
+       piece around the lighter `--background` work area. */
+    --sidebar: #0e0e10;
+    --sidebar-foreground: #f4f4f5;
+    --sidebar-primary: #f2b544;
+    --sidebar-primary-foreground: #1d1405;
+    --sidebar-accent: #222226;
+    --sidebar-accent-foreground: #f4f4f5;
+    --sidebar-border: #1e1e22;
+    --sidebar-ring: #f2b544;
 }
 
 @layer base {
@@ -276,9 +280,8 @@
  * space around it are independent, and brightness carrying what is left of the hierarchy.
  *
  * One class rather than per-element Tailwind because the elements come from `react-markdown` out of
- * user text — there is no JSX to hang classes on. Everything is a theme variable except the link
- * blue, since the app's own `--primary` is greyscale and would make a link indistinguishable from
- * body text.
+ * user text — there is no JSX to hang classes on. Everything is a theme variable; links take
+ * `--prose-link` rather than the gold `--primary`, which marks actions.
  *
  * In `components` rather than unlayered so a utility class on the wrapper still wins over it.
  */
@@ -349,7 +352,7 @@
     }
 
     .markdown-preview a {
-        color: #60a5fa;
+        color: var(--prose-link);
         text-decoration: none;
     }
     .markdown-preview a:hover {
@@ -405,7 +408,7 @@
     }
     .markdown-preview input[type="checkbox"] {
         margin-right: 0.4em;
-        accent-color: #60a5fa;
+        accent-color: var(--prose-link);
         vertical-align: middle;
     }
 

@@ -29,7 +29,7 @@ export function FavoriteBadge({ label = "Favorite" }: { label?: string }) {
 export function PinnedBadge() {
     return (
         <>
-            <Pin className="size-3.5 shrink-0 fill-sky-400 text-sky-400" aria-hidden="true" />
+            <Pin className="size-3.5 shrink-0 fill-pin text-pin" aria-hidden="true" />
             <span className="sr-only">Pinned</span>
         </>
     );

@@ -49,8 +49,9 @@ export function TopBar({
 
     return (
         // `sticky` below `md`, `static` from `md` up where the bar is already in a pinned frame.
-        // `bg-background` so content does not show through while it is sticky.
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:gap-3 sm:px-4 md:static">
+        // `bg-sidebar`: the bar and the sidebar are one near-black frame around the work area, and
+        // the opaque fill keeps content from showing through while the bar is sticky.
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-sidebar px-3 sm:gap-3 sm:px-4 md:static">
             <div className="flex flex-1 items-center gap-2 sm:gap-3">
                 {/* Mobile: hamburger opens the drawer */}
                 <Button
@@ -92,11 +93,9 @@ export function TopBar({
                     <Button
                         variant="ghost"
                         asChild
-                        // `purple-300`, the pricing cards' Pro tone, and the only colour in this
-                        // bar — the star beside it stays neutral so two tinted controls do not
-                        // read as decoration. `Zap`, not a sparkle: sparkles have come to mean AI,
-                        // and this leads to a price list.
-                        className="hidden shrink-0 gap-1.5 text-purple-300 hover:bg-purple-500/15 hover:text-purple-200 sm:inline-flex"
+                        // The brand gold, the colour of every call to action in the app. `Zap`, not
+                        // a sparkle: sparkles mean AI, and this leads to a price list.
+                        className="hidden shrink-0 gap-1.5 text-primary hover:bg-primary/15 hover:text-primary sm:inline-flex"
                     >
                         <Link href="/upgrade">
                             <Zap className="size-4" aria-hidden="true" />

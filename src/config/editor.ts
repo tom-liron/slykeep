@@ -22,14 +22,14 @@ import type {
  */
 
 /**
- * The surface {@link EDITOR_THEME_CATALOG}'s `slykeep-dark` entry paints on: what `--card` resolves to, so an editor sits on
- * the same colour as every other panel in the app.
+ * The surface {@link EDITOR_THEME_CATALOG}'s `slykeep-dark` entry paints on: what `--field` resolves
+ * to, so an editor reads as the same recessed input surface as every form field in the app.
  *
  * @remarks
  * A literal hex rather than a Tailwind class. Monaco paints into its own DOM and its themes cannot
- * read a CSS variable, so a class on the wrapper would drift from the theme's own copy.
+ * read a CSS variable, so this value and `--field` in `globals.css` move together.
  */
-export const EDITOR_SURFACE = "#171717";
+export const EDITOR_SURFACE = "#141416";
 
 /**
  * The themes the editor's theme dropdown offers, each with the background it paints.

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Rethink_Sans } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -12,7 +12,7 @@ import "./globals.css";
  * client-side navigation a sign-in triggers. The `(marketing)`, `(auth)` and `(dashboard)` route
  * groups each add their own shell beneath this one.
  */
-const geistSans = Geist({
+const rethinkSans = Rethink_Sans({
     variable: "--font-sans",
     subsets: ["latin"],
 });
@@ -39,7 +39,7 @@ export default function RootLayout({
             // Route changes still jump straight to the top on a page that sets smooth scrolling on
             // `html`, as the marketing pages do below `md` — Next only forces that with this flag.
             data-scroll-behavior="smooth"
-            className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+            className={`dark ${rethinkSans.variable} ${geistMono.variable} h-full antialiased`}
         >
             {/* Two scroll models, split at `md`. From `md` up the body is pinned to the viewport and
                 hides its overflow: the app shell is a fixed-height frame that scrolls its own main
