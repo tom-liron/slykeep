@@ -112,7 +112,7 @@ its example comment, which still cites `#3b82f6`.
 | note | `#fde047` | **`#F266B3`** magenta |
 | file | `#6b7280` | **`#5B9DFF`** blue |
 | image | `#ec4899` | **`#A987FF`** violet |
-| link | `#10b981` | **`#2FD0E6`** cyan |
+| link | `#10b981` | **`#B5E853`** lime |
 
 **Where it lives, and why this needs a migration.** `ITEM_TYPE_COLORS` in
 `src/config/item-type-catalog.ts` is the source, but the app renders `ItemType.color` **from the
@@ -133,6 +133,10 @@ copies the catalogue into rows, and production never runs the seed. So:
    ```
    Scoped to `userId IS NULL` — custom types do not exist yet, and when they do they own their colour.
    Run against the **development** Neon branch only; production receives it through the Vercel deploy.
+
+   The SQL above is the migration as it shipped, with link at `#2FD0E6`. Link moved to lime
+   `#B5E853` afterwards, in its own migration `update_link_item_type_color`: file, image and link
+   were three neighbouring cold hues and read as one colour in the sidebar.
 3. `DASHBOARD_STAT_COLORS` (`config/dashboard.ts`) and the marketing `--type-*` variables
    (`lib/type-color-vars.ts`) derive from the catalogue and follow automatically.
 4. Update test fixtures that hard-code the old hex values: `server/collections.test.ts`,

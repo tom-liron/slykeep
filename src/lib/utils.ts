@@ -6,7 +6,8 @@ import { twMerge } from "tailwind-merge";
  *
  * {@link cn} is the class-merging utility the shadcn/ui primitives and the feature components are
  * written against. {@link withAlpha} turns a stored item-type hex colour into a translucent fill for
- * the coloured accents on cards and rows.
+ * the type-coloured icon tiles, and {@link softAccent} blends the same colour toward the card
+ * surface for the accent edge on cards and rows.
  */
 
 /**
@@ -35,4 +36,23 @@ export function withAlpha(hexColor: string, opacity = 0.22): string {
         .toString(16)
         .padStart(2, "0");
     return `${hexColor}${alpha}`;
+}
+
+/**
+ * Blends an item-type colour toward the card surface, e.g. "#FF5C5C" → a `color-mix()` expression.
+ *
+ * The accent edge on `ItemCard`, `CollectionCard` and `FileRow` is 4px of solid colour against a
+ * dark card. At full strength the palette reads as a neon strip rather than an accent, so the bar
+ * carries a mix instead: enough of the type colour to identify it at a glance, pulled toward the
+ * surface it sits on. `strength` is clamped to 0–1.
+ *
+ * @remarks
+ * Mixed in CSS rather than in JavaScript, so the result follows `--card` under any theme instead of
+ * being computed against one theme's value at render time.
+ *
+ * @defaultValue `strength` is 0.6
+ */
+export function softAccent(color: string, strength = 0.6): string {
+    const clamped = Math.max(0, Math.min(1, strength));
+    return `color-mix(in oklab, ${color} ${Math.round(clamped * 100)}%, var(--card))`;
 }

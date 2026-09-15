@@ -241,7 +241,7 @@ Icons are [lucide-react](https://lucide.dev) names.
 | Note | `#F266B3` (magenta) | 🩷 | `StickyNote` |
 | File | `#5B9DFF` (blue) | 🟦 | `File` |
 | Image | `#A987FF` (violet) | 🟪 | `Image` |
-| Link | `#2FD0E6` (cyan) | 🩵 | `Link` |
+| Link | `#B5E853` (lime) | 🟩 | `Link` |
 
 ### Responsive
 

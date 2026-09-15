@@ -89,7 +89,7 @@ export function FileUpload({
             onDrop={handleDrop}
             className={cn(
                 "group block rounded-lg border border-dashed border-border p-6 text-center transition-colors",
-                "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                "has-[:focus-visible]:border-ring/70 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/15",
                 isInteractive && "cursor-pointer hover:border-primary/60 hover:bg-muted/40",
                 isDragging && "border-primary bg-primary/5",
                 disabled && "opacity-60",

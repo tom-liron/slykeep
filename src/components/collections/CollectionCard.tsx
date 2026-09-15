@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { TypeIcon } from "@/components/items/TypeIcon";
 import { FavoriteBadge } from "@/components/ui/StatusBadges";
+import { softAccent } from "@/lib/utils";
 import type { CollectionViewModel } from "@/types/view-models";
 import { CollectionActions } from "./CollectionActions";
 
@@ -20,7 +21,7 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
     return (
         <div
             className="group relative flex flex-col rounded-xl border border-border border-l-4 bg-card p-4"
-            style={accent ? { borderLeftColor: accent } : undefined}
+            style={accent ? { borderLeftColor: softAccent(accent) } : undefined}
         >
             {/* Padded clear of the menu laid over the row's right-hand end. `CollectionActions`
                 renders it at `size="icon-sm"` (28px with a mouse, 44px on a coarse pointer), so

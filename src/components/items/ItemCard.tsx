@@ -1,6 +1,6 @@
 import { FavoriteBadge, PinnedBadge } from "@/components/ui/StatusBadges";
 import { formatDate } from "@/lib/format";
-import { cn, withAlpha } from "@/lib/utils";
+import { cn, softAccent, withAlpha } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
 import { TypeIcon } from "./TypeIcon";
 
@@ -48,7 +48,7 @@ export function ItemCard({
         // `auto`, so this is a no-op outside a grid.
         <article
             className="flex h-full gap-3 rounded-xl border border-border border-l-4 bg-card p-4"
-            style={{ borderLeftColor: accent }}
+            style={{ borderLeftColor: softAccent(accent) }}
         >
             <span
                 className="flex size-10 shrink-0 items-center justify-center rounded-lg"

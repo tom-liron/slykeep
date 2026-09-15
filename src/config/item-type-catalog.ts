@@ -26,7 +26,7 @@ export const ITEM_TYPE_COLORS = {
     note: "#F266B3",
     file: "#5B9DFF",
     image: "#A987FF",
-    link: "#2FD0E6",
+    link: "#B5E853",
 } as const;
 
 /**

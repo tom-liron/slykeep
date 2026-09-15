@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FavoriteBadge, PinnedBadge } from "@/components/ui/StatusBadges";
 import { formatDate, formatFileSize } from "@/lib/format";
-import { withAlpha } from "@/lib/utils";
+import { softAccent, withAlpha } from "@/lib/utils";
 import type { ItemSummaryViewModel } from "@/types/view-models";
 import { FileTypeIcon } from "./FileTypeIcon";
 
@@ -33,7 +33,7 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
     return (
         <article
             className="@container/file-row flex items-center gap-3 rounded-lg border border-border border-l-4 bg-card px-4 py-3"
-            style={{ borderLeftColor: accent }}
+            style={{ borderLeftColor: softAccent(accent) }}
         >
             <span
                 className="flex size-10 shrink-0 items-center justify-center rounded-lg"
