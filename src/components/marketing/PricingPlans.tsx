@@ -35,7 +35,7 @@ export function PricingPlans() {
                     <SectionHeading
                         eyebrow="Pricing"
                         title="Start free. Upgrade when it earns it."
-                        sub="Free holds a working library of 50 items. Pro lifts the limits and adds files, images and AI."
+                        sub="Free holds a working library of 50 items. Pro gives you unlimited items and collections, file and image uploads, and AI features."
                         className="mb-[clamp(2.5rem,5vw,3.5rem)]"
                     >
                         <div className="mt-7 inline-flex max-[680px]:hidden">
