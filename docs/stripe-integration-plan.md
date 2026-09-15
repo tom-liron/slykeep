@@ -1,4 +1,4 @@
-# Stripe Integration Plan — DevStash Pro
+# Stripe Integration Plan — SlyKeep Pro
 
 > **Plan record — written 2026-08-17. Not maintained.**
 > The design as proposed *before* the work, kept for its reasoning rather than as a description of
@@ -276,7 +276,7 @@ export function stripe(): Stripe {
         // the installed package rather than copying a version out of a blog post — and change it
         // only alongside a read of that version's changelog.
         apiVersion: "2025-06-30.basil",
-        appInfo: { name: "DevStash", url: "https://devstash.dev" },
+        appInfo: { name: "SlyKeep", url: "https://slykeep.com" },
     });
 
     return client;
@@ -1156,7 +1156,7 @@ a second or two, but not always. Handle it in the UI, not the session: on `?chec
 
 ## 8. Stripe Dashboard Setup
 
-1. **Create the product.** Product catalog → Add product → *DevStash Pro*.
+1. **Create the product.** Product catalog → Add product → *SlyKeep Pro*.
 2. **Add two recurring prices** on that one product — not two products:
    - $8.00 USD / monthly recurring → copy the price id into `STRIPE_PRICE_ID_MONTHLY`
    - $72.00 USD / yearly recurring → `STRIPE_PRICE_ID_YEARLY`
