@@ -95,9 +95,13 @@ export const proxy = auth((req) => {
  * of anyone's. Files under `public/` are not covered by the `_next/static` exclusion, so inside the
  * matcher every one of monaco's chunks makes a round trip through the session check, and the
  * landing media is redirected to `/sign-in` for exactly the signed-out visitors it is for.
+ *
+ * `favicon.ico`, `icon.svg` and `apple-icon.png` are the site icons Next serves from `src/app/`,
+ * excluded on the same grounds as the landing media: every page links them, signed-out pages
+ * included. An icon file added to `src/app/` needs adding here as well.
  */
 export const config = {
     matcher: [
-        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|marketing/|favicon.ico).*)",
+        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|marketing/|favicon.ico|icon.svg|apple-icon.png).*)",
     ],
 };
