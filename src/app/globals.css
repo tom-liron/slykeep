@@ -197,6 +197,18 @@
 }
 
 /**
+ * Smooth anchor scrolling for the marketing pages below `md`, where the document is what scrolls.
+ * From `md` up the marketing layout's own container scrolls and carries `scroll-smooth` itself, so
+ * this rule has nothing to animate there. Scoped by `:has()` so app and auth pages keep instant
+ * scrolling.
+ */
+@media (prefers-reduced-motion: no-preference) {
+    html:has([data-marketing-scroll]) {
+        scroll-behavior: smooth;
+    }
+}
+
+/**
  * Native scrollbars repainted as monaco's, for everything that scrolls on a dark surface.
  *
  * `CodeEditor` draws its own scrollbar from the theme it registers, so the markdown panel beside it
