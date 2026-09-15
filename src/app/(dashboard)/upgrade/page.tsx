@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { DemoBillingNotice } from "@/components/billing/DemoBillingNotice";
 import { UpgradePlans } from "@/components/billing/UpgradePlans";
-import { TYPE_COLOR_VARS } from "@/lib/type-color-vars";
 import { getCurrentUser } from "@/server/current-user";
 
 export const metadata: Metadata = {
@@ -36,10 +35,7 @@ export default async function UpgradePage() {
     }
 
     return (
-        // The item-type palette, the same way the marketing shell hands it down: the pricing cards
-        // are built out of these colours, and they are runtime catalog values Tailwind cannot make
-        // classes for.
-        <div className="mx-auto max-w-3xl space-y-8" style={TYPE_COLOR_VARS}>
+        <div className="mx-auto max-w-3xl space-y-8">
             <header className="space-y-2 text-center">
                 <h1 className="text-2xl font-bold">Upgrade to Pro</h1>
                 <p className="text-muted-foreground">

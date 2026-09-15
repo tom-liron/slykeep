@@ -66,7 +66,7 @@ export function BillingCycleToggle({
                         // Full width stacks the badge onto two lines ("Save" over "25%").
                         <span
                             className={cn(
-                                "rounded-full bg-[color-mix(in_srgb,var(--type-link)_16%,transparent)] px-1.5 py-px text-[0.68rem] font-bold text-emerald-300",
+                                "rounded-full bg-confirm/16 px-1.5 py-px text-[0.68rem] font-bold text-confirm",
                                 fullWidth &&
                                     "w-min px-2 py-1 text-center leading-tight whitespace-normal",
                             )}

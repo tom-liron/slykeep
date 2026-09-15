@@ -143,7 +143,7 @@ export type PricingPlan = {
     price: Record<BillingCycle, PlanPrice>;
     features: readonly PlanFeature[];
     cta: { label: string; href: string };
-    /** The Pro card: purple border, glow, and the "Most Popular" ribbon. */
+    /** The Pro card: gold border, glow, and the "Most Popular" ribbon. */
     featured: boolean;
 };
 

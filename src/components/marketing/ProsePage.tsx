@@ -58,7 +58,7 @@ export function ProsePage({
             <h1 className="text-[clamp(2rem,4.5vw,2.75rem)] leading-[1.1] font-bold tracking-[-0.03em]">
                 {title}
             </h1>
-            <p className="mt-3 text-[0.85rem] text-zinc-400">Last updated {lastUpdated}</p>
+            <p className="mt-3 text-[0.85rem] text-muted-foreground">Last updated {lastUpdated}</p>
             <p className="mt-6 text-[1.02rem] leading-relaxed text-muted-foreground">{lead}</p>
             {children}
         </article>

@@ -25,8 +25,8 @@ export function Hero() {
                 aria-hidden="true"
                 className="pointer-events-none absolute -top-64 left-1/2 h-[620px] w-[min(1100px,120vw)] -translate-x-1/2 blur-[90px]"
             >
-                <div className="absolute top-[15%] left-[6%] size-[55%] rounded-full bg-[var(--type-snippet)] opacity-20" />
-                <div className="absolute top-[6%] right-[8%] size-[55%] rounded-full bg-[var(--type-prompt)] opacity-[0.18]" />
+                <div className="absolute top-[15%] left-[6%] size-[55%] rounded-full bg-primary opacity-[0.16]" />
+                <div className="absolute top-[6%] right-[8%] size-[55%] rounded-full bg-[var(--type-image)] opacity-10" />
             </div>
 
             <div className="mx-auto w-[min(1180px,calc(100%-2.5rem))]">
@@ -34,16 +34,14 @@ export function Hero() {
                     <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1 text-[0.78rem] text-muted-foreground">
                         <span
                             aria-hidden="true"
-                            className="size-1.5 rounded-full bg-[var(--type-link)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--type-link)_18%,transparent)]"
+                            className="size-1.5 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_18%,transparent)]"
                         />
                         Snippets · Prompts · Commands · Notes · Files · Links
                     </p>
 
-                    <h1 className="text-[clamp(2.35rem,6.2vw,4.15rem)] leading-[1.05] font-bold tracking-[-0.035em]">
+                    <h1 className="font-display text-[clamp(2.35rem,6.2vw,4.15rem)] leading-[1.05] font-bold font-stretch-112% tracking-[-0.025em]">
                         Save it once.{" "}
-                        <span className="inline-block bg-[linear-gradient(100deg,var(--type-snippet),var(--type-prompt)_48%,var(--type-image))] bg-clip-text text-transparent">
-                            Find it in seconds.
-                        </span>
+                        <span className="inline-block text-primary">Find it in seconds.</span>
                     </h1>
 
                     <p className="mx-auto mt-5.5 max-w-[600px] text-[clamp(1rem,1.6vw,1.15rem)] text-muted-foreground">
@@ -64,7 +62,7 @@ export function Hero() {
                         </Button>
                     </div>
 
-                    <p className="mt-4 text-[0.82rem] text-zinc-400">
+                    <p className="mt-4 text-[0.82rem] text-muted-foreground">
                         For the things you always forget and always need
                     </p>
                 </Reveal>

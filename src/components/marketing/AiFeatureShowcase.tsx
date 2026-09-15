@@ -38,7 +38,7 @@ export function AiFeatureShowcase({ children }: { children: ReactNode }) {
                                 className={cn(
                                     "w-full rounded-xl border px-4 py-3 text-left text-[0.95rem] text-muted-foreground transition-colors",
                                     index === active
-                                        ? "border-[color-mix(in_srgb,var(--type-prompt)_45%,transparent)] bg-[color-mix(in_srgb,var(--type-prompt)_10%,transparent)]"
+                                        ? "border-primary/45 bg-primary/10"
                                         : "border-transparent hover:bg-white/[0.03]",
                                 )}
                             >

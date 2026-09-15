@@ -32,7 +32,7 @@ export function MarketingFooter() {
             <div className="mx-auto grid w-[min(1180px,calc(100%-2.5rem))] grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)] gap-10 max-[860px]:grid-cols-1 max-[860px]:gap-8">
                 <div>
                     <Brand href="/" />
-                    <p className="mt-3.5 max-w-[320px] text-[0.88rem] text-zinc-400">
+                    <p className="mt-3.5 max-w-[320px] text-[0.88rem] text-muted-foreground">
                         A searchable library for the snippets, prompts and commands developers keep.
                     </p>
                 </div>
@@ -83,7 +83,7 @@ export function MarketingFooter() {
                 </nav>
             </div>
 
-            <div className="mx-auto mt-10 flex w-[min(1180px,calc(100%-2.5rem))] flex-wrap justify-between gap-2 border-t border-border pt-6 text-[0.82rem] text-zinc-400">
+            <div className="mx-auto mt-10 flex w-[min(1180px,calc(100%-2.5rem))] flex-wrap justify-between gap-2 border-t border-border pt-6 text-[0.82rem] text-muted-foreground">
                 {/* Rendered on the server: a `new Date()` in the browser would disagree with the
                     markup that was sent, and this is a number nobody needs to the minute. */}
                 <p>© {new Date().getFullYear()} SlyKeep. All rights reserved.</p>

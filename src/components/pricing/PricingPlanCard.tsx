@@ -12,10 +12,6 @@ import type { BillingCycle, PricingPlan } from "@/config/marketing";
  * on narrow screens. Everything else lives here.
  *
  * A server component — it renders props and holds no state; the cycle is decided above it.
- *
- * @remarks
- * Uses `--type-prompt` / `--type-image` from the item-type catalog, which Tailwind cannot generate
- * classes for, so an ancestor must supply them (`TYPE_COLOR_VARS` in `lib/type-color-vars.ts`).
  */
 export function PricingPlanCard({
     plan,
@@ -40,12 +36,12 @@ export function PricingPlanCard({
             // room on the smallest phones.
             className={`relative flex h-full flex-col rounded-xl border p-7 max-[380px]:px-5 ${
                 plan.featured
-                    ? "border-[color-mix(in_srgb,var(--type-prompt)_45%,transparent)] shadow-[0_30px_70px_-50px_color-mix(in_srgb,var(--type-prompt)_90%,transparent)] [background-image:radial-gradient(100%_60%_at_50%_0%,color-mix(in_srgb,var(--type-prompt)_13%,transparent),transparent_70%),linear-gradient(180deg,var(--card),var(--background))]"
+                    ? "border-primary/45 shadow-[0_30px_70px_-50px_color-mix(in_srgb,var(--primary)_90%,transparent)] [background-image:radial-gradient(100%_60%_at_50%_0%,color-mix(in_srgb,var(--primary)_13%,transparent),transparent_70%),linear-gradient(180deg,var(--card),var(--background))]"
                     : "border-border bg-linear-to-b from-card to-background"
             }`}
         >
             {plan.featured ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[linear-gradient(100deg,var(--type-prompt),var(--type-image))] px-3 py-0.5 text-[0.7rem] font-bold whitespace-nowrap text-white">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-0.5 text-[0.7rem] font-bold whitespace-nowrap text-primary-foreground">
                     Most Popular
                 </span>
             ) : null}
@@ -58,7 +54,7 @@ export function PricingPlanCard({
                 <span className="text-[2.9rem] leading-none font-bold tracking-[-0.04em]">
                     {price.amount}
                 </span>
-                <span className="text-[0.88rem] text-zinc-400">{price.period}</span>
+                <span className="text-[0.88rem] text-muted-foreground">{price.period}</span>
             </p>
 
             {/* `min-h` for two lines, so the card does not grow a line when the switch flips
@@ -78,7 +74,7 @@ export function PricingPlanCard({
                     {plan.features.map((feature) => (
                         <li key={feature.label} className="flex items-start gap-2.5">
                             {feature.included ? (
-                                // Accented only on the featured card: neutral on Free, purple on
+                                // Accented only on the featured card: neutral on Free, gold on
                                 // Pro, so the two lists differ before a word is read. The tick
                                 // already says "included", so colour is spent on the plan being
                                 // sold.
@@ -86,7 +82,7 @@ export function PricingPlanCard({
                                     aria-hidden="true"
                                     className={`mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full border ${
                                         plan.featured
-                                            ? "border-[color-mix(in_srgb,var(--type-prompt)_40%,transparent)] bg-[color-mix(in_srgb,var(--type-prompt)_16%,transparent)] text-purple-300"
+                                            ? "border-primary/40 bg-primary/16 text-[#F6C76A]"
                                             : "border-foreground/25 bg-foreground/10 text-foreground/75"
                                     }`}
                                 >

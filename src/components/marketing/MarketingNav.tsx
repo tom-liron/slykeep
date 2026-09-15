@@ -191,9 +191,8 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
 
                 <div className="flex items-center gap-2 max-[860px]:ml-auto">
                     {/* `secondary`, not `ghost`, for the non-primary action, so it is visible
-                        beside the white CTA. Neutral rather than tinted: blue is this page's one
-                        call to action and purple means Pro, so a coloured Sign In would compete or
-                        mislead. */}
+                        beside the gold CTA. Neutral rather than tinted: gold marks this page's call
+                        to action and its Pro accents, so a coloured Sign In would compete with both. */}
                     {actions.map((action) => (
                         <Button
                             key={action.href}

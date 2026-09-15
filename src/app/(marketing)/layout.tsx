@@ -1,10 +1,25 @@
+import { Mona_Sans } from "next/font/google";
+
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { TYPE_COLOR_VARS } from "@/lib/type-color-vars";
 
 /**
+ * Mona Sans on `--font-display`, with the width axis the landing headlines expand along.
+ *
+ * Loaded here rather than in the root layout so the signed-in app never downloads it; the
+ * `font-display` utility resolves only inside this shell.
+ */
+const monaSans = Mona_Sans({
+    variable: "--font-display",
+    subsets: ["latin"],
+    axes: ["wdth"],
+});
+
+/**
  * The signed-out marketing shell: {@link MarketingNav}, the page, and {@link MarketingFooter}, with
- * no app chrome. Wraps `/welcome`, `/privacy` and `/terms`.
+ * no app chrome. Wraps `/welcome`, `/privacy` and `/terms`, and supplies the headline typeface
+ * ({@link monaSans}) and the item-type colour variables to everything beneath it.
  *
  * @remarks
  * Follows the root layout's two scroll models. Below `md` the document scrolls, which is what lets a
@@ -18,7 +33,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div
             data-marketing-scroll
             style={TYPE_COLOR_VARS}
-            className="min-h-dvh bg-background md:h-dvh md:overflow-y-auto md:scroll-smooth md:motion-reduce:scroll-auto"
+            className={`${monaSans.variable} min-h-dvh bg-background md:h-dvh md:overflow-y-auto md:scroll-smooth md:motion-reduce:scroll-auto`}
         >
             <a
                 href="#main"
