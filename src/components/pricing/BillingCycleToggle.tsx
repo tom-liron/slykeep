@@ -24,9 +24,14 @@ export function BillingCycleToggle({
     value: BillingCycle;
     onChange: (cycle: BillingCycle) => void;
     /**
-     * Stretches the switch across its container. Each option grows from its own content width
-     * rather than taking an equal share, so the longer "Yearly" option with its badge still fits a
-     * card on a 320px screen.
+     * Stretches the switch across a card. Each option grows from its own content width rather than
+     * taking an equal share, and may shrink below it: the badge then drops beneath its label instead
+     * of pushing the option out of the switch.
+     *
+     * @remarks
+     * Everything here is sized in `rem`, so a visitor's raised browser font size enlarges the switch
+     * while the card's width stays fixed by the screen. The wrap is what keeps it inside the card
+     * then, on a 320px screen as much as a 344px one.
      */
     fullWidth?: boolean;
     /** Spacing and the breakpoint at which this copy shows. */
@@ -53,18 +58,17 @@ export function BillingCycleToggle({
                     // pressed pill grows with it.
                     className={cn(
                         "inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-[0.85rem] whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-muted aria-pressed:text-foreground pointer-coarse:py-3",
-                        fullWidth && "flex-auto justify-center px-3",
+                        fullWidth && "min-w-0 flex-auto flex-wrap justify-center gap-1 px-2.5",
                     )}
                 >
                     {option.label}
                     {option.badge ? (
-                        // Full width stacks the badge onto two lines ("Save" over "25%"), which
-                        // is what keeps the switch inside a card on a 344px screen.
+                        // Full width stacks the badge onto two lines ("Save" over "25%").
                         <span
                             className={cn(
                                 "rounded-full bg-[color-mix(in_srgb,var(--type-link)_16%,transparent)] px-1.5 py-px text-[0.68rem] font-bold text-emerald-300",
                                 fullWidth &&
-                                    "w-min px-2.5 py-1 text-center leading-tight whitespace-normal",
+                                    "w-min px-2 py-1 text-center leading-tight whitespace-normal",
                             )}
                         >
                             {option.badge}
