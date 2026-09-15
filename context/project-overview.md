@@ -1,4 +1,4 @@
-# DevStash — Project Overview
+# SlyKeep — Project Overview
 
 > One fast, searchable, AI-enhanced hub for all developer knowledge and resources.
 
@@ -18,7 +18,7 @@ Developers keep their essentials scattered across too many tools:
 
 The result is constant context switching, lost knowledge, and inconsistent workflows.
 
-**DevStash** solves this by providing a single, fast, searchable, AI-enhanced hub for everything a developer needs to stash and retrieve.
+**SlyKeep** solves this by providing a single, fast, searchable, AI-enhanced hub for everything a developer needs to stash and retrieve.
 
 ---
 
@@ -257,7 +257,7 @@ and the headers in it. What follows the tree is the part a listing cannot show �
 decide which directory a new file belongs in.
 
 ```
-devstash/
+slykeep/
 ├── prisma/                  # schema.prisma (authoritative persisted shape), migrations, seed
 ├── prisma.config.ts         # Prisma 7 CLI config: schema path, migrations, seed, datasource
 ├── scripts/                 # one-off and maintenance scripts, each behind an npm script
@@ -265,7 +265,6 @@ devstash/
 ├── docs/                    # plan and architecture records, written once and not maintained;
 │                            # every file carries a "not maintained" banner. Where one disagrees
 │                            # with `src/`, code wins
-├── prototypes/homepage/     # marketing mockup: plain HTML/CSS/JS, no build step, outside the app
 ├── src/
 │   ├── app/                 # routes. Route groups: (marketing) signed-out landing, (auth)
 │   │   │                    # signed-out card shell, (dashboard) the authed app
@@ -370,8 +369,9 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
   refuses every recipient of an unverified sender with a 403, which surfaces as registration
   completing and then reporting that the confirmation email could not be sent.
   `npm run email:test -- <address>` settles it either way.
-- **The rest of the DevStash → SlyKeep rename.** The transactional email is done; page titles,
-  marketing copy and the in-app strings are not.
+- ~~The DevStash → SlyKeep rename.~~ — the site, the app and the README in
+  `feature/slykeep-rebrand`; the project docs, agent definitions and `package.json` in
+  `fix/finish-rebrand`.
 
 ---
 

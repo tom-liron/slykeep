@@ -1,4 +1,4 @@
-# AI Integration Plan — DevStash Pro
+# AI Integration Plan — SlyKeep Pro
 
 > **Plan record — written 2026-08-24. Not maintained.**
 > The design as proposed *before* the work, kept for its reasoning rather than as a description of
