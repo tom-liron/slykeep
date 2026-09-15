@@ -27,17 +27,10 @@ so buying before naming means buying twice and verifying the Resend domain twice
    wherever `main` has moved, which is the opposite of what it is for. It reads as identical to
    `main` until the first rebrand commit lands, which is expected — the two diverge then.
 
-All three are closed, and the naming decision is made: the name is **SlyKeep** and the domain
-is **slykeep.com**. Transactional email has already moved onto it — `EMAIL_FROM` is
-`SlyKeep <noreply@slykeep.com>` and the mail copy is renamed. Everything else the rebrand
-touches — page titles, marketing copy, in-app strings, `AUTH_URL` — is still to do.
-
-**A constraint the rebrand inherits:** new UI copy must not use "stash" as a *noun* ("your stash",
-"in the stash") — the verb ("start stashing", "what you have stashed") is ordinary English and
-survives the rename. The route files added in 1 use "dashboard" for every route back into the app
-for this reason. Two pre-existing noun uses were left for the rebrand pass rather than fixed
-piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
-`components/pricing/PricingPlans.tsx`.
+All three are closed, and so is the rebrand they preceded: the name is **SlyKeep**, the domain is
+**slykeep.com**, and the rename is complete — email (128), the site and app (139), the landing copy
+(140), and the docs and repository metadata (144). The old "no *stash* as a noun" copy rule existed
+only to survive the rename and no longer applies.
 
 ## Queued work
 
@@ -51,54 +44,26 @@ piecemeal: `app/(dashboard)/profile/page.tsx`'s Usage panel and
   `src/components/profile/ChangePasswordForm.tsx`, which no longer exists (its banner already names
   the replacement, so the dead link is documented rather than repaired).
 
-## The Safe Browsing flag on slykeep.com
+## The Safe Browsing flag on slykeep.com — resolved
 
-**Open as of 2026-09-10; review filed 2026-09-14, awaiting Google's decision.** Chrome shows a red "Deceptive site ahead" interstitial on every visit,
-the GitHub OAuth callback included. Search Console is verified but lists **no sample URLs**, so the
-trigger was never confirmed — everything below is remediation against the two strongest hypotheses,
-both of which are now closed in the code (feature 139, `feature/slykeep-rebrand`):
+**Resolved 2026-09-15: Google passed the review** (filed 2026-09-14) and Search Console no longer
+lists a security issue. The "Deceptive pages" flag had put a red interstitial on every visit,
+the GitHub OAuth callback included. Google never named a trigger, so the fix addressed the two
+strongest hypotheses (feature 139): a password form headed "Sign in to DevStash" on a days-old
+domain called slykeep.com with nothing else crawlable, and subscription prices quoted while Stripe
+runs on a test key.
 
-- the site served a password form headed "Sign in to DevStash" from a days-old domain called
-  slykeep.com, with nothing crawlable but a landing page and auth screens;
-- it quoted subscription prices behind a "Go Pro" button while Stripe ran on a test key.
+What keeps it from coming back:
 
-### The steps, in this order
+- **`/privacy` and `/terms` stay in `OPEN_ROUTES`.** `proxy.ts` is deny-by-default, so dropping
+  them would serve a crawler the login form those pages exist to offset.
+- **One name everywhere** — site, emails, Stripe Checkout and the GitHub OAuth app all say SlyKeep.
+- **The `privacy@slykeep.com` alias stays live** (Namecheap redirect); the Privacy page publishes it.
+- **Test-mode pricing stays disclosed** where checkout begins, on `/upgrade` and in the Terms.
 
-1. **Add the `privacy@slykeep.com` forwarding alias** in Namecheap (Domain List → Manage → Domain
-   tab → Redirect Email). The Privacy page publishes it, and an unreachable contact on a legal page
-   is worse than none. — *done 2026-09-10, confirmed receiving.*
-2. **Deploy**, then confirm **in incognito**: the `<title>` and wordmark read SlyKeep, and `/privacy`
-   and `/terms` load **without** redirecting to `/sign-in`. That last check is the mechanism of the
-   whole fix — they are in `OPEN_ROUTES` precisely so a session-less crawler can read them. — *done
-   2026-09-14: all four of `/`, `/privacy`, `/terms`, `/sign-in` return 200 with no redirect, SlyKeep
-   titles, and no "DevStash" in the served HTML.*
-3. GitHub OAuth app — already renamed, callback URL included. Nothing to do.
-4. **Then** Search Console → Security issues → Request Review. Describe it as a personal developer
-   knowledge-hub app that was mid-rename; the domain and site branding are now consistent, Privacy
-   and Terms are published, and the subscription pricing is a Stripe test-mode demonstration
-   labelled as such where checkout begins. — *filed 2026-09-14.* The description also stated that the
-   sign-in form serves only SlyKeep's own accounts, that GitHub sign-in runs through GitHub's own
-   OAuth flow, and that the site offers no downloads — the two things a "social engineering" label
-   actually means.
-
-Step 4 is last on purpose: a review filed before the deploy is a review against the site that was
-flagged, and it will be upheld.
-
-### After filing
-
-Reviews of this kind typically take a few days. A pass clears the interstitial within about a day of
-the decision. **Google gives no reason for a refusal**, and re-requesting without having changed
-anything makes each subsequent review slower — so if it is upheld, change something first. The
-levers left, in order of expected value:
-
-- **Give the domain more crawlable content.** This is the known remaining weakness: even now the
-  site is a landing page, two legal pages and auth screens. An About page was built and dropped
-  during 139 as redundant against the Terms — that judgment was about *duplication*, not about
-  crawlable surface, and it is worth revisiting if the review fails.
-- **Check for sample URLs again** in Search Console; they sometimes appear on a later scan and would
-  replace all of this guessing with the actual answer.
-- ~~**Rewrite the marketing copy**~~ — *done in 140.* The landing page now carries its own copy and
-  recordings of the real app, so it no longer mirrors another app's page on another domain.
+If it is ever flagged again, Google gives no reason and re-requesting without a change slows each
+review, so change something first — check Search Console for sample URLs, then add crawlable
+content.
 
 ## Deployment
 
