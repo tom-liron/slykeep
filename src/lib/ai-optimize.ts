@@ -102,6 +102,16 @@ const PROMPT_OPEN = "<<<SAVED_PROMPT";
 const PROMPT_CLOSE = "SAVED_PROMPT>>>";
 
 /**
+ * Removes both delimiters wherever they appear.
+ *
+ * Applied in both directions: a marker in the saved prompt would close the block early, and one in
+ * the rewrite would be saved into the user's content.
+ */
+function stripPromptMarkers(text: string): string {
+    return text.split(PROMPT_OPEN).join("").split(PROMPT_CLOSE).join("");
+}
+
+/**
  * Builds the user half of the request.
  *
  * Labelled parts as in the other builders, plus one addition: the prompt body is wrapped in
@@ -120,11 +130,9 @@ export function buildOptimizeInput(draft: ItemDraft): string {
     if (draft.title) parts.push(`Prompt title: ${draft.title}`);
     if (draft.tags) parts.push(`Tags: ${draft.tags}`);
 
-    const body = truncateForModel(draft.content ?? "", AI_OPTIMIZE_CONTENT_LIMIT)
-        .split(PROMPT_OPEN)
-        .join("")
-        .split(PROMPT_CLOSE)
-        .join("");
+    const body = stripPromptMarkers(
+        truncateForModel(draft.content ?? "", AI_OPTIMIZE_CONTENT_LIMIT),
+    );
 
     parts.push(`The saved prompt to rewrite:\n${PROMPT_OPEN}\n${body}\n${PROMPT_CLOSE}`);
     parts.push("Return the rewritten prompt and the list of changes as JSON.");
@@ -156,7 +164,12 @@ export type OptimizedPrompt = { prompt: string; changes: string[] };
  * strings, while anything wrong with `prompt` is a refusal. An empty list is what the instructions
  * ask for when the prompt was already good. Whitespace is trimmed but newlines are preserved,
  * unlike `parseSuggestedDescription`: this lands in the item's markdown body, where the prompt's
- * structure is part of what was improved. Anything unusable returns `null`.
+ * structure is part of what was improved.
+ *
+ * {@link stripPromptMarkers} runs on the rewrite as well as on the input: the model sometimes
+ * echoes the closing delimiter into its answer, and the accept button writes this string into the
+ * item body verbatim. It runs before the empty and length checks, so a reply that is only a marker
+ * is refused rather than saved blank. Anything unusable returns `null`.
  */
 export function parseOptimizedPrompt(raw: string): OptimizedPrompt | null {
     let parsed: unknown;
@@ -177,7 +190,7 @@ export function parseOptimizedPrompt(raw: string): OptimizedPrompt | null {
 
     if (typeof prompt !== "string") return null;
 
-    const optimized = prompt.trim();
+    const optimized = stripPromptMarkers(prompt).trim();
 
     if (optimized === "" || optimized.length > MAX_OPTIMIZED_PROMPT_LENGTH) return null;
 
@@ -203,6 +216,7 @@ function cleanChanges(changes: unknown): string[] {
  * Compared on exact strings: the accept button writes `prompt` verbatim, so anything not
  * character-identical is a change the user would be saving. The parser trims one side and the
  * caller trims the original, so leading whitespace alone cannot read as a change.
+ * {@link parseOptimizedPrompt} strips the delimiters, so an echoed marker cannot either.
  */
 export function isUnchanged(original: string, optimized: string): boolean {
     return original.trim() === optimized;

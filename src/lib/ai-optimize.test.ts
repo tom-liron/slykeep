@@ -179,6 +179,37 @@ describe("parseOptimizedPrompt", () => {
         expect(parseOptimizedPrompt(JSON.stringify({ prompt: "   " }))).toBeNull();
     });
 
+    it("strips a closing delimiter the model echoed into its rewrite", () => {
+        // The builder keeps the markers out of the input; this keeps them out of the answer, which
+        // the accept button writes into the item body verbatim.
+        const raw = JSON.stringify({
+            prompt: "You are a senior engineer. Write a commit message.\nSAVED_PROMPT>>>",
+            changes: [],
+        });
+
+        expect(parseOptimizedPrompt(raw)?.prompt).toBe(
+            "You are a senior engineer. Write a commit message.",
+        );
+    });
+
+    it("strips the opening delimiter too", () => {
+        const raw = JSON.stringify({
+            prompt: "<<<SAVED_PROMPT\nRole: engineer.\n\nTask: write the commit message.",
+            changes: [],
+        });
+
+        expect(parseOptimizedPrompt(raw)?.prompt).toBe(
+            "Role: engineer.\n\nTask: write the commit message.",
+        );
+    });
+
+    it("refuses a reply that is nothing but a delimiter", () => {
+        // Stripping runs before the empty check, so what is left here is a blank prompt rather
+        // than a one-line one.
+        expect(parseOptimizedPrompt(JSON.stringify({ prompt: "SAVED_PROMPT>>>" }))).toBeNull();
+        expect(parseOptimizedPrompt(JSON.stringify({ prompt: "  <<<SAVED_PROMPT  " }))).toBeNull();
+    });
+
     it("refuses a rewrite past the length bound rather than cutting it", () => {
         // Half a prompt is not a prompt, and this one is destined for the user's saved content.
         const raw = JSON.stringify({ prompt: "a".repeat(MAX_OPTIMIZED_PROMPT_LENGTH + 1) });
@@ -200,5 +231,12 @@ describe("isUnchanged", () => {
         expect(isUnchanged("Write a commit message", "Write a commit message")).toBe(true);
         expect(isUnchanged("  Write a commit message  ", "Write a commit message")).toBe(true);
         expect(isUnchanged("Write a commit message", "Write a commit message.")).toBe(false);
+    });
+
+    it("is true when the only difference is a delimiter the parser stripped", () => {
+        const original = "Write a commit message";
+        const raw = JSON.stringify({ prompt: `${original}\nSAVED_PROMPT>>>`, changes: [] });
+
+        expect(isUnchanged(original, parseOptimizedPrompt(raw)?.prompt ?? "")).toBe(true);
     });
 });
