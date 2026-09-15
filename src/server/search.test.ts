@@ -59,7 +59,7 @@ vi.mock("@/server/infra/prisma", () => {
             itemType: {
                 findMany: () =>
                     Promise.resolve([
-                        { id: "type-snippet", name: "snippet", icon: "Code", color: "#3b82f6" },
+                        { id: "type-snippet", name: "snippet", icon: "Code", color: "#FF5C5C" },
                     ]),
             },
         },

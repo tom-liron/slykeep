@@ -30,7 +30,7 @@ function itemWith(
             name: "snippet",
             label: "Snippets",
             icon: "Code",
-            color: "#3b82f6",
+            color: "#FF5C5C",
             slug: "snippets",
             contentType,
             isPro: false,

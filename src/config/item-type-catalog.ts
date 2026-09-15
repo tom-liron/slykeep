@@ -20,13 +20,13 @@ import type { IconName, ItemTypeName, ItemTypePresentation } from "@/types/item-
  * landing page and `/upgrade` as CSS variables.
  */
 export const ITEM_TYPE_COLORS = {
-    snippet: "#3b82f6",
-    prompt: "#8b5cf6",
-    command: "#f97316",
-    note: "#fde047",
-    file: "#6b7280",
-    image: "#ec4899",
-    link: "#10b981",
+    snippet: "#FF5C5C",
+    prompt: "#FF8F40",
+    command: "#3DD68C",
+    note: "#F266B3",
+    file: "#5B9DFF",
+    image: "#A987FF",
+    link: "#2FD0E6",
 } as const;
 
 /**

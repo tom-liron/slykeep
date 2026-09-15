@@ -295,6 +295,11 @@ recorded last because it captures the finished app.
 - **Estimate:** 1 h
 
 ### Feature 4 — Media and Stripe · `feature/redesign-media`
+- Before recording: change `RECORDER.email` in `scripts/record-marketing.ts` from
+  `alex.morgan@example.com` to a `@gmail.com` address, since the sidebar shows it in every clip. Pick
+  an unlikely local part rather than a common name, since a real person may own it. Update the
+  constant's comment, which justifies the address by `example.com` being reserved. The script creates
+  the account directly in the database and sends no email, so the change is safe to make.
 - `npm run marketing:record` with `npm run dev` running — re-records the hero walkthrough, the four
   AI clips and the three device screenshots into `public/marketing/` in the new look (creates and
   deletes its own Pro account on the dev database; makes real OpenAI calls)

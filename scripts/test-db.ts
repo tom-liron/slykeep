@@ -128,7 +128,7 @@ async function checkSystemTypeConstraint(prisma: PrismaClient) {
     try {
         await prisma.$transaction(async (tx) => {
             await tx.itemType.create({
-                data: { name: "snippet", icon: "Code", color: "#3b82f6", isSystem: true },
+                data: { name: "snippet", icon: "Code", color: "#FF5C5C", isSystem: true },
             });
             throw new Rollback("duplicate system type was accepted");
         });
