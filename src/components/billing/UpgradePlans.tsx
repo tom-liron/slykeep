@@ -43,7 +43,9 @@ export function UpgradePlans() {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-center">
+            {/* Above the cards only while they sit side by side; once they stack below `sm`, the
+                Pro card carries the switch next to its price. */}
+            <div className="hidden justify-center sm:flex">
                 <BillingCycleToggle value={cycle} onChange={setCycle} />
             </div>
 
@@ -53,6 +55,16 @@ export function UpgradePlans() {
                         key={plan.name}
                         plan={plan}
                         cycle={cycle}
+                        cycleSwitch={
+                            plan.featured ? (
+                                <BillingCycleToggle
+                                    value={cycle}
+                                    onChange={setCycle}
+                                    fullWidth
+                                    className="mt-4 mb-1.5 sm:hidden"
+                                />
+                            ) : null
+                        }
                         cta={
                             plan.featured ? (
                                 <Button onClick={upgrade} disabled={pending} className="h-9 w-full">
