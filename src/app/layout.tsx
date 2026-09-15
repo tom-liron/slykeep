@@ -36,6 +36,9 @@ export default function RootLayout({
     return (
         <html
             lang="en"
+            // Route changes still jump straight to the top on a page that sets smooth scrolling on
+            // `html`, as the marketing pages do below `md` — Next only forces that with this flag.
+            data-scroll-behavior="smooth"
             className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
         >
             {/* Two scroll models, split at `md`. From `md` up the body is pinned to the viewport and

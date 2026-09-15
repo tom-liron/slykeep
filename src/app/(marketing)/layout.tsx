@@ -3,26 +3,22 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { TYPE_COLOR_VARS } from "@/lib/type-color-vars";
 
 /**
- * The signed-out marketing shell: `MarketingNav`, the page, and `MarketingFooter`, with no app
- * chrome. Wraps `/welcome`.
- *
- * This element is its own scroll container, because the root layout pins the body from `md` up and
- * a marketing page still has to scroll something. Two things depend on that: the anchor links
- * scroll this element (`scroll-smooth` here, `scroll-mt-*` on the section ids), and `MarketingNav`
- * reads its scroll position from this element rather than from `window`.
+ * The signed-out marketing shell: {@link MarketingNav}, the page, and {@link MarketingFooter}, with
+ * no app chrome. Wraps `/welcome`, `/privacy` and `/terms`.
  *
  * @remarks
- * `h-dvh`, not `h-full`: below `md` the body is not a fixed height, so `height: 100%` would resolve
- * to `auto`, this element would grow to its content, and `overflow-y-auto` would never fire — the
- * anchors would jump instead of glide and the nav would never see a scroll event. A
- * viewport-relative height keeps the container definite at every width.
+ * Follows the root layout's two scroll models. Below `md` the document scrolls, which is what lets a
+ * phone browser collapse its toolbars on scroll; the anchor links glide there through the `html`
+ * rule in `globals.css` keyed on `data-marketing-scroll`. From `md` up the body is pinned, so this
+ * element becomes a viewport-high scroll container with its own `scroll-smooth`. `MarketingNav`
+ * listens to both scrollers for the same reason.
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
     return (
         <div
             data-marketing-scroll
             style={TYPE_COLOR_VARS}
-            className="h-dvh overflow-y-auto scroll-smooth bg-background motion-reduce:scroll-auto"
+            className="min-h-dvh bg-background md:h-dvh md:overflow-y-auto md:scroll-smooth md:motion-reduce:scroll-auto"
         >
             <a
                 href="#main"

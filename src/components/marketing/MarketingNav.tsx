@@ -25,11 +25,11 @@ const ACTIONS = [
 /**
  * One section link, which is two different things depending on where the bar is rendered.
  *
- * On the marketing page the href is a bare hash: an in-page jump, animated by the scroll container's
- * own `scroll-smooth`. From an auth page there is no such section on the page, so it becomes a real
- * navigation to `/` — and a `<Link>` rather than an `<a>`, so Next drives it and scrolls to the hash
- * on arrival instead of the browser doing a full document load and hunting for the target inside a
- * nested scroll container.
+ * On the marketing page the href is a bare hash: an in-page jump, animated by the smooth scrolling
+ * the marketing layout sets on whichever element scrolls the page. From an auth page there is no
+ * such section on the page, so it becomes a real navigation to `/` — and a `<Link>` rather than an
+ * `<a>`, so Next drives it and scrolls to the hash on arrival instead of the browser doing a full
+ * document load.
  */
 function SectionLink({
     href,
@@ -66,9 +66,9 @@ function SectionLink({
  * reserve room for it. Below 860px the section links and Sign In move into the menu underneath and
  * the bar keeps the brand and the primary CTA.
  *
- * The scroll listener is bound to the marketing layout's scroll container, not to `window`. The
- * root layout pins the body to the viewport height, so the window never scrolls at all here and a
- * `window` listener would simply never fire.
+ * The scroll listener watches both `window` and the marketing layout's scroll container, and either
+ * one past 8px counts as scrolled: below `md` the document scrolls, and from `md` up the root layout
+ * pins the body and the container scrolls instead.
  *
  * `variant="auth"` renders the same bar on the signed-out auth shell, which is not the marketing
  * page and differs from it in three ways that all have the same cause — there is no marketing page
@@ -76,7 +76,7 @@ function SectionLink({
  *
  * - **The section links leave.** `#features` has no section to find on `/sign-in`, so the hrefs
  *   become absolute and point back at `/`. They also switch from `<a>` to `<Link>`: on the marketing
- *   page a bare hash is an in-page jump and the container's `scroll-smooth` is what animates it,
+ *   page a bare hash is an in-page jump and the page's smooth scrolling is what animates it,
  *   while from an auth page it is a real navigation and Next has to own the scroll to the hash on
  *   the far side.
  * - **The bar stops reacting to scroll.** It is pinned to the state the marketing bar reaches after
@@ -104,7 +104,8 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
 
         let ticking = false;
         const apply = () => {
-            setScrolled(container.scrollTop > 8);
+            // Only one of the two ever scrolls at a given width; the other stays at 0.
+            setScrolled(window.scrollY > 8 || container.scrollTop > 8);
             ticking = false;
         };
         const onScroll = () => {
@@ -113,10 +114,14 @@ export function MarketingNav({ variant = "marketing" }: { variant?: "marketing" 
             window.requestAnimationFrame(apply);
         };
 
+        window.addEventListener("scroll", onScroll, { passive: true });
         container.addEventListener("scroll", onScroll, { passive: true });
         apply(); // a reload partway down the page must not start transparent
 
-        return () => container.removeEventListener("scroll", onScroll);
+        return () => {
+            window.removeEventListener("scroll", onScroll);
+            container.removeEventListener("scroll", onScroll);
+        };
     }, [onAuth]);
 
     // Every way out of the menu, so it can never be left stranded open.
