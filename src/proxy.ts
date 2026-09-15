@@ -99,9 +99,13 @@ export const proxy = auth((req) => {
  * `favicon.ico`, `icon.svg` and `apple-icon.png` are the site icons Next serves from `src/app/`,
  * excluded on the same grounds as the landing media: every page links them, signed-out pages
  * included. An icon file added to `src/app/` needs adding here as well.
+ *
+ * `robots.txt` and `sitemap.xml` are the crawler files Next generates from `app/robots.ts` and
+ * `app/sitemap.ts`. Crawlers carry no session, so inside the matcher both would be answered with a
+ * redirect to `/sign-in`.
  */
 export const config = {
     matcher: [
-        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|marketing/|favicon.ico|icon.svg|apple-icon.png).*)",
+        "/((?!api/auth|api/webhook/stripe|api/cron/sweep-unverified|_next/static|_next/image|monaco|marketing/|favicon.ico|icon.svg|apple-icon.png|robots.txt|sitemap.xml).*)",
     ],
 };
