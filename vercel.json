@@ -1,5 +1,5 @@
 {
-    "buildCommand": "npm run monaco:sync && next build",
+    "buildCommand": "prisma migrate deploy && npm run monaco:sync && next build",
     "crons": [
         {
             "path": "/api/cron/sweep-unverified",

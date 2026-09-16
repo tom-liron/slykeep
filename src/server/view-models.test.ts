@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-catalog";
 import type { ItemTypeName } from "@/types/item-type";
@@ -74,7 +74,7 @@ describe("item type view models", () => {
         });
     });
 
-    it("rejects a persisted icon the application cannot render", () => {
+    it("falls back to the catalog icon when the persisted one cannot be rendered", () => {
         const row: ItemTypeRow = {
             id: "type",
             name: "snippet",
@@ -82,7 +82,13 @@ describe("item type view models", () => {
             color: "#000000",
         };
 
-        expect(() => toItemTypeViewModel(row)).toThrow(/NotARealIcon/);
+        // A row left behind by an unapplied migration costs a glyph, not the page it is on.
+        const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        expect(toItemTypeViewModel(row).icon).toBe(ITEM_TYPE_CATALOG.snippet.icon);
+        expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("NotARealIcon"));
+
+        consoleError.mockRestore();
     });
 
     it("rejects a persisted name that is not in the catalog", () => {

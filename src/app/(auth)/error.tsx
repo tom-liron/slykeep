@@ -9,26 +9,25 @@ import { ErrorReference } from "@/components/ui/ErrorReference";
 import { RouteNotice } from "@/components/ui/RouteNotice";
 
 /**
- * The error boundary for a signed-in page that threw — a query that failed, a component that could
- * not render.
+ * The error boundary for the signed-out account pages — sign-in, register, forgot and reset
+ * password, verify email.
  *
- * It exists so that failure keeps the sidebar and top bar, the same reason `(dashboard)/not-found.tsx`
- * does: the nearest boundary otherwise is the root `error.tsx`, which renders outside this group's
- * layout and would strip the app chrome from a reader who is still signed in. A failure of the
- * layout itself still lands there, since a boundary cannot catch the layout it renders inside.
+ * It exists for the way out it offers rather than for the message. The nearest boundary otherwise is
+ * the root `error.tsx`, whose second action is "Go to the dashboard": a visitor who has not signed
+ * in yet is bounced straight back to the page that just failed. This one sends them to the homepage
+ * and keeps the marketing bar above it, since it renders inside this group's layout.
  *
- * `reset` re-renders the failed segment alone, so a transient failure recovers without reloading
- * the shell around it.
+ * A failed sign-in is not this surface. Auth.js returns those to `/sign-in` as an `?error=` code,
+ * which `lib/auth-errors.ts` turns into a sentence on the form itself; this catches the page failing
+ * to render at all.
  */
-export default function DashboardError({
+export default function AuthError({
     error,
     reset,
 }: {
     error: Error & { digest?: string };
     reset: () => void;
 }) {
-    // The browser sees a redacted message in production; the digest is what ties it to the full
-    // stack in the server log, which is why it is both logged and shown.
     useEffect(() => {
         console.error(error);
     }, [error]);
@@ -44,7 +43,7 @@ export default function DashboardError({
         >
             <Button onClick={reset}>Try again</Button>
             <Button asChild variant="outline">
-                <Link href="/">Back to the dashboard</Link>
+                <Link href="/welcome">Back to the homepage</Link>
             </Button>
         </RouteNotice>
     );

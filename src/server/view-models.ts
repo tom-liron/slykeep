@@ -110,28 +110,40 @@ export function sortByEditedAtDesc<T extends { editedAt: Date | string }>(record
  * Joins a persisted item type with its configured presentation from
  * {@link ITEM_TYPE_CATALOG}.
  *
- * @throws When `name` names no catalog entry, or `icon` is not a supported icon.
+ * @throws When `name` names no catalog entry — a type with no label, slug or content type to
+ * render from.
  *
  * @remarks
  * Both columns are untyped text in the database, so this boundary is where they are checked rather
  * than trusted downstream — it is what lets every consumer of `ItemTypeViewModel` index an icon map
- * without a fallback branch.
+ * without a fallback branch. The two columns fail differently: an unknown `name` leaves nothing to
+ * render, while an unknown `icon` costs one glyph, so it resolves to the catalog’s and logs.
  */
 export function toItemTypeViewModel(row: ItemTypeRow): ItemTypeViewModel {
     if (!isItemTypeName(row.name)) {
         throw new Error(`Unknown item type "${row.name}" — no entry in the item type catalog`);
     }
-    if (!isIconName(row.icon)) {
-        throw new Error(`Unsupported icon "${row.icon}" on item type "${row.name}"`);
-    }
 
-    const { label, slug, contentType, isPro } = ITEM_TYPE_CATALOG[row.name];
+    const { label, icon: catalogIcon, slug, contentType, isPro } = ITEM_TYPE_CATALOG[row.name];
+
+    // A persisted icon this build cannot render means the row is behind the catalog, which is what
+    // a migration that has not been applied looks like from here. The catalog holds the value that
+    // row is converging on, so it is rendered in place of it: a system type is a copy of its catalog
+    // entry, and a stale glyph is not worth failing the page for. The log is what names the cause.
+    let icon = catalogIcon;
+    if (isIconName(row.icon)) {
+        icon = row.icon;
+    } else {
+        console.error(
+            `Unsupported icon "${row.icon}" on item type "${row.name}" — rendering "${catalogIcon}" instead. Check that migrations have been applied.`,
+        );
+    }
 
     return {
         id: row.id,
         name: row.name,
         label,
-        icon: row.icon,
+        icon,
         color: row.color,
         slug,
         contentType,

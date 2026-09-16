@@ -22,6 +22,7 @@ export function RouteNotice({
     title,
     description,
     tone = "muted",
+    reference,
     children,
 }: {
     icon: LucideIcon;
@@ -31,6 +32,12 @@ export function RouteNotice({
     description: string;
     /** `destructive` tints the mark and code for a failure, as against a missing page. */
     tone?: "muted" | "destructive";
+    /**
+     * A support code to show under the description — `ErrorReference` in
+     * `components/ui/ErrorReference.tsx`, for the error boundaries. The 404s pass nothing, which is
+     * what keeps this component server-safe.
+     */
+    reference?: React.ReactNode;
     children: React.ReactNode;
 }) {
     const destructive = tone === "destructive";
@@ -60,6 +67,8 @@ export function RouteNotice({
                 </p>
                 <h1 className="mt-1 text-2xl font-bold text-balance">{title}</h1>
                 <p className="mt-3 text-sm text-pretty text-muted-foreground">{description}</p>
+
+                {reference}
 
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                     {children}

@@ -9,30 +9,28 @@ import { ErrorReference } from "@/components/ui/ErrorReference";
 import { RouteNotice } from "@/components/ui/RouteNotice";
 
 /**
- * The error boundary for everything below the root layout: a server component that threw, or a
- * client component that failed while rendering.
+ * The error boundary for the public pages — the landing page, `/privacy` and `/terms`.
  *
- * A client component, as every `error.tsx` must be — it holds the retry. `reset` re-renders the
- * segment that failed, which recovers a transient failure (a dropped database connection, a rate
- * limit that has since expired) without a full page load.
- *
- * A failure of the root layout itself is caught one level up, by `global-error.tsx`.
+ * Rendering inside this group's layout is what it is for: the marketing bar and footer stay, and the
+ * second action leads to sign-in rather than to the root boundary's "Go to the dashboard", which a
+ * visitor with no session cannot reach. The landing page is also what `/` serves to a signed-out
+ * visitor, so this is the boundary for the first page most people ever see.
  */
-export default function GlobalRouteError({
+export default function MarketingError({
     error,
     reset,
 }: {
     error: Error & { digest?: string };
     reset: () => void;
 }) {
-    // The browser sees a redacted message in production; the digest is the key that ties it to the
-    // full stack in the server log, which is why it is both logged and shown.
     useEffect(() => {
         console.error(error);
     }, [error]);
 
     return (
-        <div className="flex min-h-dvh flex-col bg-background md:h-dvh md:overflow-y-auto">
+        // The group's `main` sets no height, so the notice is given one here rather than sitting
+        // against the bar.
+        <div className="flex min-h-[60dvh] flex-col">
             <RouteNotice
                 icon={TriangleAlert}
                 code="500"
@@ -43,7 +41,7 @@ export default function GlobalRouteError({
             >
                 <Button onClick={reset}>Try again</Button>
                 <Button asChild variant="outline">
-                    <Link href="/">Go to the dashboard</Link>
+                    <Link href="/sign-in">Sign in</Link>
                 </Button>
             </RouteNotice>
         </div>
