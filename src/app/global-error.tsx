@@ -10,9 +10,11 @@ import "./globals.css";
  * itself throws and `error.tsx` — which lives inside that layout — can never mount.
  *
  * Because it stands in for the root layout it supplies its own `<html>` and `<body>`, imports the
- * stylesheet, and applies the `dark` class by hand. It also renders its own markup rather than
- * composing `RouteNotice`: the whole point of this file is that the tree above it is broken, so it
- * depends on as little of the application as it can.
+ * stylesheet, and applies the `dark` class by hand. It renders its own markup rather than composing
+ * `RouteNotice` and `ErrorReference`, and repeats their shape inline: the tree above this file is
+ * broken by the time it renders, so it depends on as little of the application as it can. The
+ * reference is not copyable here for the same reason — the copy control reports a failure through
+ * the toaster the root layout mounts, and that layout is what is missing.
  *
  * @remarks
  * The root layout is where `next/font` defines `--font-sans`, and that layout is exactly what is
@@ -42,13 +44,20 @@ export default function GlobalError({
                         <TriangleAlert className="size-6" aria-hidden="true" />
                     </span>
 
-                    <p className="mt-6 font-mono text-sm text-destructive">
-                        {error.digest ? `500 · ${error.digest}` : "500"}
-                    </p>
+                    <p className="mt-6 font-mono text-sm text-destructive">500</p>
                     <h1 className="mt-1 text-2xl font-bold text-balance">SlyKeep couldn’t load</h1>
                     <p className="mt-3 max-w-md text-sm text-pretty text-muted-foreground">
                         The application failed to start rendering. Reloading usually clears it.
                     </p>
+
+                    {/* Absent for an error thrown in the browser: React hashes only what failed
+                        while rendering on the server. */}
+                    {error.digest ? (
+                        <p className="mt-5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+                            Error reference{" "}
+                            <span className="font-mono text-foreground">{error.digest}</span>
+                        </p>
+                    ) : null}
 
                     <button
                         type="button"

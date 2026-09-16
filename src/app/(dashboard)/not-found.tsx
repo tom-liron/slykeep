@@ -13,6 +13,10 @@ import { RouteNotice } from "@/components/ui/RouteNotice";
  * `not-found.tsx`, which renders outside this group's layout and would drop the app chrome for a
  * reader who is still signed in.
  */
+export const metadata = {
+    title: "Not found · SlyKeep",
+};
+
 export default function DashboardNotFound() {
     return (
         <RouteNotice
