@@ -19,4 +19,9 @@ export const TOAST_IDS = {
     itemPin: "item-pin",
     /** `CollectionActions`' star, on collection cards and collection headers. */
     collectionFavorite: "collection-favorite",
+    /**
+     * The Pro refusal raised by `useAiUpsell`, shared by all four crowned AI buttons: they say the
+     * same thing, and two of them sit in the same form a few pixels apart.
+     */
+    aiUpsell: "ai-upsell",
 } as const;

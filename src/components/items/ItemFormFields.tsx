@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, ChevronDown, Folder, Lightbulb, Loader2, PenLine, X } from "lucide-react";
+import { Check, ChevronDown, Crown, Folder, Lightbulb, Loader2, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { generateAutoTags, generateDescription } from "@/actions/ai";
@@ -20,8 +20,10 @@ import { Field, invalidProps } from "@/components/ui/Field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { useAiUpsell } from "@/hooks/use-ai-upsell";
+import { AI_FEATURE_NOUNS } from "@/lib/ai-features";
 import { addTagToInput } from "@/lib/ai-tags";
-// The entitlement rule shared with the AI actions, not restated here, so the button's visibility
+// The entitlement rule shared with the AI actions, not restated here, so what the button does
 // tracks `ENFORCE_PRO_LIMITS` the same way the server's refusal does — the same reason
 // `SidebarNav` imports `canAccessItemType` for its PRO badge.
 import { canUseAi } from "@/lib/limits";
@@ -65,23 +67,33 @@ type ItemFieldProps = {
  * no answer on a touch screen. `pendingText` is per-field so it continues the button's own verb
  * ("Suggesting…", "Describing…"), as the editors' "Explaining…" and "Optimizing…" do.
  *
+ * `isLocked` is a free account: the icon becomes `Crown` and the click raises the upsell toast
+ * instead of spending a request. The button keeps its verb and stays enabled — all four of the
+ * app's AI controls behave this way, so a Pro feature is neither hidden nor a control that does
+ * nothing when pressed.
+ *
  * @remarks
  * `label` is the accessible name and the tooltip, and must **contain** the visible `text`: WCAG
  * 2.5.3 (Label in Name) is what makes "click Describe" work for voice control, so an `aria-label`
- * extends the visible word rather than replacing it.
+ * extends the visible word rather than replacing it. That holds for the locked label too, which is
+ * why it names the feature rather than replacing the button's name with "Pro".
  */
 function SuggestButton({
     icon: Icon,
     label,
+    lockedLabel,
     text,
     pendingText,
+    isLocked,
     isPending,
     onClick,
 }: {
     icon: typeof Lightbulb;
     label: string;
+    lockedLabel: string;
     text: string;
     pendingText: string;
+    isLocked: boolean;
     isPending: boolean;
     onClick: () => void;
 }) {
@@ -92,12 +104,14 @@ function SuggestButton({
             size="sm"
             onClick={onClick}
             disabled={isPending}
-            aria-label={label}
-            title={label}
+            aria-label={isLocked ? lockedLabel : label}
+            title={isLocked ? lockedLabel : label}
             className="-my-1 h-7 gap-1.5 px-2 text-xs"
         >
             {isPending ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : isLocked ? (
+                <Crown className="size-3.5" aria-hidden="true" />
             ) : (
                 <Icon className="size-3.5" aria-hidden="true" />
             )}
@@ -130,9 +144,10 @@ export function DescriptionField({
     /** Omit to render the plain field — the button appears only when there is something to send. */
     draft?: () => ItemDraft;
 }) {
-    // Controls appearance, not access: `generateDescription` re-checks entitlement server-side.
-    // This only keeps a control that would always fail off a free account's screen.
+    // Controls what the button does, not access: `generateDescription` re-checks entitlement
+    // server-side. Here it only decides whether the click asks the model or explains the gate.
     const canSuggest = canUseAi(useIsPro());
+    const upsell = useAiUpsell();
     const [proposal, setProposal] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
@@ -170,14 +185,20 @@ export function DescriptionField({
             label="Description"
             error={error}
             action={
-                canSuggest && draft ? (
+                draft ? (
                     <SuggestButton
                         icon={PenLine}
                         label="Describe this item with AI"
+                        lockedLabel="Describe this item with AI — a Pro feature"
                         text="Describe"
                         pendingText="Describing…"
+                        isLocked={!canSuggest}
                         isPending={isPending}
-                        onClick={suggest}
+                        onClick={
+                            canSuggest
+                                ? suggest
+                                : () => upsell(AI_FEATURE_NOUNS.generateDescription)
+                        }
                     />
                 ) : undefined
             }
@@ -193,11 +214,10 @@ export function DescriptionField({
 
             {proposal && (
                 /* A block, not the tags' inline badge, because a sentence would wrap by word and
-                   strand the controls at the end. Colours match the tag suggestions: blue for a
-                   proposal that is not yet the field's value, green and red for the two opposite
-                   actions. */
-                <div className="flex items-start gap-1 rounded-md border bg-muted/40 p-2">
-                    <p className="flex-1 text-xs leading-relaxed text-suggestion">{proposal}</p>
+                   strand the controls at the end. Drawn like the tag suggestions: provisional rather
+                   than coloured, with green and red left to the two opposite actions. */
+                <div className="flex items-start gap-1 rounded-md border border-dashed bg-muted/40 p-2">
+                    <p className="flex-1 text-xs leading-relaxed text-foreground">{proposal}</p>
 
                     <button
                         type="button"
@@ -367,9 +387,10 @@ export function TagsField({
     /** Omit to render the plain field — the button appears only when there is something to send. */
     draft?: () => ItemDraft;
 }) {
-    // Controls appearance, not access: `generateAutoTags` re-checks entitlement server-side. This
-    // only keeps a control that would always fail off a free account's screen.
+    // Controls what the button does, not access: `generateAutoTags` re-checks entitlement
+    // server-side. Here it only decides whether the click asks the model or explains the gate.
     const canSuggest = canUseAi(useIsPro());
+    const upsell = useAiUpsell();
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isPending, startTransition] = useTransition();
 
@@ -408,17 +429,21 @@ export function TagsField({
             error={error}
             hint="Separate tags with commas."
             action={
-                canSuggest && draft ? (
+                draft ? (
                     /* `Lightbulb`, not `Sparkles`: `Sparkles` is the Prompt type's icon, so the
                        button and a prompt item would render the same glyph a few pixels apart. A
                        lightbulb is three paths, reads cleanly at 14px, and means "suggestion". */
                     <SuggestButton
                         icon={Lightbulb}
                         label="Suggest Tags with AI"
+                        lockedLabel="Suggest Tags with AI — a Pro feature"
                         text="Suggest Tags"
                         pendingText="Suggesting…"
+                        isLocked={!canSuggest}
                         isPending={isPending}
-                        onClick={suggest}
+                        onClick={
+                            canSuggest ? suggest : () => upsell(AI_FEATURE_NOUNS.generateAutoTags)
+                        }
                     />
                 ) : undefined
             }
@@ -439,13 +464,27 @@ export function TagsField({
                     <span className="text-xs text-muted-foreground">Suggested:</span>
 
                     {suggestions.map((tag) => (
-                        /* Blue for the tag, because it is a proposal rather than settled text in
-                           the input above. Green and red for accept and reject, so the two
-                           opposite actions are not a pair of identical grey glyphs. */
+                        /* Drawn as provisional rather than in a colour of its own: muted text inside
+                           a dashed border, so a proposal looks unfinished until it is accepted and
+                           becomes ordinary text in the input above.
+
+                           It was blue, which put it a shade away from the snippet type colour — on a
+                           snippet's own form the chips read as type markers. The palette had no hue
+                           left that did not mean something else, and a proposal is better served by
+                           looking unresolved than by being assigned one. Green and red stay on the
+                           accept and reject controls, so the two opposite actions are still not a
+                           pair of identical grey glyphs, and they now carry the only colour here.
+
+                           The text is `foreground`, not `muted-foreground`: a suggested tag is a
+                           candidate *value*, and muted is this form's helper-text colour — the
+                           "Separate tags with commas." line sits directly beneath these chips in it.
+                           Dimming them put proposals in the one colour that means "not content",
+                           and the row read as a sentence of instructions rather than a set of
+                           things to take. The dashed border is what says provisional. */
                         <Badge
                             key={tag}
                             variant="outline"
-                            className="gap-0.5 pr-0.5 pl-2 text-suggestion"
+                            className="gap-0.5 border-dashed pr-0.5 pl-2 text-foreground"
                         >
                             {tag}
 

@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { isItemTypeName } from "@/config/item-type-catalog";
+import { AI_FEATURE_NOUNS, type AiFeatureNoun, proRequiredMessage } from "@/lib/ai-features";
 import {
     DESCRIPTION_INSTRUCTIONS,
     DESCRIPTION_MAX_OUTPUT_TOKENS,
@@ -98,8 +99,10 @@ const itemDraftSchema = z.object({
 /**
  * Shared entitlement and rate-limit gate for paid AI calls.
  *
- * @param feature - Names the thing in both messages, so it is a plural noun phrase: "AI *tag
- * suggestions* require a Pro subscription", "you have used all your *explanations*".
+ * @param feature - Names the thing in both messages, so it is a plural noun phrase from
+ * {@link AI_FEATURE_NOUNS}: "AI *tag suggestions* require a Pro subscription", "you have used all
+ * your *explanations*". Shared with `hooks/use-ai-upsell.ts`, which writes the same refusal for the
+ * clicks the client answers without asking.
  *
  * @remarks
  * Callers authenticate and validate before reaching this helper. It checks Pro entitlement before
@@ -113,12 +116,15 @@ async function guardAiRequest(
     isPro: boolean,
     userId: string,
     bucket: RateLimitName,
-    feature: string,
+    feature: AiFeatureNoun,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
     if (!canUseAi(isPro)) {
+        // The sentence is finished here rather than in `proRequiredMessage`, because only this
+        // caller has to name the way out in words: an action returns a string, while the toast the
+        // hook raises renders an Upgrade button instead.
         return {
             ok: false,
-            error: `AI ${feature} require a Pro subscription. Upgrade in Settings.`,
+            error: `${proRequiredMessage(feature)} Upgrade in Settings.`,
         };
     }
 
@@ -168,7 +174,7 @@ export async function generateAutoTags(input: ItemDraft): Promise<SuggestTagsRes
         return { success: false, error: "Add a title or some content first." };
     }
 
-    const guard = await guardAiRequest(isPro, userId, "aiTag", "tag suggestions");
+    const guard = await guardAiRequest(isPro, userId, "aiTag", AI_FEATURE_NOUNS.generateAutoTags);
 
     if (!guard.ok) return { success: false, error: guard.error };
 
@@ -222,7 +228,12 @@ export async function generateDescription(input: ItemDraft): Promise<SuggestDesc
         return { success: false, error: "Add a title or some content first." };
     }
 
-    const guard = await guardAiRequest(isPro, userId, "aiDescribe", "descriptions");
+    const guard = await guardAiRequest(
+        isPro,
+        userId,
+        "aiDescribe",
+        AI_FEATURE_NOUNS.generateDescription,
+    );
 
     if (!guard.ok) return { success: false, error: guard.error };
 
@@ -291,7 +302,7 @@ export async function explainCode(input: ItemDraft): Promise<ExplainCodeResult> 
         return { success: false, error: "There is no code here to explain." };
     }
 
-    const guard = await guardAiRequest(isPro, userId, "aiExplain", "explanations");
+    const guard = await guardAiRequest(isPro, userId, "aiExplain", AI_FEATURE_NOUNS.explainCode);
 
     if (!guard.ok) return { success: false, error: guard.error };
 
@@ -362,7 +373,12 @@ export async function optimizePrompt(input: ItemDraft): Promise<OptimizePromptRe
         return { success: false, error: "There is no prompt here to optimize." };
     }
 
-    const guard = await guardAiRequest(isPro, userId, "aiOptimize", "prompt optimizations");
+    const guard = await guardAiRequest(
+        isPro,
+        userId,
+        "aiOptimize",
+        AI_FEATURE_NOUNS.optimizePrompt,
+    );
 
     if (!guard.ok) return { success: false, error: guard.error };
 

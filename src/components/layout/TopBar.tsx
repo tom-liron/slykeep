@@ -60,7 +60,10 @@ export function TopBar({
                     size="icon"
                     aria-label="Open menu"
                     onClick={toggleMobile}
-                    className="shrink-0 md:hidden"
+                    // Full `muted` on hover, like every other ghost control in this bar: the bar
+                    // paints `--sidebar`, which is darker than the work area the ghost variant's
+                    // `muted/50` was drawn against, so the default fill barely appears here.
+                    className="shrink-0 hover:bg-muted md:hidden dark:hover:bg-muted"
                 >
                     <Menu className="size-5" aria-hidden="true" />
                 </Button>
@@ -74,7 +77,8 @@ export function TopBar({
                     size="icon"
                     aria-label="Toggle sidebar"
                     onClick={toggleCollapsed}
-                    className="hidden shrink-0 md:inline-flex"
+                    // Full `muted` on hover — see the menu button above.
+                    className="hidden shrink-0 hover:bg-muted md:inline-flex dark:hover:bg-muted"
                 >
                     <PanelLeft className="size-5" aria-hidden="true" />
                 </Button>
@@ -93,9 +97,19 @@ export function TopBar({
                     <Button
                         variant="ghost"
                         asChild
-                        // The brand gold, the colour of every call to action in the app. `Zap`, not
-                        // a sparkle: sparkles mean AI, and this leads to a price list.
-                        className="hidden shrink-0 gap-1.5 text-primary hover:bg-primary/15 hover:text-primary sm:inline-flex"
+                        // Neutral, not gold, although this is the one control that sells the
+                        // product. The bar already spends gold twice: `New Item`, the primary
+                        // action, and the Favorites star, which is what the colour means
+                        // everywhere else in the app. A third gold here competed with both — and a
+                        // recolour is no answer, since the clash is a free account's only and two
+                        // near-yellows side by side read as a mismatch rather than a decision.
+                        // `Zap` and the leading position carry the emphasis instead. `Zap`, not a
+                        // sparkle: sparkles mean AI, and this leads to a price list.
+                        //
+                        // The hover fill is `bg-muted`, matched to the star and to the two ghost
+                        // controls at the other end of the bar: four pills lighting up in four
+                        // ways read as four kinds of control.
+                        className="hidden shrink-0 gap-1.5 hover:bg-muted sm:inline-flex dark:hover:bg-muted"
                     >
                         <Link href="/upgrade">
                             <Zap className="size-4" aria-hidden="true" />
@@ -115,20 +129,21 @@ export function TopBar({
                     aria-label="Favorites"
                     title="Favorites"
                     // Full `muted` on hover, not the ghost variant's `muted/50`, which is nearly
-                    // the background here. `hover:text-foreground` comes off with it — the star
-                    // sets its own colour.
+                    // the background here, and the same fill the Upgrade control beside it uses.
                     className="hover:bg-muted dark:hover:bg-muted"
                 >
                     <Link href="/favorites">
                         {/* `--favorite` at full strength, the same colour and outline as every
                             other star in the app, and matching the sidebar's Favorites row so one
-                            destination is not two yellows. Hover lifts brightness rather than
-                            changing the colour — a second yellow would be a second meaning — and
-                            `brightness` leaves the token alone, so this survives a retuned
-                            `--favorite` and the light theme. `105` is the smallest step: there is
-                            little headroom above an already-light colour before the lift reads as
-                            a colour change, and the button's `hover:bg-muted` carries the louder
-                            half of the hover signal. */}
+                            destination is not two yellows. The Upgrade control moved to
+                            `--upgrade` rather than this star moving off gold: yellow means
+                            "favourite" everywhere else in the app, and a grey star does not. Hover
+                            lifts brightness rather than changing the colour — a second yellow would
+                            be a second meaning — and `brightness` leaves the token alone, so this
+                            survives a retuned `--favorite` and the light theme. `105` is the
+                            smallest step: there is little headroom above an already-light colour
+                            before the lift reads as a colour change, and the button's
+                            `hover:bg-muted` carries the louder half of the hover signal. */}
                         <Star
                             className="size-5 text-favorite transition group-hover/button:brightness-105"
                             aria-hidden="true"

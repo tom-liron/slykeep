@@ -25,8 +25,8 @@ export function BillingCycleToggle({
     onChange: (cycle: BillingCycle) => void;
     /**
      * Stretches the switch across a card. Each option grows from its own content width rather than
-     * taking an equal share, and may shrink below it: the badge then drops beneath its label instead
-     * of pushing the option out of the switch.
+     * taking an equal share, and may shrink below it: the badge then drops whole onto its own line
+     * beneath the label instead of pushing the option out of the switch.
      *
      * @remarks
      * Everything here is sized in `rem`, so a visitor's raised browser font size enlarges the switch
@@ -63,12 +63,16 @@ export function BillingCycleToggle({
                 >
                     {option.label}
                     {option.badge ? (
-                        // Full width stacks the badge onto two lines ("Save" over "25%").
+                        // One line, at every width. Full width used to shrink this to `w-min` and
+                        // let the text wrap inside it, which turned "Save 25%" into a near-square
+                        // blob — 39x35 on a 390px screen at the default font size, against 64x16
+                        // for the pill. It bought nothing: the row does not overflow either way,
+                        // and the button's own `flex-wrap` is the real fallback, dropping the badge
+                        // whole onto the next line when it stops fitting beside the label.
                         <span
                             className={cn(
                                 "rounded-full bg-confirm/16 px-1.5 py-px text-[0.68rem] font-bold text-confirm",
-                                fullWidth &&
-                                    "w-min px-2 py-1 text-center leading-tight whitespace-normal",
+                                fullWidth && "px-2 py-0.5",
                             )}
                         >
                             {option.badge}

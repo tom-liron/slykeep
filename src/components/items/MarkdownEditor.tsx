@@ -11,6 +11,8 @@ import { useIsPro } from "@/components/layout/ProContext";
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
 import { Button } from "@/components/ui/button";
 import { EDITOR_THEME_CATALOG } from "@/config/editor";
+import { useAiUpsell } from "@/hooks/use-ai-upsell";
+import { AI_FEATURE_NOUNS } from "@/lib/ai-features";
 import { canUseAi } from "@/lib/limits";
 import { MARKDOWN_PLUGINS } from "@/lib/markdown-plugins";
 import { cn } from "@/lib/utils";
@@ -95,10 +97,11 @@ export function MarkdownEditor({
               ? "preview"
               : tab;
 
-    // Controls appearance, not access: `optimizePrompt` re-checks entitlement and item type
-    // server-side. A free account still sees the button, disabled with a crown, so the feature is
-    // discoverable — the same choice `ExplainButton` makes.
+    // Controls what the button does, not access: `optimizePrompt` re-checks entitlement and item
+    // type server-side. A free account sees the same button, crowned, and clicking it explains the
+    // gate rather than doing nothing — the same choice `ExplainButton` makes.
     const canOptimize = canUseAi(useIsPro());
+    const upsell = useAiUpsell();
 
     const requestOptimization = () => {
         startOptimizing(async () => {
@@ -176,7 +179,11 @@ export function MarkdownEditor({
                             canOptimize={canOptimize}
                             isOptimizing={isOptimizing}
                             hasOptimized={optimized !== null}
-                            onClick={requestOptimization}
+                            onClick={
+                                canOptimize
+                                    ? requestOptimization
+                                    : () => upsell(AI_FEATURE_NOUNS.optimizePrompt)
+                            }
                         />
                     )}
 
@@ -316,8 +323,9 @@ export function MarkdownEditor({
  * transformation (`SuggestButton` for tags, the item-type catalog for prompts). `ExplainButton`
  * writes *about* the content, so it uses a different glyph.
  *
- * A free account gets `Crown` and a disabled button, keeping the word "Optimize" — the same choice
- * `ExplainButton` makes, so the control still says what it does.
+ * A free account gets `Crown` in place of the glyph and keeps the word "Optimize", and the button
+ * stays enabled so the click can raise the toast that names the feature — the same choice
+ * `ExplainButton` makes, so the control still says what it does and still answers when pressed.
  */
 function OptimizeButton({
     canOptimize,
@@ -337,7 +345,7 @@ function OptimizeButton({
         ? hasOptimized
             ? "Optimize this prompt with AI again"
             : "Optimize this prompt with AI"
-        : "AI features require Pro subscription";
+        : "Optimize this prompt with AI — a Pro feature";
 
     return (
         <Button
@@ -345,9 +353,10 @@ function OptimizeButton({
             variant="ghost"
             size="sm"
             onClick={onClick}
-            // Inert for a free account, not a link to the upgrade page — see `ExplainButton`:
-            // navigating away from an item someone is reading is the bigger surprise.
-            disabled={!canOptimize || isOptimizing}
+            // Never disabled for a free account, and not a link either — see `ExplainButton`: the
+            // click raises a toast with an Upgrade action, so the answer arrives without navigating
+            // away from the prompt someone is reading.
+            disabled={isOptimizing}
             aria-label={label}
             title={label}
             // A white alpha, not `bg-muted`: this header's colour comes from

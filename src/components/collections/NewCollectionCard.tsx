@@ -28,7 +28,7 @@ export function NewCollectionCard() {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="flex h-full min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-transparent p-4 text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="flex h-full min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-transparent p-4 text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/40 hover:text-foreground focus-glow"
             >
                 <FolderPlus className="size-6" aria-hidden="true" />
                 <span className="text-sm font-medium">New collection</span>

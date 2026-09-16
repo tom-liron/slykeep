@@ -38,7 +38,14 @@ export type DeviceScreenshot = {
     /** CSS viewport width the page renders at, which decides the responsive layout captured. */
     width: number;
     height: number;
-    /** Pixel density of the capture, so it stays sharp inside a retina frame. */
+    /**
+     * Pixel density of the capture, so it stays sharp inside a retina frame.
+     *
+     * @remarks
+     * This governs `page.screenshot()` only. Chromium's screencast, which the clips are built from,
+     * ignores it and follows the window surface instead — `scripts/record-marketing.ts` sets
+     * `--force-device-scale-factor` at launch for that.
+     */
     deviceScaleFactor: number;
 };
 

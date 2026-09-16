@@ -1,8 +1,8 @@
 import {
     Code,
-    File,
     Image as ImageIcon,
     Link,
+    Paperclip,
     Sparkles,
     StickyNote,
     Terminal,
@@ -19,7 +19,7 @@ const iconComponents: Record<IconName, LucideIcon> = {
     Sparkles,
     Terminal,
     StickyNote,
-    File,
+    Paperclip,
     Image: ImageIcon,
     Link,
 };

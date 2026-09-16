@@ -14,6 +14,16 @@ vi.mock("@/actions/ai", () => ({
     optimizePrompt: vi.fn(),
 }));
 
+/**
+ * `useAiUpsell` calls `useRouter`, which throws outside an app-router tree — these tests render the
+ * component on its own, with no router mounted. Stubbed for the same reason as the action above:
+ * nothing here clicks the Optimize button, so the destination the toast navigates to is not this
+ * file's subject.
+ */
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({ push: vi.fn() }),
+}));
+
 const { MarkdownEditor } = await import("./MarkdownEditor");
 
 /**

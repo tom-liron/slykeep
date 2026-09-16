@@ -21,7 +21,7 @@
  * from the database and has to be narrowed, while these are authored here.
  */
 
-import { Code, File, Layers, Search, Sparkles, Terminal, type LucideIcon } from "lucide-react";
+import { Code, Layers, Paperclip, Search, Sparkles, Terminal, type LucideIcon } from "lucide-react";
 
 import { ITEM_TYPE_COLORS } from "./item-type-catalog";
 import { AI_VIDEOS, type MarketingVideo } from "./marketing-media";
@@ -62,7 +62,9 @@ export const MARKETING_FEATURES: readonly MarketingFeature[] = [
     {
         title: "Files & Docs",
         body: "Context files, diagrams, screenshots, PDFs. Uploaded, previewed in place, and served back only to you.",
-        icon: File,
+        // `Paperclip`, the same glyph the file item type moved to: lucide's `File` is a rounded
+        // rectangle with a folded corner, which the Notes type already reads as.
+        icon: Paperclip,
         accent: ITEM_TYPE_COLORS.file,
     },
     {

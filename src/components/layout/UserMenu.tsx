@@ -29,7 +29,7 @@ export function UserMenu({ user, onNavigate }: { user: UserViewModel; onNavigate
     return (
         <div className="shrink-0 border-t border-border p-3">
             <DropdownMenu>
-                <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none aria-expanded:bg-muted">
+                <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors hover:bg-muted focus-glow aria-expanded:bg-muted">
                     <UserAvatar name={user.name} image={user.image} />
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{user.name}</p>

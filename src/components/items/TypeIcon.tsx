@@ -1,8 +1,8 @@
 import {
     Code,
-    File,
     Image as ImageIcon,
     Link,
+    Paperclip,
     Sparkles,
     StickyNote,
     Terminal,
@@ -40,8 +40,12 @@ export function TypeIcon({ name, ...props }: { name: IconName } & LucideProps) {
             return <Terminal {...props} />;
         case "StickyNote":
             return <StickyNote {...props} />;
-        case "File":
-            return <File {...props} />;
+        /* `Paperclip`, not `File`: lucide's `File` and `StickyNote` are both a rounded rectangle
+           with a folded corner, which at the 16px the sidebar and the rows draw them at made the
+           two types one glyph. A paperclip is a curve rather than a rectangle, so it cannot be
+           read as either Notes or Images, and an attachment is what the type holds. */
+        case "Paperclip":
+            return <Paperclip {...props} />;
         case "Image":
             return <ImageIcon {...props} />;
         case "Link":

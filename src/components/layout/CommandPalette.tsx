@@ -141,7 +141,7 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
                 onClick={openPalette}
                 aria-label="Search items and collections"
                 title="Search items and collections"
-                className="relative flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-left text-sm text-muted-foreground transition-colors pointer-coarse:size-11 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9 sm:w-auto sm:min-w-0 sm:flex-1 sm:justify-start sm:gap-2 sm:rounded-md sm:border sm:border-input sm:bg-field sm:max-w-md sm:pr-2 sm:pl-9 sm:pointer-coarse:h-11 sm:pointer-coarse:w-auto sm:hover:bg-muted/50"
+                className="relative flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-left text-sm text-muted-foreground transition-colors pointer-coarse:size-11 hover:bg-muted focus-glow sm:h-9 sm:w-auto sm:min-w-0 sm:flex-1 sm:justify-start sm:gap-2 sm:rounded-md sm:border sm:border-input sm:bg-field sm:max-w-md sm:pr-2 sm:pl-9 sm:pointer-coarse:h-11 sm:pointer-coarse:w-auto sm:hover:bg-muted/50"
             >
                 <Search
                     className="size-4 shrink-0 sm:pointer-events-none sm:absolute sm:top-1/2 sm:left-3 sm:-translate-y-1/2"

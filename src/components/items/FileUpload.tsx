@@ -78,7 +78,7 @@ export function FileUpload({
         // it should do. That is also what lets the hover state cover the entire target instead of
         // only the words in the middle of it: `group` below tints the icon and underlines the phrase
         // from anywhere inside. The file input stays `sr-only` but focusable, and
-        // `has-[:focus-visible]` draws the ring the input itself cannot.
+        // `focus-glow-within` draws the indicator the input itself cannot.
         <label
             htmlFor={inputId}
             onDragOver={(event) => {
@@ -89,7 +89,7 @@ export function FileUpload({
             onDrop={handleDrop}
             className={cn(
                 "group block rounded-lg border border-dashed border-border p-6 text-center transition-colors",
-                "has-[:focus-visible]:border-ring/70 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/15",
+                "focus-glow-within",
                 isInteractive && "cursor-pointer hover:border-primary/60 hover:bg-muted/40",
                 isDragging && "border-primary bg-primary/5",
                 disabled && "opacity-60",

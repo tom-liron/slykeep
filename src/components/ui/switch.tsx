@@ -25,7 +25,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
         <SwitchPrimitive.Root
             data-slot="switch"
             className={cn(
-                "peer relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-transparent transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "peer relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-transparent transition-colors outline-none focus-glow disabled:cursor-not-allowed disabled:opacity-50",
                 // The `::after` overhang extends the 20×36 box to 46×46 for a touch pointer while
                 // the painted switch stays 20×36. The insets are 6px and 14px, not the 4px and
                 // 12px the arithmetic gives: an absolutely positioned pseudo-element is sized from

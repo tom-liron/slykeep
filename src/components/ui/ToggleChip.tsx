@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  *
  * The input stays a native form control (kept `sr-only`, not removed) so it keeps its role,
  * checked state, and arrow-key behaviour within a `name` group. The `<label>` around it is what
- * gets painted, and `has-[:focus-visible]:` moves the focus ring from the input onto that box.
+ * gets painted, and `focus-glow-within` moves the focus indicator from the input onto that box.
  *
  * Selected styling is the caller's: the type picker tints with the item type's colour, which is
  * user data and can only arrive as an inline `style`; the collection picker uses theme tokens.
@@ -46,7 +46,7 @@ export function ToggleChip({
         <label
             className={cn(
                 "flex max-w-full cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium transition-colors pointer-coarse:min-h-11",
-                "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                "focus-glow-within",
                 checked ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 className,
             )}

@@ -34,14 +34,24 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
             <p className="mt-0.5 text-xs text-muted-foreground">
                 {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
             </p>
-            {/* Guarded: the view model normalizes a null description to "", and the create dialog
-                makes the field optional, so an empty paragraph and its margin are reachable. */}
-            {collection.description && (
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {collection.description}
-                </p>
-            )}
-            <div className="mt-4 flex items-center gap-2">
+            {/* Always rendered, and always two lines tall, even when the description is "" — the view
+                model normalizes null to that and the create dialog makes the field optional. Together
+                with the icon row below, this is what gives every card one height.
+
+                A grid stretches its children, so cards *within* a row already matched; cards in
+                different rows did not, because each row sizes to its own tallest. The description was
+                0, 1 or 2 lines and the icon row 0 or 16px, so a row holding a long description stood
+                visibly taller than the row under it. `ItemCard` fixed the same defect the same way,
+                by pinning its tag row to one line rather than by stretching the container.
+
+                Sized in `rem` against `text-sm`'s own line height, so it tracks a raised browser font
+                size instead of clipping at one. */}
+            <p className="mt-2 line-clamp-2 min-h-10 text-sm text-muted-foreground">
+                {collection.description}
+            </p>
+            {/* `min-h-4` matches the `size-4` icons, holding the row open for a collection that has
+                no items yet. */}
+            <div className="mt-4 flex min-h-4 items-center gap-2">
                 {collection.itemTypes.map((itemType) => (
                     <TypeIcon
                         key={itemType.id}
@@ -64,7 +74,7 @@ export function CollectionCard({ collection }: { collection: CollectionViewModel
                 `hover:` keeps the card lit while the pointer is on the actions menu above it. */}
             <Link
                 href={`/collections/${collection.id}`}
-                className="absolute inset-0 rounded-xl transition-colors group-hover:bg-foreground/5 group-focus-within:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                className="absolute inset-0 rounded-xl transition-colors group-hover:bg-foreground/5 group-focus-within:bg-foreground/5 focus-glow"
             >
                 <span className="sr-only">{collection.name}</span>
             </Link>

@@ -53,7 +53,7 @@ export default function GlobalError({
                     <button
                         type="button"
                         onClick={reset}
-                        className="mt-8 inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 pointer-coarse:h-11"
+                        className="mt-8 inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover pointer-coarse:h-11"
                     >
                         Reload
                     </button>

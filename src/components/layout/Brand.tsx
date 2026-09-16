@@ -51,7 +51,10 @@ export function Brand({
             // target, and the negative margin hands that space back to the layout so nothing
             // moves. Padding, not a bigger mark (its size is the logo's design) and not an
             // `::after` overhang (the hamburger is 8px away).
-            className="flex min-w-0 items-center gap-2 rounded-lg transition-opacity pointer-coarse:-m-1.5 pointer-coarse:p-1.5 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            // Brightness, not `opacity-80`: the bars this sits on are near-black, so fading the
+            // lockup toward them darkened it, while every other hover in the app lightens. A
+            // brightness lift leaves the mark's literal colours alone and works on any surface.
+            className="flex min-w-0 items-center gap-2 rounded-lg transition pointer-coarse:-m-1.5 pointer-coarse:p-1.5 hover:brightness-110 focus-glow"
         >
             {content}
         </Link>

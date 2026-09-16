@@ -12,7 +12,9 @@ import { useIsPro } from "@/components/layout/ProContext";
 import { useEditorPreferences } from "@/components/settings/EditorPreferencesContext";
 import { Button } from "@/components/ui/button";
 import { EDITOR_MIN_HEIGHT, EDITOR_SURFACE, EDITOR_THEME_CATALOG } from "@/config/editor";
+import { useAiUpsell } from "@/hooks/use-ai-upsell";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
+import { AI_FEATURE_NOUNS } from "@/lib/ai-features";
 import { codeLanguageLabel, toMonacoLanguage } from "@/lib/code-language";
 import { editorMaxHeight, renderedFontSize } from "@/lib/editor-metrics";
 import { canUseAi } from "@/lib/limits";
@@ -266,11 +268,11 @@ export function CodeEditor({
     // changes underneath them.
     const surface = EDITOR_THEME_CATALOG[preferences.theme].surface;
 
-    // Controls appearance, not access: `explainCode` re-checks entitlement and item type
-    // server-side. Unlike the AI buttons in the forms, this one stays visible for a free account,
-    // disabled with a crown, so the feature is discoverable in the editor's chrome. `canExplain`
-    // therefore gates the action, not the button.
+    // Controls what the button does, not access: `explainCode` re-checks entitlement and item type
+    // server-side. A free account sees the same button, crowned, and clicking it explains the gate
+    // rather than doing nothing — the choice all four of the app's AI controls make.
     const canExplain = canUseAi(useIsPro());
+    const upsell = useAiUpsell();
 
     // Pinned to the code tab until there is a second tab to switch to, so nothing can leave the
     // editor showing a panel that holds nothing — the same guard `MarkdownEditor` applies with
@@ -364,7 +366,11 @@ export function CodeEditor({
                             canExplain={canExplain}
                             isExplaining={isExplaining}
                             hasExplanation={explanation !== null}
-                            onClick={requestExplanation}
+                            onClick={
+                                canExplain
+                                    ? requestExplanation
+                                    : () => upsell(AI_FEATURE_NOUNS.explainCode)
+                            }
                         />
                     )}
 
@@ -528,7 +534,9 @@ function Tab({ value, children }: { value: string; children: React.ReactNode }) 
  * the answer coming back, which is what this produces — prose about the code, not a transformation
  * of it, so it names the action the way the description button's `PenLine` does.
  *
- * A free account gets `Crown` and a disabled button, keeping the word "Explain".
+ * A free account gets `Crown` in place of the glyph and keeps the word "Explain". The button stays
+ * enabled: the click is what raises the toast naming the feature and offering the upgrade, and a
+ * disabled control fires none, which left the crown unexplained on a touch screen.
  *
  * @remarks
  * This is the only icon in an otherwise spare header (flat dots, muted tabs, a mono label), so a
@@ -553,7 +561,7 @@ function ExplainButton({
         ? hasExplanation
             ? "Explain this code with AI again"
             : "Explain this code with AI"
-        : "AI features require Pro subscription";
+        : "Explain this code with AI — a Pro feature";
 
     return (
         <Button
@@ -561,9 +569,10 @@ function ExplainButton({
             variant="ghost"
             size="sm"
             onClick={onClick}
-            // Inert for a free account, not a link to the upgrade page: navigating away from an
-            // item someone is reading is the bigger surprise.
-            disabled={!canExplain || isExplaining}
+            // Never disabled for a free account, and not a link either: the click raises a toast
+            // with an Upgrade action, so the answer arrives where the user is rather than by
+            // navigating them away from the item they are reading.
+            disabled={isExplaining}
             aria-label={label}
             title={label}
             // The hover fill is a white alpha, overriding the ghost variant's `bg-muted`, for the

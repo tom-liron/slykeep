@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Folder, Tag, X } from "lucide-react";
 import { toast } from "sonner";
@@ -48,6 +48,7 @@ export function ItemDrawer({
     onClose: () => void;
 }) {
     const router = useRouter();
+    const drawerRef = useRef<HTMLDivElement>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isFavoriting, startFavoriting] = useTransition();
     /**
@@ -269,6 +270,23 @@ export function ItemDrawer({
                 the PDF viewer). */}
             <SheetContent
                 showCloseButton={false}
+                // Focus the panel on open, not the first control in it.
+                //
+                // Radix focuses the first tabbable descendant, and this drawer's is the ✕ — it
+                // heads the header row, ahead of the toolbar. So the drawer opened with Close
+                // focused, and Enter or Space shut the drawer the user had just opened. Focusing
+                // the panel instead announces the title, puts the ✕ first in the tab order rather
+                // than under the cursor, and leaves nothing armed.
+                //
+                // `tabIndex={-1}` is what makes the panel focusable at all; without it the call is
+                // a no-op and Radix's own fallback would not run either, since `preventDefault`
+                // has already skipped it.
+                tabIndex={-1}
+                onOpenAutoFocus={(event) => {
+                    event.preventDefault();
+                    drawerRef.current?.focus();
+                }}
+                ref={drawerRef}
                 className="app-scrollbar gap-0 overflow-x-hidden overflow-y-auto data-[side=right]:w-full data-[side=right]:border-l-0 data-[side=right]:drawer:w-[min(92vw,36rem)] data-[side=right]:drawer:max-w-none data-[side=right]:sm:max-w-none data-[side=right]:drawer:border-l"
             >
                 <SheetHeader className="gap-3 p-4 drawer:p-5">

@@ -235,13 +235,13 @@ Icons are [lucide-react](https://lucide.dev) names.
 
 | Type | Color | Swatch | Icon |
 |------|-------|--------|------|
-| Snippet | `#FF5C5C` (red) | 🟥 | `Code` |
-| Prompt | `#FF8F40` (orange) | 🟧 | `Sparkles` |
-| Command | `#3DD68C` (green) | 🟩 | `Terminal` |
-| Note | `#F266B3` (magenta) | 🩷 | `StickyNote` |
-| File | `#5B9DFF` (blue) | 🟦 | `File` |
-| Image | `#A987FF` (violet) | 🟪 | `Image` |
-| Link | `#B5E853` (lime) | 🟩 | `Link` |
+| Snippet | `#3b82f6` (blue) | 🟦 | `Code` |
+| Prompt | `#8b5cf6` (violet) | 🟪 | `Sparkles` |
+| Command | `#f97316` (orange) | 🟧 | `Terminal` |
+| Note | `#fde047` (yellow) | 🟨 | `StickyNote` |
+| File | `#94A3B8` (slate) | ⬜ | `File` |
+| Image | `#ec4899` (pink) | 🩷 | `Image` |
+| Link | `#10b981` (emerald) | 🟩 | `Link` |
 
 ### Responsive
 

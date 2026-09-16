@@ -71,7 +71,7 @@ export function ItemList({
                                 type="button"
                                 onClick={() => openItem(item)}
                                 className={cn(
-                                    "absolute inset-0 cursor-pointer transition-colors group-hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                                    "absolute inset-0 cursor-pointer transition-colors group-hover:bg-foreground/5 focus-glow",
                                     // Matched to the entry underneath, so the hover tint stops
                                     // exactly where its border curves.
                                     variant === "file" && "rounded-lg",

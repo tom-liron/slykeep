@@ -114,6 +114,16 @@ its example comment, which still cites `#3b82f6`.
 | image | `#ec4899` | **`#A987FF`** violet |
 | link | `#10b981` | **`#B5E853`** lime |
 
+> **Superseded.** Vivid shipped and was reverted. Reassigning every hue cost the types the identity
+> they had been read by, and the old assignments sat better in the finished design. Every colour in
+> the "Old" column above is the live value again, with one exception: `file` stays at `#94A3B8`,
+> because `#6b7280` is a near-neutral (chroma 0.023) and read as a disabled icon against the new
+> surfaces. A levelled variant of the old hues was tried in between and rejected — raising lightness
+> to make one family cost 15–27% of the chroma on snippet, prompt, command and image, and on a
+> near-black surface chroma is what gives a colour presence. `ITEM_TYPE_COLORS` and
+> `project-overview.md` §8 carry the current values; the migration mechanics below still describe
+> how a palette change reaches the database.
+
 **Where it lives, and why this needs a migration.** `ITEM_TYPE_COLORS` in
 `src/config/item-type-catalog.ts` is the source, but the app renders `ItemType.color` **from the
 database row** (`server/view-models.ts`, `server/item-types.ts`). The seed is the only thing that

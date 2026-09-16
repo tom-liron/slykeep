@@ -26,7 +26,7 @@
        Both halves scale together now. */
     --breakpoint-drawer: 37.5rem;
     --color-favorite: var(--favorite);
-    --color-suggestion: var(--suggestion);
+    --color-primary-hover: var(--primary-hover);
     --color-confirm: var(--confirm);
     --color-pin: var(--pin);
     --color-prose-link: var(--prose-link);
@@ -99,15 +99,22 @@
      */
     --favorite: #ca8a04;
     /**
-     * The two colours the AI tag suggestions are drawn in: the suggested tag itself, and the
-     * control that accepts it. Rejecting one uses `--destructive`, which already means exactly
-     * that everywhere else.
+     * The hover face of a solid `--primary` surface.
      *
-     * Tokens rather than palette classes, like `--favorite`, so every accent is retuned in one place
-     * and answers to the light theme. These are the light-mode values, picked to stay legible on
-     * white; the dark values below are chosen for a near-black background.
+     * A token for the same reason `--favorite` is: it carries a meaning the theme should be able to
+     * retune. See the dark block, where the value is chosen and the reasoning lives; this is the
+     * light-mode equivalent, a step of the same size against a white background.
      */
-    --suggestion: #2563eb;
+    --primary-hover: oklch(0.3 0 0);
+    /**
+     * The control that accepts an AI suggestion. Rejecting one uses `--destructive`, which already
+     * means exactly that everywhere else, and the suggestion itself is drawn in no colour at all —
+     * see `ItemFormFields`.
+     *
+     * A token rather than a palette class, like `--favorite`, so the accent is retuned in one place
+     * and answers to the light theme. This is the light-mode value, picked to stay legible on white;
+     * the dark value below is chosen for a near-black background.
+     */
     --confirm: #16a34a;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
@@ -146,7 +153,18 @@
 .dark {
     color-scheme: dark;
     --favorite: #f2b544;
-    --suggestion: #5b9dff;
+    /**
+     * The hover face of a solid `--primary` surface: the same gold, lifted in lightness with its
+     * chroma held.
+     *
+     * A value rather than an alpha or a `color-mix`, because both of those blend gold toward
+     * something colourless and take its chroma with them. `bg-primary/80` let the near-black
+     * background through and landed on roughly `#C7963C` — darker *and* duller. Mixing 10% of
+     * `--foreground` in moved lightness by 0.016 and cost a tenth of the chroma, so the button read
+     * as going flat rather than lifting. This is `--primary` at L 0.85 instead of 0.810, chroma
+     * unchanged at 0.144: brighter gold, still gold.
+     */
+    --primary-hover: #ffc253;
     --confirm: #3dd68c;
     /* The pinned-item marker. Blue so a pinned badge never reads as the gold favourite beside it. */
     --pin: #5b9dff;
@@ -188,6 +206,55 @@
     --sidebar-accent-foreground: #f4f4f5;
     --sidebar-border: #1e1e22;
     --sidebar-ring: #f2b544;
+}
+
+/**
+ * The focus indicator, everywhere the app draws one: a hairline on the element's own edge and a soft
+ * halo bleeding out from it.
+ *
+ * One utility rather than per-component `focus-visible:ring-*`, because three different treatments
+ * had drifted apart — a 3px ring at 50% over a solid `border-ring` on buttons, badges and switches;
+ * a 2px ring at full strength on cards, the brand and the command palette; and a 2px ring at 15%
+ * over a 70% border on fields. The first of those stacked two separate bands of yellow, which is the
+ * "cheap" look: a hard edge, a gap, then a second softer edge in a different tone.
+ *
+ * A halo instead. `box-shadow` blurs, `ring` cannot, and that blur is the whole difference between
+ * light coming off the control and a rectangle drawn around it. The hairline keeps the indicator
+ * meeting WCAG 2.4.11 on its own, so the halo is free to be as soft as it likes. `transition-all` on
+ * the button base animates it in, which a hard ring never earned.
+ *
+ * The mix is `in srgb` deliberately: fading a colour to `transparent` is an alpha operation, and the
+ * perceptual spaces used elsewhere in this file buy nothing for it.
+ */
+@utility focus-glow {
+    &:focus-visible {
+        outline: none;
+        --glow: var(--ring);
+        box-shadow:
+            0 0 0 1px var(--glow),
+            0 0 12px -1px color-mix(in srgb, var(--glow) 55%, transparent);
+    }
+    /* An invalid field glows in its own colour. `box-shadow` here is a real declaration, not
+       Tailwind's `--tw-ring-shadow`, so it would otherwise overwrite `aria-invalid:ring-destructive`
+       at the exact moment the field is focused — the moment the error most needs to be legible.
+       Only the custom property is reassigned; the shadow above resolves it at computed-value time. */
+    &[aria-invalid="true"]:focus-visible {
+        --glow: var(--destructive);
+    }
+}
+
+/**
+ * {@link focus-glow} for a control whose real input is visually hidden — a chip built on a `<label>`,
+ * a dropzone built on a file input. The box that gets painted is the wrapper, so the focus has to be
+ * matched inside it rather than on it.
+ */
+@utility focus-glow-within {
+    &:has(:focus-visible) {
+        outline: none;
+        box-shadow:
+            0 0 0 1px var(--ring),
+            0 0 12px -1px color-mix(in srgb, var(--ring) 55%, transparent);
+    }
 }
 
 @layer base {

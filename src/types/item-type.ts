@@ -22,7 +22,8 @@ export type ContentType = "TEXT" | "URL" | "FILE";
  * A closed union rather than `string`, because the value arrives from a database column: narrowing
  * it at the server boundary is what lets `TypeIcon` index its map without a fallback branch.
  */
-export type IconName = "Code" | "Sparkles" | "Terminal" | "StickyNote" | "File" | "Image" | "Link";
+export type IconName =
+    "Code" | "Sparkles" | "Terminal" | "StickyNote" | "Paperclip" | "Image" | "Link";
 
 /** The persisted natural key of a system item type (`@@unique([name, userId])`). */
 export type ItemTypeName = "snippet" | "prompt" | "command" | "note" | "file" | "image" | "link";

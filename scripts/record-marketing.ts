@@ -57,11 +57,12 @@ const PUBLIC_DIR = path.join(process.cwd(), "public");
  * The account every capture signs in as. Recreated at the start of a run, deleted at the end.
  *
  * @remarks
- * The sidebar shows the name and address in every published clip, so the address uses a common
- * provider for realism and a local part unlikely to belong to anyone. The account is written
- * straight to the database and never sent email.
+ * The sidebar shows the name and address in every published clip, so the address reads as an
+ * ordinary one: a common provider, and a local part that matches the persona's name. It carried
+ * `.slykeep.demo` before, which announced itself as a prop on a page selling the product. The
+ * account is written straight to the database and never sent email.
  */
-const RECORDER = { email: "amorgan.slykeep.demo@gmail.com", name: "Alex Morgan" };
+const RECORDER = { email: "alex.morgan.dev@gmail.com", name: "Alex Morgan" };
 
 /** Longest one unchanged frame may hold, so an idle stretch does not stall a clip. */
 const MAX_FRAME_HOLD_S = 1.2;
@@ -100,6 +101,31 @@ type Scene = {
     crop?: { x: number; y: number; width: number; height: number };
     /** Encoded width in pixels. */
     outputWidth: number;
+    /**
+     * Density of the window surface this scene is captured at, as `--force-device-scale-factor`.
+     *
+     * @remarks
+     * A frames-against-pixels dial, and the two kinds of clip want different settings. The browser
+     * rasterizes every frame at this density and the screencast cannot outrun it, so raising it
+     * thins the capture: measured on the hero, 1.0 gave 133 frames, 1.25 gave 125, and 1.5 only 99.
+     * Motion is what the hero sells, so it takes 1.25 — 94% of the frames for 25% more pixels than
+     * a plain capture. The AI clips are a still drawer with text arriving into it, where nothing
+     * moves fast enough to miss the frames, so they keep 1.5 and stay sharper.
+     *
+     * Each value costs one browser launch, since the flag is fixed at launch.
+     */
+    deviceScaleFactor: number;
+    /**
+     * How long the encoded clip runs, in seconds, whatever the capture measured.
+     *
+     * @remarks
+     * Without this a clip's length is an accident of the recording machine: {@link frameHolds} gives
+     * each frame the real gap to the next, so the same scene is 18s on an idle laptop and 38s on a
+     * busy one, and raising the capture density lengthened every clip on its own. The scene's own
+     * `waitForTimeout` calls are the intended pace; this rescales the measured timeline back onto it,
+     * keeping every frame's share of the whole.
+     */
+    targetDurationS: number;
     /** Unrecorded setup, such as opening the drawer the clip is about. */
     prepare?: (page: Page) => Promise<void>;
     /** The recorded interaction. */
@@ -116,6 +142,57 @@ function starterItem(type: StarterItem["type"]): StarterItem {
     const item = STARTER_ITEMS.find((candidate) => candidate.type === type);
     if (!item) throw new Error(`The starter content has no ${type} to record.`);
     return item;
+}
+
+/** A starter item by its exact title, so a scene can feature one rather than take the first. */
+function starterItemTitled(title: string): StarterItem {
+    const item = STARTER_ITEMS.find((candidate) => candidate.title === title);
+    if (!item) throw new Error(`The starter content has no item titled "${title}".`);
+    return item;
+}
+
+/**
+ * The snippet the hero clip searches for, opens and copies, and the query that reaches it.
+ *
+ * Real application code, deliberately. The clip used to feature the multi-stage Dockerfile, which is
+ * build configuration — it showed the product holding a file rather than holding the kind of thing a
+ * developer goes looking for. A generic TypeScript context factory is recognisable on sight to the
+ * audience this page is written for, and its description carries the point the landing copy makes:
+ * what is saved is the reasoning, not only the characters.
+ *
+ * Looked up by title rather than hardcoded, so renaming the starter item fails the recording instead
+ * of quietly filming the wrong snippet.
+ */
+const HERO_SNIPPET = starterItemTitled("createSafeContext");
+const HERO_QUERY = "context";
+
+/** The recorder account's id, set once the account exists and read by {@link emptyBeforeRecording}. */
+let recorderUserId = "";
+
+/**
+ * Clears the field an AI clip is about to fill, on the item that clip opens, before recording starts.
+ *
+ * @remarks
+ * The scenes used to do this on camera — click into the field, `fill("")`, then press the AI button
+ * — so the clip opened by showing a viewer something being deleted, and the gain it was selling
+ * arrived only as a return to where the item had already been. Emptying the row instead means the
+ * drawer opens on an item that genuinely has no description, or no tags, and everything filmed after
+ * that is the feature adding what was missing.
+ *
+ * Safe to run mid-session: the device screenshots and the hero are captured before any scene, and
+ * each clip saves what the model produced, so the item is whole again for whatever opens it next.
+ */
+async function emptyBeforeRecording(item: StarterItem, field: "description" | "tags") {
+    const row = await prisma.item.findFirst({
+        where: { userId: recorderUserId, title: item.title },
+        select: { id: true },
+    });
+    if (!row) throw new Error(`The recorder account has no item titled "${item.title}".`);
+
+    await prisma.item.update({
+        where: { id: row.id },
+        data: field === "description" ? { description: null } : { tags: { set: [] } },
+    });
 }
 
 /**
@@ -167,6 +244,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
 const drawerOf = (page: Page) => page.getByRole("dialog");
 
+/**
+ * The editor's visible tab panel — the explanation, or the optimized prompt.
+ *
+ * @remarks
+ * The Code and Write tabs stay mounted and hidden so monaco is not torn down, so the drawer holds
+ * more than one `tabpanel`; `data-state` is what distinguishes the one on screen. This is the box
+ * these results scroll *in*: `EDITOR_PANEL` gives it `overflow-y-auto` under a `min(400px, 60dvh)`
+ * ceiling. The clips used to scroll the whole drawer past it, which looked like the app had no inner
+ * scrolling at all.
+ */
+const activePanel = (page: Page) =>
+    drawerOf(page).locator('[role="tabpanel"][data-state="active"]');
+
 /** A tab in the drawer's editor header, which Explain and Optimize add once they have an answer. */
 const drawerTab = (page: Page, name: string) =>
     drawerOf(page).getByRole("tab", { name, exact: true });
@@ -183,18 +273,58 @@ async function reveal(target: Locator) {
 }
 
 /** Moves the visible cursor to a target over a short glide, then clicks it. */
-async function glideClick(target: Locator) {
+/** Moves the pointer onto `target` and leaves it there. The travel half of {@link glideClick}. */
+async function glideTo(target: Locator) {
     await reveal(target);
     const box = await target.boundingBox();
-    if (!box) throw new Error(`Nothing on screen to click: ${target}`);
+    if (!box) throw new Error(`Nothing on screen to move to: ${target}`);
 
     const page = target.page();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 18 });
+    // Eight steps, not eighteen. Every step repaints the synthetic cursor and the screencast catches
+    // roughly one frame per repaint, so a step count is really a frame budget: at eighteen, the two
+    // glides in the hero plus its opening move spent nearly half the clip's frames watching the
+    // pointer cross the screen, which read as someone moving a mouse very slowly. Eight still lands
+    // several frames on any real distance in these scenes, so the travel reads as a movement rather
+    // than a jump, and the frames it frees go to the parts worth watching.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
     await page.waitForTimeout(150);
+}
+
+async function glideClick(target: Locator) {
+    await glideTo(target);
+    const page = target.page();
     await page.mouse.down();
     await page.waitForTimeout(70);
     await page.mouse.up();
     await page.waitForTimeout(300);
+}
+
+/**
+ * Scrolls with the wheel, under wherever the pointer is, eased over `durationMs`.
+ *
+ * @remarks
+ * A wheel rather than assigning `scrollTop`, because the clips are watched as though a person were
+ * driving: the pointer has to be over the thing that moves, and it is the pointer's position that
+ * decides what a wheel scrolls. The two AI clips used to leave the cursor parked on the button that
+ * had just been pressed while the panel moved on its own, which nobody does.
+ *
+ * Eased in and out across eighteen deltas for the same reason {@link glideScroll} is: a browser's
+ * own smooth scrolling lasts about 350ms, which this capture rate samples four times.
+ */
+async function glideWheel(page: Page, by: number, durationMs = 1500) {
+    const steps = 18;
+    let delivered = 0;
+
+    for (let index = 1; index <= steps; index++) {
+        const progress = index / steps;
+        const eased = progress < 0.5 ? 2 * progress * progress : 1 - (-2 * progress + 2) ** 2 / 2;
+        const target = by * eased;
+        await page.mouse.wheel(0, target - delivered);
+        delivered = target;
+        await page.waitForTimeout(durationMs / steps);
+    }
+
+    await page.waitForTimeout(400);
 }
 
 /** Opens a starter item's drawer from its type page. */
@@ -238,39 +368,127 @@ async function waitForValue(field: Locator) {
     }
 }
 
-async function scrollDrawer(page: Page, top: number) {
-    await drawerOf(page).evaluate(
-        (element, by) => element.scrollBy({ top: by, behavior: "smooth" }),
-        top,
+/**
+ * Scrolls an element by `by` pixels over `durationMs`, animated frame by frame rather than by the
+ * browser's own `behavior: "smooth"`.
+ *
+ * @remarks
+ * Native smooth scrolling runs for roughly 350ms, which the screencast samples about four times at
+ * the rate these clips capture at — a lurch, not a glide, and the most conspicuously unpolished
+ * thing in the AI clips. Driving it from `requestAnimationFrame` sets the duration, so the movement
+ * lasts long enough to be caught many times over however fast the capture happens to be running.
+ * Eased in and out, since a scroll that starts and stops at full speed looks mechanical even when
+ * every frame is present.
+ */
+async function glideScroll(target: Locator, by: number, durationMs = 1500) {
+    // Stepped from here rather than from `requestAnimationFrame` inside the page. tsx compiles with
+    // esbuild's `keepNames`, which wraps any *named* function in a `__name` helper — and a function
+    // handed to `evaluate` is serialized and run in the browser, where that helper does not exist,
+    // so an inner `const step = …` throws `__name is not defined`. Every callback below is anonymous
+    // for the same reason. Stepping from here is also the more direct control: each assignment is
+    // its own paint, which is exactly what the screencast needs to catch.
+    const steps = 18;
+    const from = await target.evaluate((element) => element.scrollTop);
+
+    for (let index = 1; index <= steps; index++) {
+        const progress = index / steps;
+        const eased = progress < 0.5 ? 2 * progress * progress : 1 - (-2 * progress + 2) ** 2 / 2;
+        await target.evaluate(
+            (element, top) => {
+                element.scrollTop = top;
+            },
+            from + by * eased,
+        );
+        await target.page().waitForTimeout(durationMs / steps);
+    }
+
+    await target.page().waitForTimeout(400);
+}
+
+/**
+ * Scrolls the drawer to the end of its content, so nothing is left straddling the bottom of the
+ * frame.
+ *
+ * A clip cannot be scrolled. The drawer is a scroll container like any other, so an item taller
+ * than the viewport leaves its last row sliced by the edge — which a reader of the landing page
+ * sees as a broken capture rather than as a page that continues. The Dockerfile item the hero
+ * opens overflows 1440x900 by 52px, which cut the "Created" row in half; scrolled to the end, the
+ * Details block sits whole, 20px clear of the edge.
+ *
+ * By how much is per-item, so this scrolls to the end rather than by a measured amount: a longer
+ * item would leave the same slice behind a fixed number.
+ */
+async function scrollDrawerToEnd(page: Page) {
+    const drawer = drawerOf(page);
+    const remaining = await drawer.evaluate(
+        (element) => element.scrollHeight - element.clientHeight - element.scrollTop,
     );
-    await page.waitForTimeout(1600);
+    if (remaining > 1) await glideScroll(drawer, remaining);
 }
 
 const heroScene: Scene = {
     name: "hero",
     video: HERO_VIDEO,
     capture: DEVICE_SCREENSHOTS.laptop,
+    // 1920 out of a 1440 capture — a deliberate 1.33x lanczos upscale, not a claim of detail. At
+    // `deviceScaleFactor: 1` there are only 1440 real pixels, and the 1080px box `Hero` plays this
+    // in is 2160 on a retina screen, so something upscales either way; doing it here with lanczos
+    // beats leaving it to the browser's runtime scaler at playback.
     outputWidth: 1920,
+    // 1, for frames over pixels. Measured on this scene: 1 gave 133 frames, 1.25 gave 125, 1.5 only
+    // 99. The hero sells motion — a cursor crossing the screen, a list narrowing under a query — and
+    // a demo that stutters reads as a slow product, which no amount of sharpness buys back.
+    deviceScaleFactor: 1,
+    // 11s, not 14. The target is a frame-rate control as much as a pacing one: the captured frames
+    // are spread across whatever length is asked for, so a longer clip out of the same capture plays
+    // *less* smoothly. At 14 the hero ran 121 frames at 8.6/s; the original this replaces packed a
+    // similar capture into 10.1s and read as noticeably smoother for exactly that reason.
+    targetDurationS: 11,
     async run(page, cues) {
-        await page.mouse.move(760, 420, { steps: 14 });
+        await page.mouse.move(760, 420, { steps: 6 });
         await page.waitForTimeout(700);
         cues.poster();
         await page.keyboard.press("Meta+k");
         await page.waitForTimeout(450);
-        await page.keyboard.type("docker", { delay: 90 });
-        await page.waitForTimeout(800);
+        // Typed slowly, and held afterwards, because the results narrowing letter by letter is the
+        // clip's strongest few frames — it is the whole "I know I saved this somewhere" moment, and
+        // at the old 90ms it was over before a viewer could read what was being filtered.
+        await page.keyboard.type(HERO_QUERY, { delay: 130 });
+        await page.waitForTimeout(1100);
         await page.keyboard.press("Enter");
 
         const drawer = drawerOf(page);
+        // Fails the scene if the palette's first hit is not the snippet this clip is about, rather
+        // than filming whatever else happened to rank first.
+        await drawer
+            .getByRole("heading", { name: HERO_SNIPPET.title })
+            .waitFor({ timeout: 10_000 });
         const copy = drawer.getByRole("button", { name: "Copy", exact: true });
         await copy.waitFor();
-        await page.waitForTimeout(1000);
+        // The drawer opens on the card's summary, so the heading and the toolbar are on screen at
+        // once while the body is still being fetched — and the highlighter colours it a beat later
+        // again. Waiting only for the Copy button is what put a click on an empty code panel in the
+        // shipped clip. `waitFor` also fast-forwards the load, so the empty panel is never the thing
+        // the viewer is looking at.
+        await cues.waitFor(() =>
+            page.waitForFunction(
+                () =>
+                    (document.querySelector('[role="dialog"]')?.textContent ?? "").includes(
+                        "useSafeContext",
+                    ),
+                undefined,
+                { timeout: 30_000 },
+            ),
+        );
+        await page.waitForTimeout(900);
         await glideClick(copy);
         // The toolbar button relabels itself only once the text is really on the clipboard.
         await drawer
             .getByRole("button", { name: "Copied", exact: true })
             .waitFor({ timeout: 5000 });
         await page.waitForTimeout(1100);
+        // Settles the drawer on a whole row rather than on a sliced one — see the helper.
+        await scrollDrawerToEnd(page);
         await page.keyboard.press("Escape");
         await page.waitForTimeout(600);
 
@@ -281,14 +499,34 @@ const heroScene: Scene = {
 };
 
 /** The shared shape of the four drawer-cropped AI clips. */
-function aiScene(name: string, video: MarketingVideo, item: StarterItem, run: Scene["run"]): Scene {
+function aiScene(
+    name: string,
+    video: MarketingVideo,
+    item: StarterItem,
+    targetDurationS: number,
+    run: Scene["run"],
+    /** Emptied before the drawer opens, for the two clips whose whole subject is filling it. */
+    emptyFirst?: "description" | "tags",
+): Scene {
     return {
         name,
         video,
         capture: AI_CLIP_CAPTURE,
         crop: AI_CLIP_CAPTURE.crop,
-        outputWidth: 960,
-        prepare: (page) => openStarterItem(page, item),
+        // 864 out of a 576 crop — the same deliberate 1.5x lanczos upscale the hero takes, for the
+        // same reason: at `deviceScaleFactor: 1` the crop holds 576 real pixels, the 28rem box in
+        // `AiFeatureShowcase` is 896 on a retina screen, and doing that scaling here beats leaving
+        // it to the browser at playback.
+        outputWidth: 864,
+        // 1, matching the hero. These clips are a drawer with text arriving into it, so they had
+        // stood at 1.5 for the sharpness — but a cursor still crosses them and the tag chips still
+        // appear one by one, and a demo that stutters reads as a slow product.
+        deviceScaleFactor: 1,
+        targetDurationS,
+        prepare: async (page) => {
+            if (emptyFirst) await emptyBeforeRecording(item, emptyFirst);
+            await openStarterItem(page, item);
+        },
         run,
     };
 }
@@ -297,16 +535,14 @@ const aiTagsScene = aiScene(
     "ai-tags",
     AI_VIDEOS.tags,
     starterItem("snippet"),
+    18,
     async (page, cues) => {
         const drawer = drawerOf(page);
         await glideClick(drawer.getByRole("button", { name: "Edit", exact: true }));
+        await page.waitForTimeout(600);
 
-        // Suggestions exclude tags the item already holds, so the field starts empty.
-        const tags = drawer.getByRole("textbox", { name: "Tags", exact: true });
-        await glideClick(tags);
-        await tags.fill("");
-        await page.waitForTimeout(300);
-
+        // The field is already empty — `emptyFirst` cleared the row before the drawer opened, which
+        // also satisfies the rule that suggestions exclude tags the item already holds.
         await glideClick(drawer.getByRole("button", { name: "Suggest Tags with AI" }));
         const suggestion = drawer.getByRole("button", { name: /^Add tag / }).first();
         await cues.waitFor(() => suggestion.waitFor({ timeout: AI_TIMEOUT_MS }));
@@ -318,34 +554,38 @@ const aiTagsScene = aiScene(
         }
         await saveAndSettle(page, cues);
     },
+    "tags",
 );
 
 const aiSummaryScene = aiScene(
     "ai-summary",
     AI_VIDEOS.summary,
     starterItem("command"),
+    13,
     async (page, cues) => {
         const drawer = drawerOf(page);
         await glideClick(drawer.getByRole("button", { name: "Edit", exact: true }));
 
+        await page.waitForTimeout(600);
         const description = drawer.getByRole("textbox", { name: "Description", exact: true });
-        await glideClick(description);
-        await description.fill("");
-        await page.waitForTimeout(300);
 
-        // An empty field is filled directly rather than offered as a proposal to accept.
+        // The field arrives empty, from `emptyFirst`. That also decides what the clip shows: an
+        // empty description is filled directly, where one with text is offered as a proposal to
+        // accept or reject.
         await glideClick(drawer.getByRole("button", { name: "Describe this item with AI" }));
         await cues.waitFor(() => waitForValue(description));
         await page.waitForTimeout(1500);
         cues.poster();
         await saveAndSettle(page, cues);
     },
+    "description",
 );
 
 const aiExplainScene = aiScene(
     "ai-explain",
     AI_VIDEOS.explain,
     starterItem("snippet"),
+    9,
     async (page, cues) => {
         await glideClick(drawerOf(page).getByRole("button", { name: "Explain this code with AI" }));
         const tab = drawerTab(page, "Explain");
@@ -353,7 +593,8 @@ const aiExplainScene = aiScene(
         await selectTab(tab);
         await page.waitForTimeout(1600);
         cues.poster();
-        await scrollDrawer(page, 280);
+        await glideTo(activePanel(page));
+        await glideWheel(page, 280);
     },
 );
 
@@ -361,6 +602,7 @@ const aiOptimizeScene = aiScene(
     "ai-optimize",
     AI_VIDEOS.optimize,
     starterItem("prompt"),
+    9,
     async (page, cues) => {
         await glideClick(
             drawerOf(page).getByRole("button", { name: "Optimize this prompt with AI" }),
@@ -370,7 +612,8 @@ const aiOptimizeScene = aiScene(
         await selectTab(tab);
         await page.waitForTimeout(1800);
         cues.poster();
-        await scrollDrawer(page, 320);
+        await glideTo(activePanel(page));
+        await glideWheel(page, 320);
     },
 );
 
@@ -507,8 +750,11 @@ async function captureFrames(
     return { frames, posterIndex: posterIndex >= 0 ? posterIndex : frames.length - 1, waits };
 }
 
-/** Each frame's on-screen time: its real gap to the next, capped, with marked waits fast-forwarded. */
-function frameHolds({ frames, waits }: Captured): number[] {
+/**
+ * Each frame's on-screen time: its real gap to the next, capped, with marked waits fast-forwarded,
+ * and the whole timeline rescaled to the scene's {@link Scene.targetDurationS}.
+ */
+function frameHolds({ frames, waits }: Captured, targetDurationS: number): number[] {
     const holds = frames.map((frame, index) => {
         const next = frames[index + 1];
         return next ? Math.min(next.timestamp - frame.timestamp, MAX_FRAME_HOLD_S) : END_HOLD_S;
@@ -519,6 +765,15 @@ function frameHolds({ frames, waits }: Captured): number[] {
         if (span <= WAIT_KEEP_S) continue;
         const scale = WAIT_KEEP_S / span;
         for (let index = start; index < end; index++) holds[index] *= scale;
+    }
+
+    // Rescaled last, so the fast-forwarded waits above keep their share of the clip rather than
+    // being stretched back out. A uniform factor: the relative pacing the scene wrote is the part
+    // worth keeping, and only the clock it was measured against is wrong.
+    const measured = holds.reduce((total, hold) => total + hold, 0);
+    if (measured > 0) {
+        const scale = targetDurationS / measured;
+        for (let index = 0; index < holds.length; index++) holds[index] *= scale;
     }
 
     // The concat demuxer needs a positive duration; the constant-rate encode drops what is too short.
@@ -547,7 +802,7 @@ async function encodeClip(scene: Scene, captured: Captured) {
     const { frames, posterIndex } = captured;
     if (frames.length === 0) throw new Error(`${scene.name}: no frames were captured.`);
 
-    const holds = frameHolds(captured);
+    const holds = frameHolds(captured, scene.targetDurationS);
     const workDir = await mkdtemp(path.join(tmpdir(), `slykeep-${scene.name}-`));
     const fileOf = (index: number) => `frame-${String(index).padStart(5, "0")}.jpg`;
     try {
@@ -566,7 +821,9 @@ async function encodeClip(scene: Scene, captured: Captured) {
         await ffmpeg([
             "-y", "-f", "concat", "-safe", "0", "-i", list,
             "-vf", videoFilter(scene), "-fps_mode", "cfr", "-r", "30",
-            "-c:v", "libx264", "-preset", "slow", "-crf", "22", "-pix_fmt", "yuv420p",
+            // CRF 20, not 22: these frames are mostly small text on flat panels, which is where
+            // x264 spends its bits worst and where blocking is most visible.
+            "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p",
             "-movflags", "+faststart", "-an", output,
         ]);
         // prettier-ignore
@@ -579,7 +836,10 @@ async function encodeClip(scene: Scene, captured: Captured) {
     }
 }
 
-async function recordScene(browser: Browser, session: Session, scene: Scene) {
+async function recordScene(session: Session, scene: Scene) {
+    const browser = await chromium.launch({
+        args: [`--force-device-scale-factor=${scene.deviceScaleFactor}`],
+    });
     const context = await openContext(browser, session, scene.capture);
     await context.addInitScript(PAGE_SCRIPT);
     const page = await context.newPage();
@@ -602,6 +862,7 @@ async function recordScene(browser: Browser, session: Session, scene: Scene) {
         throw error;
     } finally {
         await context.close();
+        await browser.close();
     }
 
     await encodeClip(scene, captured);
@@ -617,12 +878,35 @@ async function main() {
 
     await mkdir(path.join(PUBLIC_DIR, "marketing"), { recursive: true });
     const account = await createRecorderAccount();
-    const browser = await chromium.launch();
+    // This browser signs in and takes the screenshots only; each scene launches its own at the
+    // density {@link Scene.deviceScaleFactor} asks for. `page.screenshot()` follows the *context's*
+    // `deviceScaleFactor`, so the device captures are unaffected by the flag either way.
+    //
+    // `--force-device-scale-factor` is what makes the clips sharp, and it is not the same thing as a
+    // context's `deviceScaleFactor`.
+    //
+    // Chromium's `Page.startScreencast` captures the window's surface and ignores the context
+    // setting entirely: at `deviceScaleFactor: 2` — or 3 — a 1440x900 viewport still delivered
+    // 1440x900 frames, which `scale=1920` then *upscaled* by a third. Every clip shipped was an
+    // enlargement of a non-retina capture. This flag scales the surface itself.
+    //
+    // 1.5 rather than 2, because the browser rasterizes every frame at this density and the capture
+    // slows with it: at 2 the clips came back 60-108% longer than at 1, and because a frame's
+    // on-screen time is its measured gap to the next, a slower capture stretched the clip as well as
+    // thinning its frames. 1.5 costs 2.25x the raster work instead of 4x, and lands both scenes on
+    // their exact output width — 1440 -> 2160 for the hero, a 576 crop -> 864 for the AI clips — so
+    // nothing is resampled in either direction.
+    //
+    // The CSS viewport stays 1440, so no layout or breakpoint moves. `page.screenshot()` is
+    // unaffected — the context's own `deviceScaleFactor` still decides there, checked for all three
+    // device captures — so this is safe on the one browser both paths share.
+    const browser = await chromium.launch({ args: ["--force-device-scale-factor=1.5"] });
     try {
+        recorderUserId = account.id;
         const session = await signIn(browser, account.password);
         if (wants("screenshots")) await captureScreenshots(browser, session);
         for (const scene of SCENES) {
-            if (wants(scene.name)) await recordScene(browser, session, scene);
+            if (wants(scene.name)) await recordScene(session, scene);
         }
     } finally {
         await browser.close();

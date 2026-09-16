@@ -20,13 +20,19 @@ import type { IconName, ItemTypeName, ItemTypePresentation } from "@/types/item-
  * landing page and `/upgrade` as CSS variables.
  */
 export const ITEM_TYPE_COLORS = {
-    snippet: "#FF5C5C",
-    prompt: "#FF8F40",
-    command: "#3DD68C",
-    note: "#F266B3",
-    file: "#5B9DFF",
-    image: "#A987FF",
-    link: "#B5E853",
+    snippet: "#3b82f6",
+    prompt: "#8b5cf6",
+    command: "#f97316",
+    note: "#fde047",
+    /**
+     * The one type not on its original colour. That was `#6b7280`, a near-neutral at a chroma of
+     * 0.023 — against the redesign's near-black surfaces it did not read as a colour at all, but as
+     * a disabled icon. Slate carries barely more chroma and stays the quiet one of the seven, which
+     * is right for the type, while looking switched on.
+     */
+    file: "#94A3B8",
+    image: "#ec4899",
+    link: "#10b981",
 } as const;
 
 /**
@@ -71,7 +77,7 @@ export const ITEM_TYPE_CATALOG: Record<ItemTypeName, ItemTypePresentation> = {
     },
     file: {
         label: "Files",
-        icon: "File",
+        icon: "Paperclip",
         color: ITEM_TYPE_COLORS.file,
         slug: "files",
         contentType: "FILE",
@@ -114,7 +120,7 @@ const ICON_NAMES: readonly IconName[] = [
     "Sparkles",
     "Terminal",
     "StickyNote",
-    "File",
+    "Paperclip",
     "Image",
     "Link",
 ];
