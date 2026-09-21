@@ -78,6 +78,16 @@ Rules:
 - ⚠️ Never omit `branchId`. Production is the project's *default* branch, so any call without an explicit `branchId` hits production.
 - Never run any operation against `br-cold-frost-asmwwtlg` (production) unless I name production explicitly in that specific request. General approval to "use Neon" is never approval to touch production.
 - Never run destructive SQL (DROP, DELETE, TRUNCATE, UPDATE/INSERT without my go-ahead) or any migration/branch-mutation tool against production — ask first, every time.
+- **Snapshot production before migrating it by hand.** `history_retention_seconds` is **21600 — six
+  hours** on this plan, so point-in-time restore covers only the same afternoon; a mistake noticed
+  the next morning is past it. `create_snapshot` on `br-cold-frost-asmwwtlg` outlives that window
+  and is the only undo for a migration carrying a `DROP`. Read every pending `migration.sql` before
+  applying it, whatever the snapshot says.
+- **These rules are written for MCP calls, and the CLI is a second door.**
+  `DIRECT_URL=<production> npx prisma migrate deploy` reaches the same database with nothing in its
+  path: the guard in `src/server/infra/prisma.ts` is not imported by the Prisma CLI, and the
+  production connection string sits in the gitignored `.env.production.example` despite the name.
+  Treat a production URL pulled from any file as naming production, and ask first.
 
 ## Local runs and the production database
 
