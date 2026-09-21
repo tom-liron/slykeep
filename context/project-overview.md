@@ -371,7 +371,8 @@ A phased build order. Each phase is shippable on its own and de-risks the next. 
 
 **Phase 7 — Launch prep**
 - Custom item types
-- Priority support path, error monitoring, analytics
+- Priority support path, error monitoring, analytics — error monitoring is specified in
+  `context/features/error-monitoring-spec.md` (Sentry, decided, not started)
 - ~~A domain, and `EMAIL_FROM` on it.~~ — the domain is `slykeep.com` and `EMAIL_FROM` is
   `SlyKeep <noreply@slykeep.com>`, which `server/infra/email.ts` also carries as its default.
   Delivery still depends on that domain reading **verified** at https://resend.com/domains: Resend

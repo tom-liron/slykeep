@@ -39,6 +39,14 @@ only to survive the rename and no longer applies.
   branch; the plan and its progress checklist are in
   `context/features/verification-hardening-plan.md`.
 
+- **Error monitoring (Sentry)** — decided, not started. The spec is
+  `context/features/error-monitoring-spec.md`. The case for it is entry 164: production was down
+  for hours and the only thing that reported it was a friend. Client-side errors are the larger
+  half — Vercel logs server errors only, so a component throwing in a visitor's browser leaves no
+  trace anywhere. Note what it does *not* cover before starting: every Server Action catches its
+  own errors and returns `{ success, error }`, so none of them reach Sentry without a
+  `captureException` pass over `src/actions/`.
+
 - **Leftover from #117** — 17 `file.ts#L42` anchors across two tracked `docs/` files are checked by
   nothing; a link checker in CI would close it. And `docs/item-crud-architecture.md` links to
   `src/components/profile/ChangePasswordForm.tsx`, which no longer exists (its banner already names
@@ -69,5 +77,8 @@ content.
 
 - **`CRON_SECRET` and `AUTH_URL` are both set in Vercel Production** — confirmed 2026-09-05, nothing
   outstanding. The nightly sweep at `/api/cron/sweep-unverified` is live on its 03:17 schedule.
-- The next production deploy runs `prisma migrate deploy`, and the tag migration is DDL plus a
-  row-rewriting backfill — expect it to take longer than a schema-only migration.
+- **`prisma migrate deploy` leads the Vercel build command** — since 2026-09-16, entry 164. Before
+  that nothing applied a migration on deploy, and seven had accumulated since 8 September; the
+  newest of them was what took production down. A build that cannot reach the database now fails
+  rather than shipping code its data does not support, so a transient Neon cold start (P1001) fails
+  the **whole deploy**. Redeploy — it is a cold-start race, not a configuration problem.
