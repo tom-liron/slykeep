@@ -26,13 +26,11 @@ export const metadata: Metadata = {
         "The terms that apply to a SlyKeep account, including use, plans and availability.",
 };
 
-const CONTACT = "privacy@slykeep.com";
-
 export default function TermsPage() {
     return (
         <ProsePage
             title="Terms of Service"
-            lastUpdated="10 September 2026"
+            lastUpdated="21 September 2026"
             lead={
                 <>
                     These terms apply to SlyKeep at slykeep.com. Creating an account means accepting
@@ -43,7 +41,7 @@ export default function TermsPage() {
             <ProseSection id="service" title="What SlyKeep is">
                 <p>
                     SlyKeep is a personal knowledge hub for developers: somewhere to save code
-                    snippets, terminal commands, AI prompts, notes, files and links, organise them
+                    snippets, terminal commands, AI prompts, notes, files and links, organize them
                     into collections and search across all of them.
                 </p>
                 <p>
@@ -115,10 +113,11 @@ export default function TermsPage() {
 
             <ProseSection id="availability" title="Availability, and keeping your own copy">
                 <p>
-                    SlyKeep is provided as it is, with no guarantee of uptime and no promise that it
+                    SlyKeep is provided as is, with no guarantee of uptime and no promise that it
                     will remain available indefinitely. It is one person&rsquo;s project rather than
                     a business with a support team, and it may be interrupted, changed or
-                    discontinued. Notice by email will be given before any planned shutdown.
+                    discontinued. Where practical, notice will be given by email before any planned
+                    shutdown.
                 </p>
                 <p>
                     <strong>Keep your own copy of anything you cannot afford to lose.</strong>{" "}
@@ -142,18 +141,11 @@ export default function TermsPage() {
 
             <ProseSection id="changes" title="Changes to these terms">
                 <p>
-                    These terms may be updated as the service changes; the date at the top moves
-                    with them, and significant changes affecting existing accounts are announced by
-                    email. What SlyKeep stores and which services process it is described in the{" "}
-                    <a href="/privacy">Privacy Policy</a>, which forms part of these terms.
-                </p>
-            </ProseSection>
-
-            <ProseSection id="contact" title="How to get in touch">
-                <p>
-                    SlyKeep is operated as an independent portfolio project, not by a registered
-                    company. For questions about these terms, write to{" "}
-                    <a href={`mailto:${CONTACT}`}>{CONTACT}</a>.
+                    These terms may change as the service does. When they change, the date at the
+                    top changes with them, and where practical, significant changes affecting
+                    existing accounts are also announced by email. What SlyKeep stores and which
+                    services process it is described in the <a href="/privacy">Privacy Policy</a>,
+                    which forms part of these terms.
                 </p>
             </ProseSection>
         </ProsePage>

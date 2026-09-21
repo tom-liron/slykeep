@@ -30,7 +30,7 @@ export default function PrivacyPage() {
     return (
         <ProsePage
             title="Privacy Policy"
-            lastUpdated="10 September 2026"
+            lastUpdated="21 September 2026"
             lead={
                 <>
                     SlyKeep is a personal knowledge hub for developers, built and run as a portfolio
@@ -60,8 +60,8 @@ export default function PrivacyPage() {
                 </ul>
                 <p>
                     There is no analytics, no advertising, no tracking pixels and no third-party
-                    scripts. The only cookie set is the one that keeps you signed in. Nothing is
-                    sold, rented or shared for anyone else&rsquo;s marketing.
+                    scripts. The only cookies set are the ones needed to sign you in and keep you
+                    signed in. Nothing is sold, rented or shared for anyone else&rsquo;s marketing.
                 </p>
             </ProseSection>
 
@@ -93,6 +93,10 @@ export default function PrivacyPage() {
                     is sent when you save an item, and the result is written into the item only if
                     you accept it.
                 </p>
+                <p>
+                    OpenAI does not use data sent through its API to train its models. It may keep a
+                    request for up to 30 days to monitor for abuse, after which it is deleted.
+                </p>
             </ProseSection>
 
             <ProseSection id="payments" title="Payments">
@@ -116,7 +120,7 @@ export default function PrivacyPage() {
                 </p>
                 <p>
                     Records may persist briefly in routine backups and in the server logs kept by
-                    the services above, on their own retention schedules, before ageing out.
+                    the services above, on their own retention schedules, before they expire.
                 </p>
             </ProseSection>
 
@@ -133,8 +137,9 @@ export default function PrivacyPage() {
             <ProseSection id="changes" title="Changes">
                 <p>
                     If what SlyKeep does with data changes, this page changes with it and the date
-                    at the top is updated. Significant changes affecting existing accounts are
-                    announced by email. SlyKeep is not directed at children under 13.
+                    at the top is updated. Where practical, significant changes affecting existing
+                    accounts are also announced by email. SlyKeep is not directed at children under
+                    13.
                 </p>
             </ProseSection>
 
