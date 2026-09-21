@@ -156,12 +156,12 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             monthly: {
                 amount: "$0",
                 period: "forever",
-                note: "Enough for the things you reach for most.",
+                note: "The essentials, to get started.",
             },
             yearly: {
                 amount: "$0",
                 period: "forever",
-                note: "Enough for the things you reach for most.",
+                note: "The essentials, to get started.",
             },
         },
         // Eight rows, the same count as Pro: two lists of different lengths do not read as a
@@ -200,7 +200,7 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
             yearly: {
                 amount: "$72",
                 period: "per year",
-                note: "That is $6 a month, billed annually — $24 less than monthly.",
+                note: "$6 a month, billed annually.",
             },
         },
         featuresHeading: "Everything in Free, plus",
