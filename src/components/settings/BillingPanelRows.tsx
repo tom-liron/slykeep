@@ -141,8 +141,8 @@ export function BillingPanelRows({
                 title="Usage"
                 description={
                     billing.isPro
-                        ? "Pro lifts every cap — this is what you have stashed so far."
-                        : "What you have stashed, against what the Free plan holds."
+                        ? "Pro has no limits. This is what your account holds so far."
+                        : "What your account holds, against the Free plan's limits."
                 }
             >
                 {/* Fixed width so the two meters' bars and numbers line up as a column rather than

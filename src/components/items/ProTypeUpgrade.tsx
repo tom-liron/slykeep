@@ -50,8 +50,8 @@ export function ProTypeUpgrade({ itemType }: { itemType: ItemTypeViewModel }) {
                         ever renders, and both fit one line at this width. */}
                     <p className="text-muted-foreground">
                         {isImages
-                            ? "Stash images alongside your snippets and prompts, and find them the same way."
-                            : "Stash the files your projects depend on, and find them the same way."}
+                            ? "Store images alongside your snippets and prompts, and find them the same way."
+                            : "Store the files your projects depend on, and find them the same way."}
                     </p>
                 </div>
             </div>

@@ -22,7 +22,7 @@ export default function RegisterPage() {
             <div className="mb-6 space-y-1">
                 <h1 className="text-xl font-semibold">Create your account</h1>
                 <p className="text-sm text-muted-foreground">
-                    Start stashing snippets, prompts, and commands.
+                    Keep your snippets, prompts, and commands in one place.
                 </p>
             </div>
 

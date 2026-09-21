@@ -64,7 +64,7 @@ export function FileRow({ item }: { item: ItemSummaryViewModel }) {
                     </div>
 
                     {/* The object's own name, shown only when it differs from the title, so a file
-                        stashed under its own name is not labelled twice. */}
+                        saved under its own name is not labelled twice. */}
                     {item.title !== fileName && (
                         <p className="truncate text-xs text-muted-foreground" title={fileName}>
                             {fileName}

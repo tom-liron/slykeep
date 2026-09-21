@@ -30,7 +30,7 @@ export default async function ProfilePage() {
         <div className="mx-auto max-w-3xl space-y-8">
             <header>
                 <h1 className="text-2xl font-bold">Profile</h1>
-                <p className="text-muted-foreground">Who you are, and what you have stashed.</p>
+                <p className="text-muted-foreground">Your account details and usage.</p>
             </header>
 
             <Panel id="account" title="Account">
@@ -47,7 +47,11 @@ export default async function ProfilePage() {
                 </div>
             </Panel>
 
-            <Panel id="usage" title="Usage" description="What you have stashed right now.">
+            <Panel
+                id="usage"
+                title="Usage"
+                description="The items and collections in your account."
+            >
                 {/* The two totals as one band split down the middle, not two bordered cards inside a
                     bordered panel. Its own cells rather than `Stat` from `StatBand`, which brings a
                     border and padding this `Panel` already draws. One column on a phone; the
@@ -68,7 +72,7 @@ export default async function ProfilePage() {
                 </dl>
 
                 {/* Every accessible type is listed, including the ones at zero — the breakdown is
-                    meant to show the shape of a stash, and a missing row reads as a bug rather
+                    meant to show the shape of the account, and a missing row reads as a bug rather
                     than an empty category. Each links to that type's page. */}
                 <ul className="divide-y divide-border">
                     {itemTypeCounts.map((itemType) => (

@@ -82,7 +82,7 @@ export function isExplainableType(type: string | undefined): type is ItemTypeNam
 
 /** What the model is told it is doing. Constant, so it is not rebuilt per call. */
 export const EXPLAIN_INSTRUCTIONS = [
-    "You are a developer tool assistant that explains saved code and shell commands to the developer who stashed them.",
+    "You are a developer tool assistant that explains saved code and shell commands to the developer who saved them.",
     "Explain what the code does and the key concepts behind it, in 200 to 300 words.",
     "Lead with what it does as a whole, then walk through the parts that carry the meaning.",
     "Write for a competent developer who has not seen this particular code: skip syntax basics, cover the intent.",
