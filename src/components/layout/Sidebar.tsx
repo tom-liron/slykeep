@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { Dialog } from "radix-ui";
 
 import { Button } from "@/components/ui/button";
+import { useKeyboardFocusReturn } from "@/hooks/use-keyboard-focus-return";
 import { cn } from "@/lib/utils";
 import type { SidebarViewModel } from "@/types/view-models";
 import { Brand } from "./Brand";
@@ -19,6 +20,7 @@ import { SidebarNav } from "./SidebarNav";
  */
 export function Sidebar({ data }: { data: SidebarViewModel }) {
     const { collapsed, mobileOpen, setMobileOpen } = useSidebar();
+    const focusReturn = useKeyboardFocusReturn();
 
     return (
         <>
@@ -50,9 +52,12 @@ export function Sidebar({ data }: { data: SidebarViewModel }) {
                     <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
                     <Dialog.Content
                         className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[80%] flex-col border-r border-border bg-sidebar shadow-xl focus:outline-none md:hidden"
+                        {...focusReturn.contentProps}
                         onCloseAutoFocus={(event) => {
                             event.preventDefault();
-                            document.querySelector<HTMLElement>("#mobile-menu-button")?.focus();
+                            if (focusReturn.closedByKeyboard()) {
+                                document.querySelector<HTMLElement>("#mobile-menu-button")?.focus();
+                            }
                         }}
                         // A delegated handler: any link in the drawer closes it, as a floor under
                         // the `onNavigate` prop threaded through `SidebarNav` to every row.

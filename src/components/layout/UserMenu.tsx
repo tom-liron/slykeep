@@ -5,6 +5,7 @@ import { LogOut, Settings, User } from "lucide-react";
 
 import { signOutAction } from "@/actions/auth";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useKeyboardFocusReturn } from "@/hooks/use-keyboard-focus-return";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,8 +25,14 @@ import type { UserViewModel } from "@/types/view-models";
  * @remarks
  * `onNavigate` closes the mobile drawer. `SidebarContext` already closes it on a path change; this
  * covers tapping Profile while already on `/profile`, where the route does not change.
+ *
+ * Focus returns to the trigger only when the keyboard closed the menu — see
+ * {@link useKeyboardFocusReturn}. The rail sidebar outlives the navigation, so a returned focus
+ * after a tap or click would leave the row lit.
  */
 export function UserMenu({ user, onNavigate }: { user: UserViewModel; onNavigate?: () => void }) {
+    const focusReturn = useKeyboardFocusReturn();
+
     return (
         <div className="shrink-0 border-t border-border p-3">
             <DropdownMenu>
@@ -37,7 +44,15 @@ export function UserMenu({ user, onNavigate }: { user: UserViewModel; onNavigate
                     </div>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="start" side="top" className="w-56">
+                <DropdownMenuContent
+                    align="start"
+                    side="top"
+                    className="w-56"
+                    {...focusReturn.contentProps}
+                    onCloseAutoFocus={(event) => {
+                        if (!focusReturn.closedByKeyboard()) event.preventDefault();
+                    }}
+                >
                     <DropdownMenuItem asChild>
                         <Link href="/profile" onClick={onNavigate}>
                             <User className="size-4" aria-hidden="true" />
