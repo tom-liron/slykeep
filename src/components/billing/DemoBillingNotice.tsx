@@ -4,14 +4,9 @@ import { Info } from "lucide-react";
  * The notice that SlyKeep's billing runs in Stripe test mode.
  *
  * Rendered on `/upgrade`, beneath the plan cards — the point where a signed-in reader is about to
- * start a checkout that cannot take a real payment. That is the surface the disclosure is owed on;
- * the landing page deliberately does without it, since a price table reaches no payment form (the
- * Pro call to action leads to `/settings#billing`, behind authentication) and Stripe hosts the card
- * fields on its own domain. The Terms carry the same fact in prose for anyone reading before they
- * sign up.
- *
- * It sits after the cards rather than before them: the plans are what the page is for, and a caveat
- * above them interrupts the comparison before it has been read.
+ * start a checkout that cannot take a real payment. The landing page's price table leads to no
+ * payment form, so it carries no notice; the Terms state the same fact for anyone reading before
+ * they sign up. It sits after the cards so the caveat does not interrupt the comparison.
  *
  * Remove it if and when live Stripe keys are configured — along with the matching paragraph in
  * `/terms`.

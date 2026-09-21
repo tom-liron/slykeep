@@ -97,18 +97,12 @@ export function TopBar({
                     <Button
                         variant="ghost"
                         asChild
-                        // Neutral, not gold, although this is the one control that sells the
-                        // product. The bar already spends gold twice: `New Item`, the primary
-                        // action, and the Favorites star, which is what the colour means
-                        // everywhere else in the app. A third gold here competed with both — and a
-                        // recolour is no answer, since the clash is a free account's only and two
-                        // near-yellows side by side read as a mismatch rather than a decision.
-                        // `Zap` and the leading position carry the emphasis instead. `Zap`, not a
-                        // sparkle: sparkles mean AI, and this leads to a price list.
+                        // Neutral: the bar already spends gold on `New Item` and the Favorites
+                        // star, and gold means favourite everywhere else in the app. `Zap` and the
+                        // leading position carry the emphasis; sparkles are reserved for AI.
                         //
-                        // The hover fill is `bg-muted`, matched to the star and to the two ghost
-                        // controls at the other end of the bar: four pills lighting up in four
-                        // ways read as four kinds of control.
+                        // The `bg-muted` hover matches the star and the bar's other ghost controls,
+                        // so every pill in the bar lights the same way.
                         className="hidden shrink-0 gap-1.5 hover:bg-muted sm:inline-flex dark:hover:bg-muted"
                     >
                         <Link href="/upgrade">

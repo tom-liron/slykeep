@@ -455,7 +455,7 @@ describe("deleteCollection", () => {
 
         // Scope matters, not just the call: the sidebar's favourites and recents are rendered by the
         // dashboard *layout*, which a page-scoped revalidation would leave holding a collection that
-        // no longer exists — the bug this replaced.
+        // no longer exists.
         expect(db.revalidated).toContainEqual(["/", "layout"]);
     });
 
@@ -506,8 +506,8 @@ describe("toggleCollectionFavorite", () => {
 
     it("writes the state it was given rather than flipping what it finds", async () => {
         // Already favourited, and asked to favourite again. A read-then-flip implementation would
-        // unfavourite it here — the race two quick clicks used to lose, and the reason this action
-        // takes the state rather than deriving it.
+        // unfavourite it here, losing the race between two quick clicks; the action takes the state
+        // rather than deriving it.
         db.collections[0].isFavorite = true;
 
         await expect(toggleCollectionFavorite("collection-owned", true)).resolves.toEqual({
@@ -536,8 +536,8 @@ describe("toggleCollectionFavorite", () => {
     it("revalidates the layout, so the sidebar's favourites list follows", async () => {
         await toggleCollectionFavorite("collection-owned", true);
 
-        // The whole point of the write: this is the list the star adds to and removes from, and it
-        // is rendered by the layout rather than by the page the click came from.
+        // This is the list the star adds to and removes from, and it is rendered by the layout
+        // rather than by the page the click came from.
         expect(db.revalidated).toContainEqual(["/", "layout"]);
     });
 

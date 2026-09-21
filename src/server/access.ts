@@ -7,12 +7,13 @@ import { getCurrentUser } from "./current-user";
  *
  * An unconfirmed account signs in, reads and copies everything it can see — including the starter
  * content registration seeds — but cannot create, edit or delete, and cannot reach checkout. The
- * restriction applies from the moment the account exists rather than after a grace period, which is
- * what makes it explain itself: the first write is where a person learns the address needs
- * confirming, instead of a week later when a working app quietly stops working.
+ * restriction applies from the moment the account exists, so the first write is where a person
+ * learns the address needs confirming.
  *
  * Every mutating Server Action calls {@link readOnlyRefusal} before it touches the database, and
- * `actions/billing.ts` calls it before starting a checkout session.
+ * `actions/billing.ts` calls it before starting a checkout session. The item and collection actions
+ * call it ahead of parsing their input and looking up ownership: the refusal depends on the account
+ * alone, so validating input the account may not write gains nothing.
  *
  * @remarks
  * It reads through `getCurrentUser`, which is wrapped in React's `cache`, so an action that also

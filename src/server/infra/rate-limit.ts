@@ -163,8 +163,8 @@ function limiterFor(name: RateLimitName): Ratelimit | null {
  * The caller's address, as far as it can be known.
  *
  * @remarks
- * `x-forwarded-for` is a list, oldest first, and only the last entry is written by a hop under our
- * control — but Vercel normalises it so the first entry is the real client and the header cannot be
+ * `x-forwarded-for` is a list, oldest first, and only the last entry is written by a trusted
+ * hop — but Vercel normalises it so the first entry is the real client and the header cannot be
  * spoofed past the edge, so the first entry is correct here. Behind a different proxy this is the
  * line to revisit. The `unknown-ip` fallback buckets every local request together, which is
  * stricter than intended, never looser.
@@ -240,7 +240,7 @@ export async function checkRateLimit(
         return { success, remaining, reset };
     } catch (error) {
         // Logged, not raised. See `allowed` — a limiter that is down must not take sign-in with it,
-        // and the only party who needs to know is us.
+        // and the server log is where the outage needs to show.
         console.error(`Rate limit check failed for "${name}":`, error);
 
         return allowed(name);

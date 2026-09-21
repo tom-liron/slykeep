@@ -2,11 +2,17 @@ import type { Metadata } from "next";
 
 import { ProsePage, ProseSection } from "@/components/marketing/ProsePage";
 
+export const metadata: Metadata = {
+    title: "Terms of Service · SlyKeep",
+    description:
+        "The terms that apply to a SlyKeep account, including use, plans and availability.",
+};
+
 /**
  * The Terms of Service at `/terms`.
  *
  * States what the service is, what an account holder may and may not do with it, and what is
- * promised about availability — which, for a project run by one person, is deliberately little.
+ * promised about availability — which, for a project run by one person, is little.
  *
  * @remarks
  * Reachable without a session only because `/terms` is listed in `OPEN_ROUTES` in
@@ -16,16 +22,9 @@ import { ProsePage, ProseSection } from "@/components/marketing/ProsePage";
  * taken, which matches the test keys the app is configured with and matches
  * `DemoBillingNotice`; configuring live keys means changing all three together.
  *
- * There is no governing-law clause. Nothing requires one, and default conflict-of-laws rules already
- * point at the reader's own jurisdiction for a consumer service. Add one here if SlyKeep ever stops
- * being a personal project.
+ * The page has no governing-law clause, so default conflict-of-laws rules apply. Add one if SlyKeep
+ * stops being a personal project.
  */
-export const metadata: Metadata = {
-    title: "Terms of Service · SlyKeep",
-    description:
-        "The terms that apply to a SlyKeep account, including use, plans and availability.",
-};
-
 export default function TermsPage() {
     return (
         <ProsePage

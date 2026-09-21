@@ -53,9 +53,7 @@ export async function createCollection(
 ): Promise<CreateCollectionResult> {
     const userId = await getCurrentUserId();
 
-    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
-    // this refusal depends on the account rather than on what was submitted, so there is nothing to
-    // learn from validating input the account may not write anyway.
+    // An unconfirmed account is read-only; checked before parsing — see `server/access.ts`.
     const readOnly = await readOnlyRefusal();
 
     if (readOnly) return { success: false, error: readOnly };
@@ -112,9 +110,7 @@ export async function updateCollection(
 ): Promise<UpdateCollectionResult> {
     const userId = await getCurrentUserId();
 
-    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
-    // this refusal depends on the account rather than on what was submitted, so there is nothing to
-    // learn from validating input the account may not write anyway.
+    // An unconfirmed account is read-only; checked before parsing — see `server/access.ts`.
     const readOnly = await readOnlyRefusal();
 
     if (readOnly) return { success: false, error: readOnly };
@@ -163,9 +159,7 @@ export async function toggleCollectionFavorite(
 ): Promise<ToggleCollectionFavoriteResult> {
     const userId = await getCurrentUserId();
 
-    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
-    // this refusal depends on the account rather than on what was submitted, so there is nothing to
-    // learn from validating input the account may not write anyway.
+    // An unconfirmed account is read-only; checked before parsing — see `server/access.ts`.
     const readOnly = await readOnlyRefusal();
 
     if (readOnly) return { success: false, error: readOnly };
@@ -213,9 +207,7 @@ export async function toggleCollectionFavorite(
 export async function deleteCollection(collectionId: string): Promise<DeleteCollectionResult> {
     const userId = await getCurrentUserId();
 
-    // Read-only past the verification grace period. Ahead of the parse and the ownership lookup:
-    // this refusal depends on the account rather than on what was submitted, so there is nothing to
-    // learn from validating input the account may not write anyway.
+    // An unconfirmed account is read-only; checked before parsing — see `server/access.ts`.
     const readOnly = await readOnlyRefusal();
 
     if (readOnly) return { success: false, error: readOnly };

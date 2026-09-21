@@ -156,8 +156,8 @@ export function CommandPalette({ data }: { data: SearchDataViewModel }) {
             </button>
 
             <CommandDialog open={open} onOpenChange={setOpen}>
-                {/* Off, because the ranking is ours. Left on, cmdk would filter our already-filtered
-                    list a second time by a different rule. */}
+                {/* Off: `rankBySearch` already ranks and filters the results, and cmdk would
+                    filter them a second time by a different rule. */}
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder="Search items and collections..."

@@ -11,8 +11,8 @@ import { TOAST_IDS } from "@/lib/toast-ids";
  *
  * All four — Suggest Tags, Describe, Explain, Optimize — stay visible and clickable without Pro,
  * crowned rather than hidden or disabled, and every one of them calls this instead of its action.
- * A disabled button was the previous answer and was no answer at all: it fires no click, so it had
- * only a native `title`, which a touch screen never shows.
+ * The button stays enabled because a disabled one fires no click, and its native `title` never
+ * shows on a touch screen.
  *
  * @remarks
  * The click never reaches the server, so this is the one place the refusal is composed for the UI.

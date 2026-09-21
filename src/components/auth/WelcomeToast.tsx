@@ -5,12 +5,12 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 /**
- * The greeting is deliberately not "welcome back": the same destination serves a returning sign-in
- * and the first one a newly registered account ever makes, and nothing at this point distinguishes
- * them. "Welcome" is true of both.
+ * The toast messages, keyed by the `welcome` param's value.
  *
- * It falls back to the impersonal wording when there is no usable name — an account whose `name` was
- * the email address and whose local part came back empty. "Welcome, !" is worse than no name at all.
+ * The greeting is "Welcome", which is true of both a returning sign-in and a newly registered
+ * account's first: the same destination serves both, and nothing here distinguishes them. With no
+ * usable name — an account whose `name` was its email address with an empty local part — it falls
+ * back to the impersonal wording.
  */
 const MESSAGES = {
     "signed-in": (name: string) => (name ? `Welcome, ${name}!` : "Welcome!"),

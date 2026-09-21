@@ -3,11 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { writeClipboardText } from "./clipboard";
 
 /**
- * Which clipboard API a copy goes through, which is the whole of this module's logic.
+ * Which clipboard API a copy goes through, which is all of this module's logic.
  *
- * The choice is not cosmetic: `writeText` is implemented everywhere, while a `ClipboardItem` built
- * around a pending promise is not, and reaching for the second where the first would do is what
- * stopped the drawer's Copy control working on a phone.
+ * `writeText` is implemented everywhere, while a `ClipboardItem` built around a pending promise is
+ * not, so the second must be used only when the text is still in flight.
  */
 
 /**

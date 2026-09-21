@@ -270,17 +270,12 @@ export function ItemDrawer({
                 the PDF viewer). */}
             <SheetContent
                 showCloseButton={false}
-                // Focus the panel on open, not the first control in it.
+                // Focuses the panel on open rather than its first tabbable control, the ✕, so Enter
+                // or Space cannot close the drawer that just opened. The title is announced and the
+                // ✕ stays first in the tab order.
                 //
-                // Radix focuses the first tabbable descendant, and this drawer's is the ✕ — it
-                // heads the header row, ahead of the toolbar. So the drawer opened with Close
-                // focused, and Enter or Space shut the drawer the user had just opened. Focusing
-                // the panel instead announces the title, puts the ✕ first in the tab order rather
-                // than under the cursor, and leaves nothing armed.
-                //
-                // `tabIndex={-1}` is what makes the panel focusable at all; without it the call is
-                // a no-op and Radix's own fallback would not run either, since `preventDefault`
-                // has already skipped it.
+                // `tabIndex={-1}` is what makes the panel focusable; without it this call is a no-op
+                // and, with the default prevented, nothing receives focus.
                 tabIndex={-1}
                 onOpenAutoFocus={(event) => {
                     event.preventDefault();

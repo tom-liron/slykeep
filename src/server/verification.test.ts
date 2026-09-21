@@ -197,7 +197,7 @@ describe("verification tokens", () => {
 
     // The route handler compares this address against the session to tell a click on one's own
     // expired link from a click on another account's, and offers a different way off the page for
-    // each. Dropping it here is what made the second case silently offer the first account.
+    // each. Dropped here, the second case would silently offer the first account.
     it("names the address an expired link was for", async () => {
         const token = await createVerificationToken(EMAIL);
         expireAll();

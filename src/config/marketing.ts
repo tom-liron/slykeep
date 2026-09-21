@@ -1,3 +1,8 @@
+import { Code, Layers, Paperclip, Search, Sparkles, Terminal, type LucideIcon } from "lucide-react";
+
+import { ITEM_TYPE_COLORS } from "./item-type-catalog";
+import { AI_VIDEOS, type MarketingVideo } from "./marketing-media";
+
 /**
  * The copy and plan definitions the product's selling surfaces render.
  *
@@ -15,17 +20,16 @@
  * @remarks
  * The prices are copy and are not read from Stripe, so they stay in step with `config/billing.ts`
  * and `project-overview.md` §7 by hand.
- *
- * A feature's icon ({@link MarketingFeature}) is the lucide component itself, unlike
- * `ItemTypePresentation.icon` in `types/item-type.ts`, which is a name: an item type's icon arrives
- * from the database and has to be narrowed, while these are authored here.
  */
 
-import { Code, Layers, Paperclip, Search, Sparkles, Terminal, type LucideIcon } from "lucide-react";
-
-import { ITEM_TYPE_COLORS } from "./item-type-catalog";
-import { AI_VIDEOS, type MarketingVideo } from "./marketing-media";
-
+/**
+ * One card in the landing page's feature grid.
+ *
+ * @remarks
+ * `icon` is the lucide component itself, unlike `ItemTypePresentation.icon` in
+ * `types/item-type.ts`, which is a name: an item type's icon arrives from the database and has to
+ * be narrowed, while these are authored here.
+ */
 export type MarketingFeature = {
     title: string;
     body: string;
@@ -62,8 +66,7 @@ export const MARKETING_FEATURES: readonly MarketingFeature[] = [
     {
         title: "Files & Docs",
         body: "Context files, diagrams, screenshots, PDFs. Uploaded, previewed in place, and served back only to you.",
-        // `Paperclip`, the same glyph the file item type moved to: lucide's `File` is a rounded
-        // rectangle with a folded corner, which the Notes type already reads as.
+        // `Paperclip`, the file item type's own glyph — see `TypeIcon`.
         icon: Paperclip,
         accent: ITEM_TYPE_COLORS.file,
     },

@@ -4,6 +4,10 @@ import { SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RouteNotice } from "@/components/ui/RouteNotice";
 
+export const metadata = {
+    title: "Not found · SlyKeep",
+};
+
 /**
  * The 404 for a signed-in route whose content is gone: the `notFound()` thrown by
  * `items/[slug]` for an unknown type slug, and by `collections/[id]` for a collection this account
@@ -13,10 +17,6 @@ import { RouteNotice } from "@/components/ui/RouteNotice";
  * `not-found.tsx`, which renders outside this group's layout and would drop the app chrome for a
  * reader who is still signed in.
  */
-export const metadata = {
-    title: "Not found · SlyKeep",
-};
-
 export default function DashboardNotFound() {
     return (
         <RouteNotice

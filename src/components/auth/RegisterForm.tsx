@@ -104,8 +104,8 @@ export function RegisterForm() {
         // "Creating account…" state until the next page takes over, which stops a second
         // submission during the navigation.
 
-        // Signed in with the credentials still in hand, which is the whole point of the soft gate:
-        // a new account works immediately and confirms its address afterwards.
+        // Signed in with the credentials still in hand, so a new account works immediately and
+        // confirms its address afterwards.
         const signedIn = await signInAfterRegister(parsed.data.email, parsed.data.password);
 
         // The account exists whether or not the session opened, so a refusal is a detour to the

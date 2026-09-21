@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  * `rate-limit.test.ts` mocks the SDK, which is right for testing the policy around it — but a mock
  * that rejects on demand proves only that `catch` works. What matters in production is that the two
  * ways a dependency actually fails, refusing and hanging, both end with the request allowed through.
- * Neither is reachable through a mocked transport, so this file deliberately does not mock one.
+ * Neither is reachable through a mocked transport, so this file does not mock one.
  *
  * Nothing here leaves the machine: one address refuses connections, the other is a local server that
  * accepts and then says nothing.
@@ -32,7 +32,7 @@ afterEach(() => {
 /** A server that accepts the connection and then never responds. */
 async function startHungServer(): Promise<string> {
     hung = createServer(() => {
-        // Deliberately empty: the request is received and left unanswered forever.
+        // Empty: the request is received and left unanswered forever.
     });
 
     await new Promise<void>((resolve) => hung!.listen(0, "127.0.0.1", resolve));

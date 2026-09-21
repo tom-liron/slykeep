@@ -16,11 +16,9 @@ import type { UserViewModel } from "@/types/view-models";
  * first refusal is not a surprise.
  *
  * @remarks
- * Dismissible, per browser session, so it returns on the next visit rather than being gone for good.
- * It can afford to be, because it is not the only thing carrying the message — an unconfirmed
- * account meets the refusal on its first write either way, and that is what teaches the rule. A
- * banner nobody can dismiss is only worth its cost when dismissing it would hide the answer to a
- * question the user cannot otherwise reach.
+ * Dismissible per browser session, so it returns on the next visit. Dismissing it hides nothing
+ * essential: an unconfirmed account meets the refusal on its first write either way, and a refusal
+ * brings the banner back (see {@link revealVerificationBanner}).
  *
  * `sessionStorage` is the store and {@link useSyncExternalStore} is how it is read: the server has
  * no such thing, so the server snapshot is a flat `false` and React reconciles after hydration
@@ -51,11 +49,9 @@ function readDismissed() {
 /**
  * Undoes a dismissal, so the banner is on the page again.
  *
- * Called when a write is refused for want of a confirmed address, because the refusal tells the user
- * to request a new link "from the banner at the top of the page" — and a banner they dismissed
- * earlier in the session would leave that instruction pointing at nothing, with no route back to the
- * resend control until they opened a new tab. Dismissing means "I know, not now"; being refused
- * means they need it now.
+ * Called when a write is refused for want of a confirmed address: the refusal tells the user to
+ * request a new link "from the banner at the top of the page", so a banner dismissed earlier in the
+ * session has to come back for that instruction to lead anywhere.
  */
 export function revealVerificationBanner() {
     try {

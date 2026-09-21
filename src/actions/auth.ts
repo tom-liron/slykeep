@@ -100,11 +100,10 @@ export async function signInWithCredentials(
  * failed registration.
  *
  * @remarks
- * The soft gate is what makes this possible: `authorize` no longer refuses an unconfirmed address,
- * so registration ends in the app rather than at a form the new account could not yet use. The
- * credentials come back from the browser that typed them a moment ago rather than the session being
- * opened inside the register route, because the cookie has to be set on a response the browser is
- * following.
+ * `authorize` accepts an unconfirmed address — verification gates writing, not signing in — so
+ * registration ends in the app. The credentials come back from the browser that typed them rather
+ * than the session being opened inside the register route, because the cookie has to be set on a
+ * response the browser is following.
  *
  * `redirect: false` so this returns instead of throwing `NEXT_REDIRECT`. The caller is a click
  * handler rather than a form action, and a redirect raised there is ambiguous to catch — the

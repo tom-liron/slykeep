@@ -62,8 +62,8 @@ const db = vi.hoisted(() => ({
 vi.mock("@/server/current-user", () => ({
     getCurrentUserId: () => Promise.resolve("user-owner"),
     // Pro, so the file-item tests below are about the upload check rather than the entitlement one.
-    // Confirmed and inside its write window, so the verification guard is never what these measure —
-    // it has its own tests at the bottom of this file.
+    // Confirmed, so the verification guard is never what these measure — it has its own tests at
+    // the bottom of this file.
     getCurrentUser: () => Promise.resolve({ id: "user-owner", isPro: true, ...state.verification }),
 }));
 
@@ -558,13 +558,11 @@ describe("updateItem", () => {
 
 describe("tag scoping", () => {
     /**
-     * Tags used to be global rows keyed by `name @unique`, so both write paths identified one with a
-     * bare `{ name }`. They are per-account now, and the property these pin is that neither path ever
-     * names a tag without also naming its owner: a `connect: { name }` that survived a refactor would
-     * attach one account's item to another account's tag row, which is precisely the leak scoping
-     * exists to prevent. TypeScript catches it today; it would not if `name` were ever made unique
-     * again for some other reason, which is the shape of the Prisma bug the schema already warns
-     * about for `ItemType`.
+     * Tags are per-account rows, and these pin that neither write path ever names a tag without also
+     * naming its owner: a bare `connect: { name }` would attach one account's item to another
+     * account's tag row, which is the leak scoping exists to prevent. TypeScript rejects it only
+     * while `name` is not unique on its own — the same Prisma trap the schema warns about for
+     * `ItemType`.
      */
     beforeEach(() => {
         state.verification = { emailVerified: true };
@@ -653,16 +651,13 @@ describe("deleteItem", () => {
 
 describe("collection recency", () => {
     /**
-     * `updatedAt` is what every "recent collections" listing orders by, and nothing used to move it:
-     * membership is written as a nested write on the **Item**, so Postgres never touched the
-     * `collections` row. "Recent" therefore meant "newest", and the only thing that did move the
-     * column was a rename — metadata, not activity.
+     * `updatedAt` is what every "recent collections" listing orders by. Membership is a nested write
+     * on the **Item**, which never touches the `collections` row, so the actions touch it explicitly.
      *
-     * These pin the rule that fixes it, and specifically the two halves that are easy to get wrong:
-     * an edit must touch the collection an item *left* as well as the one it joined, and an edit that
-     * carries no membership at all must still touch the collections already holding the item. The
-     * second is the common case — most edits change content, not filing — and the naive
-     * implementation misses it entirely.
+     * These pin the two halves that are easy to get wrong: an edit must touch the collection an item
+     * *left* as well as the one it joined, and an edit that carries no membership at all must still
+     * touch the collections already holding the item. The second is the common case — most edits
+     * change content, not filing.
      */
     beforeEach(() => {
         state.verification = { emailVerified: true };
@@ -781,8 +776,8 @@ describe("toggleItemFavorite", () => {
 
     it("writes the state it was given rather than flipping what it finds", async () => {
         // Already favourited, and asked to favourite again. A read-then-flip implementation would
-        // write `false` here — which is what a double click on the star used to do to itself, and
-        // the whole reason this action takes the state instead of deriving it.
+        // write `false` here, which is how a double click on the star undoes itself; the action
+        // takes the state instead of deriving it.
         db.items = [{ id: "item-1", userId: "user-owner", title: "My snippet", isFavorite: true }];
 
         await expect(toggleItemFavorite("item-1", true)).resolves.toEqual({
@@ -808,8 +803,8 @@ describe("toggleItemFavorite", () => {
         await toggleItemFavorite("item-1", true);
 
         // The star must not be able to touch a title, a body, or a type on its way past — nor
-        // `editedAt`, which is the whole reason that column is written by hand instead of being
-        // declared `@updatedAt`. An exact match rather than `toMatchObject`, so an extra key fails.
+        // `editedAt`, which is why that column is written by hand instead of being declared
+        // `@updatedAt`. An exact match rather than `toMatchObject`, so an extra key fails.
         expect(db.lastUpdateData).toEqual({ isFavorite: true });
     });
 });
@@ -909,12 +904,10 @@ describe("toggleItemPin", () => {
 });
 
 /**
- * The read-only state an unconfirmed account falls into after its grace period.
+ * The read-only state of an unconfirmed account.
  *
- * Every write path has to refuse, not just the obvious one: `createItem` is the path anybody would
- * remember to guard, and a favourite toggle is the one that would quietly keep working. The refusal
- * has to happen before the database is touched at all, which is what the second assertion in each
- * case is for.
+ * Every write path refuses, the favourite and pin toggles as much as `createItem`, and refuses
+ * before the database is touched — the second assertion in each case checks that.
  */
 describe("a read-only account", () => {
     beforeEach(() => {

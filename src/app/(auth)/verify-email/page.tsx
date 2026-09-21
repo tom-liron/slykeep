@@ -7,19 +7,6 @@ import { ResendVerification } from "@/components/auth/ResendVerification";
 import { Button } from "@/components/ui/button";
 import { parseVerificationOutcome, type VerificationOutcome } from "@/lib/verification-outcomes";
 
-/**
- * Where a verification link lands: it reports what the click did and offers the next step that
- * follows from it — or, when which account the visitor is dealing with is unsettled, both of them.
- *
- * `GET /api/auth/verify-email` has already consumed the token and applied the result by the time
- * anyone arrives here, so this page only reads `?status=` and renders. It owns a page rather than
- * borrowing a banner on `/sign-in` because the link is opened from an inbox, in a browser that may
- * already hold a session: `/sign-in` is a signed-out route, and the proxy would send a signed-in
- * visitor to `/` with the outcome still in the query string it discarded.
- *
- * @see `OPEN_ROUTES` in `lib/auth-redirects.ts`, which is what makes this path reachable either way.
- */
-
 export const metadata: Metadata = {
     title: "Email verification",
 };
@@ -29,9 +16,8 @@ export const metadata: Metadata = {
  * next — the action block below decides that from the session, which the outcome alone cannot.
  *
  * @remarks
- * Declarative and contraction-free, including for the two outcomes that report a dead link. Those
- * are the ones a person reads while something has gone wrong for them, which is the moment a
- * chatty register reads as the product not taking it seriously.
+ * Declarative and contraction-free throughout, the two dead-link outcomes included: those are read
+ * while something has gone wrong, and call for a plain, serious register.
  */
 const OUTCOME_COPY: Record<VerificationOutcome, { heading: string; body: string }> = {
     verified: {
@@ -52,6 +38,18 @@ const OUTCOME_COPY: Record<VerificationOutcome, { heading: string; body: string 
     },
 };
 
+/**
+ * Where a verification link lands: it reports what the click did and offers the next step that
+ * follows from it — or, when which account the visitor is dealing with is unsettled, both of them.
+ *
+ * `GET /api/auth/verify-email` has already consumed the token and applied the result by the time
+ * anyone arrives here, so this page only reads `?status=` and renders. It owns a page rather than
+ * borrowing a banner on `/sign-in` because the link is opened from an inbox, in a browser that may
+ * already hold a session: `/sign-in` is a signed-out route, and the proxy would send a signed-in
+ * visitor to `/` with the outcome still in the query string it discarded.
+ *
+ * @see `OPEN_ROUTES` in `lib/auth-redirects.ts`, which is what makes this path reachable either way.
+ */
 export default async function VerifyEmailPage({
     searchParams,
 }: {
@@ -74,10 +72,9 @@ export default async function VerifyEmailPage({
     const otherAccount = signedInAs !== null && params.mismatch === "1";
 
     // `invalid` is the one outcome with no address behind it: the row is gone, so the route had
-    // nothing to compare the session against. That is the ordinary second click on a dead link
-    // rather than an edge case — an expired link is spent by the click that reports it expired, so
-    // clicking it again lands here — and it is exactly when the page must not assume the session
-    // owns the link.
+    // nothing to compare the session against, and the page must not assume the session owns the
+    // link. It is the ordinary second click on a dead link: an expired link is spent by the click
+    // that reports it expired.
     const unknownAccount = signedInAs !== null && !otherAccount && outcome === "invalid";
 
     // Whose account this is about is unsettled in both cases, so both ways off the page are offered
@@ -105,8 +102,8 @@ export default async function VerifyEmailPage({
             <div className="space-y-4 text-sm">
                 {/* The address is named whenever there is a session, because on this page it is
                     the one fact the visitor cannot check for themselves and everything else turns
-                    on. What follows it is what to do about it — never why the page cannot tell:
-                    that a spent link no longer names an account is our problem, not theirs. */}
+                    on. What follows it is what to do about it, never why the page cannot tell
+                    which account a spent link named. */}
                 {signedInAs !== null && (
                     <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
                         <p>
@@ -139,11 +136,9 @@ export default async function VerifyEmailPage({
                     everything here is a way off the page for someone who cannot use it. */}
                 <div className={confirmed ? undefined : "border-t border-border pt-4"}>
                     {offerChoice ? (
-                        // Both outline, deliberately. A solid button on this page means the step we
-                        // recommend, and this fork exists because we cannot know which half the
-                        // visitor wants — emphasising either is the guess the panel was built to
-                        // avoid, and "sign out" is the wrong one to make it, since confirming a
-                        // second account on one's own machine is the commoner reason to be here.
+                        // Both outline. A solid button on this page marks the recommended step, and
+                        // here the page cannot know which one the visitor wants, so neither is
+                        // emphasised.
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <Button asChild variant="outline" className="sm:flex-1">
                                 <Link href="/">Stay signed in</Link>

@@ -59,10 +59,8 @@ export default async function SignInPage({
 
     return (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            {/* "Sign in to SlyKeep", not "Welcome back": this page greets first-time arrivals as
-                often as returning ones, and the subtitle says what the product is for the same
-                reason. The post-sign-in toast can say "welcome back" — by then the account has
-                authenticated. */}
+            {/* This page greets first-time arrivals as often as returning ones, so the heading
+                names the product and the subtitle says what it is for. */}
             <div className="mb-6 space-y-1">
                 <h1 className="text-xl font-semibold">Sign in to SlyKeep</h1>
                 <p className="text-sm text-muted-foreground">

@@ -10,16 +10,12 @@ import { SectionHeading } from "@/components/marketing/SectionHeading";
 /**
  * The captures, imported rather than referenced by path, so their URLs carry a content hash.
  *
- * `next/image` given the string `/marketing/device-laptop.png` produces an optimizer URL keyed on
- * that path and nothing else, so re-recording leaves every cached copy — browser, optimizer, CDN —
- * pointing at bytes that no longer exist on disk, and the page keeps showing the previous design
- * until something expires. That is not a local annoyance only: the same staleness would meet
- * returning visitors after a deploy, since these filenames are deliberately stable so
- * `scripts/record-marketing.ts` can overwrite them.
+ * `scripts/record-marketing.ts` overwrites these files under stable names, and an optimizer URL
+ * built from a path string is keyed on the path alone, so browser, optimizer and CDN caches would
+ * keep serving the previous capture. A static import makes the build emit a hashed URL instead —
+ * `/_next/static/media/device-laptop.<hash>.png` — so new bytes get a new URL.
  *
- * A static import makes the build emit `/_next/static/media/device-laptop.<hash>.png`. New bytes
- * mean a new hash, a new URL, and nothing to go stale. The recorder still writes to `public/`, and
- * `marketing-media.ts` still describes the captures for it — that module stays import-free so the
+ * `config/marketing-media.ts` still names these paths for the recorder; it stays import-free so the
  * script can load it outside the Next runtime.
  */
 const CAPTURES = {
