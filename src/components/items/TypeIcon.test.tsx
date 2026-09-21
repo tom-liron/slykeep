@@ -14,6 +14,11 @@ import { ITEM_TYPE_CATALOG, SYSTEM_ITEM_TYPE_NAMES } from "@/config/item-type-ca
 import type { IconName } from "@/types/item-type";
 import { TypeIcon } from "./TypeIcon";
 
+/**
+ * Pins the mapping from a persisted icon name to the lucide component `TypeIcon` draws, so every
+ * name in the item-type catalog renders its intended glyph.
+ */
+
 const iconComponents: Record<IconName, LucideIcon> = {
     Code,
     Sparkles,

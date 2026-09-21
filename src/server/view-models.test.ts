@@ -15,6 +15,12 @@ import {
 } from "./view-models";
 import type { CollectionRow, ItemDetailRow, ItemSummaryRow, ItemTypeRow } from "./view-models";
 
+/**
+ * The server-side derivation of view models from Prisma rows: joining item types to their catalog
+ * presentation, normalizing nullable columns for display, a collection's dominant type and type
+ * breakdown, and the `editedAt` ordering every listing shares.
+ */
+
 // Self-contained fixtures: the item types the seed writes, joined to their configured presentation
 // under synthetic ids. Nothing here reads the database — these exercise the pure derivation rules.
 const itemTypes = SYSTEM_ITEM_TYPE_NAMES.map((name) =>

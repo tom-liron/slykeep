@@ -124,7 +124,7 @@ async function checkSystemTypeConstraint(prisma: PrismaClient) {
 
     // The index is the only thing stopping a second ('snippet', NULL) row, so prove it bites.
     // Wrapped in a transaction that always rolls back: if the constraint were broken the insert
-    // would succeed, and we must not leave that row behind.
+    // would succeed, and that row must not be left behind.
     try {
         await prisma.$transaction(async (tx) => {
             await tx.itemType.create({

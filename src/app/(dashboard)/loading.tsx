@@ -1,6 +1,9 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CARD_GRID } from "@/config/dashboard";
 
+const CARDS = [0, 1, 2, 3, 4, 5];
+const ROWS = [0, 1, 2, 3, 4];
+
 /**
  * The placeholder every signed-in route shows while its server component resolves.
  *
@@ -10,9 +13,6 @@ import { CARD_GRID } from "@/config/dashboard";
  * boundary, so this one shape covers all of them — a heading, a card grid and a short list, the
  * arrangement the dashboard, `/collections`, `/favorites` and the item-type listings share.
  */
-const CARDS = [0, 1, 2, 3, 4, 5];
-const ROWS = [0, 1, 2, 3, 4];
-
 export default function DashboardLoading() {
     return (
         // `status` rather than `alert`: a wait is a polite announcement, and the label is what a

@@ -25,10 +25,8 @@ export const ITEM_TYPE_COLORS = {
     command: "#f97316",
     note: "#fde047",
     /**
-     * The one type not on its original colour. That was `#6b7280`, a near-neutral at a chroma of
-     * 0.023 — against the redesign's near-black surfaces it did not read as a colour at all, but as
-     * a disabled icon. Slate carries barely more chroma and stays the quiet one of the seven, which
-     * is right for the type, while looking switched on.
+     * Slate: the quietest of the seven, with just enough chroma to read as a colour against the
+     * near-black surfaces. A near-neutral grey here reads as a disabled icon.
      */
     file: "#94A3B8",
     image: "#ec4899",

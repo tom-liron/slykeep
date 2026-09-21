@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { getSignInErrorMessage } from "./auth-errors";
 
+/**
+ * The sign-in form's reading of Auth.js `?error=` codes: known codes get a specific explanation, and
+ * anything else gets a generic sentence that never echoes the raw code.
+ */
+
 describe("getSignInErrorMessage", () => {
     it("returns null when there is no error param", () => {
         expect(getSignInErrorMessage(undefined)).toBeNull();

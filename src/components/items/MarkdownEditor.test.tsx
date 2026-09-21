@@ -59,8 +59,8 @@ describe("MarkdownEditor preview", () => {
     });
 
     it("keeps the fence's declared language on the element", () => {
-        // Nothing consumes this today — code blocks render monochrome on purpose. It is the hook a
-        // highlighter would attach to, so losing it would be a silent regression.
+        // Nothing consumes this yet — code blocks render monochrome. It is the hook a highlighter
+        // would attach to, so losing it would be a silent regression.
         expect(render(["```ts", "const x = 1;", "```"].join("\n"))).toContain("language-ts");
     });
 

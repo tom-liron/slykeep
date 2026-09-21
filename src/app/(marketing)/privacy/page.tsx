@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 
 import { ProsePage, ProseSection } from "@/components/marketing/ProsePage";
 
+export const metadata: Metadata = {
+    title: "Privacy Policy · SlyKeep",
+    description: "What SlyKeep stores, which services process it, and how to have it deleted.",
+};
+
+const CONTACT = "privacy@slykeep.com";
+
 /**
  * The Privacy Policy at `/privacy`.
  *
@@ -19,13 +26,6 @@ import { ProsePage, ProseSection } from "@/components/marketing/ProsePage";
  * practice changes — a new subprocessor, a new field, a change to what the AI actions send — this
  * page and `lastUpdated` change with it.
  */
-export const metadata: Metadata = {
-    title: "Privacy Policy · SlyKeep",
-    description: "What SlyKeep stores, which services process it, and how to have it deleted.",
-};
-
-const CONTACT = "privacy@slykeep.com";
-
 export default function PrivacyPage() {
     return (
         <ProsePage

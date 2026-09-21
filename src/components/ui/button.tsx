@@ -32,12 +32,10 @@ const buttonVariants = cva(
     {
         variants: {
             variant: {
-                // The hover lifts the gold rather than fading it. `bg-primary/80` let the
-                // near-black background through, so this was the one variant in the set that got
-                // *darker* under the pointer while `outline`, `ghost`, `secondary` and
-                // `destructive` all brightened. A token rather than an alpha or a `color-mix`,
-                // because every way of blending gold toward something colourless takes its chroma
-                // with it — see `--primary-hover` in `globals.css` for the numbers.
+                // The hover lifts the gold, so this variant brightens under the pointer like every
+                // other. A token rather than an alpha or a `color-mix`: an alpha lets the dark
+                // background through, and blending gold toward anything colourless drains its
+                // chroma — see `--primary-hover` in `globals.css`.
                 default: "bg-primary text-primary-foreground hover:bg-primary-hover",
                 outline:
                     "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",

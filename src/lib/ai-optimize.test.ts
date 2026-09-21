@@ -13,6 +13,12 @@ import {
     parseOptimizedPrompt,
 } from "./ai-optimize";
 
+/**
+ * The prompt-optimize rules: which items qualify, how the model input is built and bounded, and how
+ * a reply is parsed, stripped of delimiters and refused when unusable before it can be saved over
+ * the user's prompt.
+ */
+
 describe("isOptimizablePromptType", () => {
     it("accepts the one type whose content is a prompt", () => {
         expect(isOptimizablePromptType("prompt")).toBe(true);

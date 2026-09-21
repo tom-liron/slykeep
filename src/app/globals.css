@@ -157,12 +157,10 @@
      * The hover face of a solid `--primary` surface: the same gold, lifted in lightness with its
      * chroma held.
      *
-     * A value rather than an alpha or a `color-mix`, because both of those blend gold toward
-     * something colourless and take its chroma with them. `bg-primary/80` let the near-black
-     * background through and landed on roughly `#C7963C` — darker *and* duller. Mixing 10% of
-     * `--foreground` in moved lightness by 0.016 and cost a tenth of the chroma, so the button read
-     * as going flat rather than lifting. This is `--primary` at L 0.85 instead of 0.810, chroma
-     * unchanged at 0.144: brighter gold, still gold.
+     * A value rather than an alpha or a `color-mix`: an alpha lets the near-black background
+     * through, and mixing toward anything colourless drains the chroma, so both read as the button
+     * going flat. This is `--primary` with lightness raised from 0.810 to 0.85 and chroma held at
+     * 0.144.
      */
     --primary-hover: #ffc253;
     --confirm: #3dd68c;
@@ -212,19 +210,15 @@
  * The focus indicator, everywhere the app draws one: a hairline on the element's own edge and a soft
  * halo bleeding out from it.
  *
- * One utility rather than per-component `focus-visible:ring-*`, because three different treatments
- * had drifted apart — a 3px ring at 50% over a solid `border-ring` on buttons, badges and switches;
- * a 2px ring at full strength on cards, the brand and the command palette; and a 2px ring at 15%
- * over a 70% border on fields. The first of those stacked two separate bands of yellow, which is the
- * "cheap" look: a hard edge, a gap, then a second softer edge in a different tone.
+ * Use this utility rather than per-component `focus-visible:ring-*`, so every control shows the
+ * same indicator.
  *
- * A halo instead. `box-shadow` blurs, `ring` cannot, and that blur is the whole difference between
- * light coming off the control and a rectangle drawn around it. The hairline keeps the indicator
- * meeting WCAG 2.4.11 on its own, so the halo is free to be as soft as it likes. `transition-all` on
- * the button base animates it in, which a hard ring never earned.
+ * The halo is a `box-shadow` because a shadow blurs and a `ring` cannot. The hairline meets WCAG
+ * 2.4.11 on its own, so the halo can be as soft as it likes. `transition-all` on the button base
+ * animates it in.
  *
- * The mix is `in srgb` deliberately: fading a colour to `transparent` is an alpha operation, and the
- * perceptual spaces used elsewhere in this file buy nothing for it.
+ * The mix is `in srgb`: fading a colour to `transparent` is an alpha operation, and the perceptual
+ * spaces used elsewhere in this file gain nothing for it.
  */
 @utility focus-glow {
     &:focus-visible {

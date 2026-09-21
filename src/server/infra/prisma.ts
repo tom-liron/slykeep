@@ -8,9 +8,9 @@ import { PrismaClient } from "@/generated/prisma-client/client";
  * The shared Prisma client, and the guard that keeps a local run off the production database.
  *
  * Every server-side read and write reaches Postgres through the {@link prisma} export. Prisma 7
- * requires a driver adapter — the client no longer opens its own connection — so this wires
- * `PrismaPg` to Neon's pooled URL; the CLI uses the direct URL for migrations (see
- * `prisma.config.ts`). Next.js loads `.env` itself, so there is no dotenv call here.
+ * requires a driver adapter to open connections, so this wires `PrismaPg` to Neon's pooled URL;
+ * the CLI uses the direct URL for migrations (see `prisma.config.ts`). Next.js loads `.env`
+ * itself, so there is no dotenv call here.
  *
  * @remarks
  * `import "server-only"` so a database connection string can never reach a browser bundle; every

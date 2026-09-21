@@ -63,12 +63,9 @@ export function BillingCycleToggle({
                 >
                     {option.label}
                     {option.badge ? (
-                        // One line, at every width. Full width used to shrink this to `w-min` and
-                        // let the text wrap inside it, which turned "Save 25%" into a near-square
-                        // blob — 39x35 on a 390px screen at the default font size, against 64x16
-                        // for the pill. It bought nothing: the row does not overflow either way,
-                        // and the button's own `flex-wrap` is the real fallback, dropping the badge
-                        // whole onto the next line when it stops fitting beside the label.
+                        // One line, at every width, so the badge keeps its pill shape. When it no
+                        // longer fits beside the label, the button's own `flex-wrap` drops it whole
+                        // onto the next line.
                         <span
                             className={cn(
                                 "rounded-full bg-confirm/16 px-1.5 py-px text-[0.68rem] font-bold text-confirm",

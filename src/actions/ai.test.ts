@@ -299,7 +299,7 @@ describe("explainCode", () => {
     it("refuses a type that is not code, before spending anything", async () => {
         // The gate the UI also applies, enforced here because the UI is not the authority — and
         // because an unrecognized type is interpolated into the prompt. Ahead of the Pro gate and
-        // the limiter on purpose: there is no request left to make once the type is refused.
+        // the limiter: there is no request left to make once the type is refused.
         for (const type of ["note", "prompt", "link", "file", "image"]) {
             const result = await explainCode({ content: "some text", type });
 

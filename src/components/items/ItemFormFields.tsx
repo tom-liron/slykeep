@@ -464,23 +464,15 @@ export function TagsField({
                     <span className="text-xs text-muted-foreground">Suggested:</span>
 
                     {suggestions.map((tag) => (
-                        /* Drawn as provisional rather than in a colour of its own: muted text inside
-                           a dashed border, so a proposal looks unfinished until it is accepted and
-                           becomes ordinary text in the input above.
-
-                           It was blue, which put it a shade away from the snippet type colour — on a
-                           snippet's own form the chips read as type markers. The palette had no hue
-                           left that did not mean something else, and a proposal is better served by
-                           looking unresolved than by being assigned one. Green and red stay on the
-                           accept and reject controls, so the two opposite actions are still not a
-                           pair of identical grey glyphs, and they now carry the only colour here.
+                        /* Drawn as provisional rather than in a colour of its own: a dashed border
+                           marks a proposal as unresolved until it is accepted into the input above.
+                           Every hue in the palette already means something — blue would read as the
+                           snippet type — so colour stays on the green accept and red reject
+                           controls.
 
                            The text is `foreground`, not `muted-foreground`: a suggested tag is a
-                           candidate *value*, and muted is this form's helper-text colour — the
-                           "Separate tags with commas." line sits directly beneath these chips in it.
-                           Dimming them put proposals in the one colour that means "not content",
-                           and the row read as a sentence of instructions rather than a set of
-                           things to take. The dashed border is what says provisional. */
+                           candidate value, and muted is this form's helper-text colour, used by the
+                           "Separate tags with commas." line directly beneath. */
                         <Badge
                             key={tag}
                             variant="outline"

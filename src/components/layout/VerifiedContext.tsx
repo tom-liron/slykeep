@@ -9,15 +9,17 @@ import { createContext, useContext, type ReactNode } from "react";
  * An unconfirmed account is refused every write by `readOnlyRefusal` in `server/access.ts`. This is
  * how the UI knows to disable those controls up front instead of letting each one fail on click.
  * A context rather than a prop for the same reason as `ProProvider` in `./ProContext`: the deepest
- * consumers —
- * the item drawer's toolbar, the collection row menus — mount far below the layout that reads the
- * user.
+ * consumers — the item drawer's toolbar, the collection row menus — mount far below the layout that
+ * reads the user.
+ */
+
+/**
+ * The account's verified state as the provider sets it.
  *
  * @remarks
- * The default is `true`, which fails *open* — the opposite of `ProContext`'s default and deliberate.
- * A missing provider here would otherwise disable every write control in the application, and the
- * Server Action refuses anyway, so the safe failure is to show the control and let the action be the
- * authority.
+ * Defaults to `true`, failing *open*, unlike `ProContext`. A missing provider would otherwise
+ * disable every write control in the application, and the Server Action refuses regardless, so the
+ * action stays the authority.
  */
 const VerifiedContext = createContext(true);
 
@@ -40,12 +42,10 @@ export function VerifiedProvider({
  * reads `disabled={Boolean(reason)}` and `title={reason ?? undefined}`.
  *
  * @remarks
- * The content controls use this; the checkout buttons deliberately do not. Disabling suits an action
- * the banner already accounts for and that sits among several others — four dead toasts in one
- * drawer toolbar is noise. Checkout is the opposite: a deliberate, infrequent click by someone who
- * navigated to `/upgrade` on purpose, where a control that does nothing and has no tooltip on touch
- * is the worst available answer. Those stay live and let `startCheckout`'s refusal surface as a
- * toast.
+ * The content controls use this; the checkout buttons do not. Content controls sit several to a
+ * toolbar, where the banner already explains them. Checkout is a single, intentional click on
+ * `/upgrade`, so it stays live and lets `startCheckout`'s refusal explain itself as a toast — a
+ * disabled button there would do nothing and show no tooltip on touch.
  */
 export function useWriteBlockedReason(): string | null {
     return useContext(VerifiedContext) ? null : "Confirm your email address to enable this.";

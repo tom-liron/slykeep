@@ -5,6 +5,10 @@ import { Brand } from "@/components/layout/Brand";
 import { Button } from "@/components/ui/button";
 import { RouteNotice } from "@/components/ui/RouteNotice";
 
+export const metadata = {
+    title: "Page not found · SlyKeep",
+};
+
 /**
  * The 404 for a URL that matches no route in the application.
  *
@@ -12,10 +16,6 @@ import { RouteNotice } from "@/components/ui/RouteNotice";
  * carries its own bar and its own way back. `(dashboard)/not-found.tsx` is the other half: a
  * `notFound()` thrown by a page that *does* exist keeps the signed-in chrome.
  */
-export const metadata = {
-    title: "Page not found · SlyKeep",
-};
-
 export default function NotFound() {
     return (
         <div className="flex min-h-dvh flex-col bg-background md:h-dvh md:overflow-y-auto">

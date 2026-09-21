@@ -93,8 +93,8 @@ describe("isOwnedKey", () => {
     const key = `users/${USER}/3f0c9c1e-0000-4000-8000-00000000abcd.png`;
 
     it("rejects another user's object", () => {
-        // The whole reason this exists: the upload route hands a key to the browser, and the browser
-        // hands it back with the create payload, so by then it is client input again.
+        // The upload route hands a key to the browser, and the browser hands it back with the
+        // create payload, so by then it is client input again.
         expect(isOwnedKey(key, "clx1111111111111111111111")).toBe(false);
     });
 

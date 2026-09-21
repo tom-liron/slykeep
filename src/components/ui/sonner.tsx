@@ -61,15 +61,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
                     "--border-radius": "var(--radius)",
                 } as React.CSSProperties
             }
-            // `pointer-events-auto` is what makes a toast's action button clickable. A Radix modal
-            // — the item drawer's `Sheet`, the create dialog — sets `pointer-events: none` on
-            // `<body>` while it is open, and the toaster is a sibling of that markup, so the toast
-            // inherits it. Sonner declares `pointer-events` exactly once, to switch it *off* for a
-            // toast on its way out, and never back on. So every toast in the app was inert under a
-            // modal, which could only show once one carried a control worth pressing: the Upgrade
-            // action on `useAiUpsell`'s Pro refusal, raised by four buttons that all live inside
-            // one. The utility loses to sonner's `[data-sonner-toast][data-visible='false']` rule
-            // on specificity, which is the right way round — a toast leaving the screen stays inert.
+            // `pointer-events-auto` keeps a toast's action button clickable while a Radix modal is
+            // open — the item drawer's `Sheet`, the create dialog. The modal sets `pointer-events:
+            // none` on `<body>`, the toaster inherits it, and sonner never switches it back on. The
+            // Upgrade action on `useAiUpsell`'s Pro refusal is raised from inside such a modal.
+            // Sonner's `[data-sonner-toast][data-visible='false']` rule still wins on specificity,
+            // so a toast on its way out stays inert.
             toastOptions={{ classNames: { toast: "cn-toast pointer-events-auto" } }}
             {...props}
         />

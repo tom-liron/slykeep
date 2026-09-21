@@ -26,8 +26,8 @@ const COPIED_FEEDBACK_MS = 2000;
  * `isCopied` drives the check-and-"Copied" swap for {@link COPIED_FEEDBACK_MS} afterwards.
  *
  * @remarks
- * Repeated clicks restart the window rather than stacking anything: this is the mechanism that
- * replaced the copy toast, which is why no copy control shows a success toast any more.
+ * Repeated clicks restart the window rather than stacking anything. A successful copy raises no
+ * toast; this state is the whole confirmation.
  */
 export function useCopyAction() {
     const [isCopying, setIsCopying] = useState(false);

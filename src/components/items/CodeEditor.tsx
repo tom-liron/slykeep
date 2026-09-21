@@ -536,7 +536,7 @@ function Tab({ value, children }: { value: string; children: React.ReactNode }) 
  *
  * A free account gets `Crown` in place of the glyph and keeps the word "Explain". The button stays
  * enabled: the click is what raises the toast naming the feature and offering the upgrade, and a
- * disabled control fires none, which left the crown unexplained on a touch screen.
+ * disabled control fires no click at all.
  *
  * @remarks
  * This is the only icon in an otherwise spare header (flat dots, muted tabs, a mono label), so a

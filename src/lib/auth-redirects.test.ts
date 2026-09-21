@@ -85,7 +85,7 @@ describe("OPEN_ROUTES", () => {
     // The proxy is deny-by-default, so membership here is the only thing making the legal pages
     // readable without a session. Dropping one costs no compile error and no failing render — the
     // page simply serves a redirect to `/sign-in` to every signed-out reader, search engines
-    // included, which is the appearance that got the domain flagged as deceptive.
+    // included, which safe-browsing checks treat as a deceptive site.
     it.each(["/privacy", "/terms"])("keeps %s reachable without a session", (route) => {
         expect(OPEN_ROUTES.has(route)).toBe(true);
     });

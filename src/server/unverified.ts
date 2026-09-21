@@ -35,11 +35,10 @@ export function unverifiedCutoff(now: Date): Date {
  * @returns How many rows went, for the caller to log.
  *
  * @remarks
- * Nothing of the owner's is destroyed by this, and that is a property of the gate rather than of the
- * query: an unconfirmed account is read-only from the moment it exists — see `server/access.ts` —
- * so it holds exactly the starter content `seedStarterContent` gave it and nothing else. The old
- * `items: { none: {} }` guard cannot be kept for the same reason it is no longer needed: every
- * account is seeded, so "owns nothing" was never true of even a brand-new one.
+ * Nothing of the owner's is destroyed by this, which follows from the write gate rather than from
+ * the query: an unconfirmed account is read-only from the moment it exists — see `server/access.ts`
+ * — so it holds only the starter content `seedStarterContent` gave it. The query does not test for
+ * an empty account: every account is seeded at registration, so none would match.
  *
  * Every remaining clause in the `where` is a guard rather than the rule. The rule is the first two —
  * no `emailVerified`, and older than {@link unverifiedCutoff}:

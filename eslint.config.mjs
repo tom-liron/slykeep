@@ -2,6 +2,11 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
+/**
+ * ESLint configuration for `npm run lint`: Next's Core Web Vitals and TypeScript presets, plus the
+ * rule that keeps `src/lib/` free of server-only imports.
+ */
+
 const eslintConfig = defineConfig([
     ...nextVitals,
     ...nextTs,
@@ -15,7 +20,7 @@ const eslintConfig = defineConfig([
         // Prisma Client — generated on install, never edited by hand.
         "src/generated/**",
         // The monaco build, copied out of node_modules by `npm run monaco:sync`. Minified
-        // third-party JS: 25,000 findings that are not ours and cannot be acted on.
+        // third-party JS, whose findings cannot be acted on here.
         "public/monaco/**",
     ]),
     // `src/lib/` is reachable from client components, so nothing in it may pull in server-only

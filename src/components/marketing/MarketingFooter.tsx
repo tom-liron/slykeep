@@ -17,9 +17,7 @@ const PRODUCT_LINKS = [
 /**
  * The Company column: the site's written pages, each a route rather than an in-page jump.
  *
- * Every entry points at a page that exists. A link with nowhere to go does not belong here — a
- * footer advertising documentation and support that were never built reads as a mockup, which is
- * the opposite of what these pages are for.
+ * Every entry points at a page that exists; add a link here only when its page is built.
  */
 const COMPANY_LINKS = [
     { href: "/privacy", label: "Privacy" },

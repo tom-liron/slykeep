@@ -28,13 +28,11 @@ export const SIGNED_OUT_ROUTES = new Set(["/sign-in", "/register", "/forgot-pass
  * them: `/reset-password` grants nothing the token in the URL does not, and `/verify-email` only
  * reports an outcome that `GET /api/auth/verify-email` has already applied.
  *
- * `/privacy` and `/terms` are here on the opposite grounds — not because a link arrives from
- * outside, but because they must be readable by *anyone*, and that includes a search engine. The
- * proxy is deny-by-default: a request with no session that is not listed in a route set here is
- * redirected to `/sign-in`. A crawler never has a session, so leaving these out would serve
- * Googlebot a login form in place of the site's legal pages — which is the precise appearance that
- * got the domain flagged as deceptive in the first place. Both are static and hold nothing of
- * anyone's, so a signed-in reader is served them unchanged.
+ * `/privacy` and `/terms` must be readable by anyone, search engines included. The proxy is
+ * deny-by-default: a request with no session that is not listed in a route set here is redirected
+ * to `/sign-in`, so without these entries a crawler would be served a login form in place of the
+ * site's legal pages — which safe-browsing checks treat as a deceptive site. Both pages are static
+ * and hold nothing of anyone's, so a signed-in reader is served them unchanged.
  */
 export const OPEN_ROUTES = new Set(["/reset-password", "/verify-email", "/privacy", "/terms"]);
 
